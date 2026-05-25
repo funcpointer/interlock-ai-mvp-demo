@@ -190,20 +190,38 @@ def _render_context_layer(run_dir: Path) -> None:
     pages = _wiki_pages(run_dir)
     if not pages:
         return
-    with st.expander("Context layer: graph, search, wiki"):
+    entrypoints = [name for name in WIKI_PREVIEW_FILES if name in pages]
+    other_pages = [name for name in pages if name not in set(entrypoints)]
+    with st.expander("Context layer: graph, search, wiki", expanded=True):
         st.caption(
-            "Derived second-brain layer for navigation. JSON findings remain the source of truth; use the selector to inspect wiki pages."
+            "Derived second-brain layer for navigation. JSON findings remain the source of truth."
         )
-        index = pages.index("wiki/index.md") if "wiki/index.md" in pages else 0
-        selected = st.selectbox("Wiki page", pages, index=index)
-        path = run_dir / selected
-        st.markdown(_preview_wiki_markdown(path.read_text(encoding="utf-8")))
-        st.download_button(
-            f"Download {selected}",
-            data=path.read_bytes(),
-            file_name=_download_name(selected),
-            mime="text/markdown",
-        )
+        if entrypoints:
+            tabs = st.tabs([_wiki_tab_label(name) for name in entrypoints])
+            for tab, name in zip(tabs, entrypoints, strict=True):
+                with tab:
+                    _render_wiki_page(run_dir, name, key_prefix="wiki-entry")
+        if other_pages:
+            st.markdown("**All wiki pages**")
+            selected = st.selectbox(
+                "Open generated wiki page",
+                other_pages,
+                format_func=_wiki_page_label,
+                key=f"wiki-page-{run_dir.name}",
+            )
+            _render_wiki_page(run_dir, selected, key_prefix="wiki-page")
+
+
+def _render_wiki_page(run_dir: Path, name: str, *, key_prefix: str) -> None:
+    path = run_dir / name
+    st.markdown(_preview_wiki_markdown(path.read_text(encoding="utf-8")))
+    st.download_button(
+        f"Download {name}",
+        data=path.read_bytes(),
+        file_name=_download_name(name),
+        mime="text/markdown",
+        key=f"{key_prefix}-{run_dir.name}-{_download_name(name)}",
+    )
 
 
 def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
@@ -304,6 +322,18 @@ def _preview_wiki_markdown(text: str) -> str:
     text = re.sub(r"\[\[([^|\]]+)\|([^\]]+)\]\]", r"**\2** (`\1.md`)", text)
     text = re.sub(r"\[([^\]]+)\]\(([^)]+\.md)\)", r"**\1** (`\2`)", text)
     return text
+
+
+def _wiki_tab_label(name: str) -> str:
+    return {
+        "wiki/index.md": "Index",
+        "wiki/review-map.md": "Review Map",
+        "wiki/memory-palace.md": "Memory Palace",
+    }.get(name, _wiki_page_label(name))
+
+
+def _wiki_page_label(name: str) -> str:
+    return name.removeprefix("wiki/").removesuffix(".md")
 
 
 def _input_options() -> list[str]:

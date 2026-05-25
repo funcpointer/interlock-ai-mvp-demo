@@ -12,6 +12,8 @@ from interlock_mvp.streamlit_app import (
     _safe_upload_name,
     _upload_errors,
     _wiki_pages,
+    _wiki_page_label,
+    _wiki_tab_label,
 )
 
 
@@ -93,3 +95,10 @@ def test_wiki_preview_rewrites_internal_links_to_non_broken_labels() -> None:
     assert "[Review Map]" not in rendered
     assert "**Review Map** (`review-map.md`)" in rendered
     assert "**Memory Palace** (`memory-palace.md`)" in rendered
+
+
+def test_wiki_labels_are_human_readable() -> None:
+    assert _wiki_tab_label("wiki/index.md") == "Index"
+    assert _wiki_tab_label("wiki/review-map.md") == "Review Map"
+    assert _wiki_tab_label("wiki/memory-palace.md") == "Memory Palace"
+    assert _wiki_page_label("wiki/context-rooms/room_a.md") == "context-rooms/room_a"
