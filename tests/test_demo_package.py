@@ -53,6 +53,44 @@ def test_demo_package_writes_static_site_and_copies_crops(tmp_path: Path) -> Non
     assert (tmp_path / "demo" / "summary.md").exists()
 
 
+def test_demo_package_sanitizes_deploy_artifacts(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    _write_json(run_dir / "findings.json", records=[])
+    _write_json(
+        run_dir / "metrics.json",
+        meta={
+            "metrics": {
+                "findings": 0,
+                "env_keys_loaded": ["OPENAI_API_KEY", "ANTHROPIC_API_KEY"],
+                "path_note": "/Users/kc/private/doc.pdf",
+            }
+        },
+    )
+    _write_json(run_dir / "triage.json", meta={"issues": [{"summary": "/Users/kc/private/doc.pdf"}]})
+    (run_dir / "wiki").mkdir()
+    (run_dir / "wiki" / "documents.md").write_text("/Users/kc/private/doc.pdf", encoding="utf-8")
+
+    site_dir = write_demo_package(
+        out_dir=tmp_path / "demo",
+        cases=[
+            DemoCase(
+                case_id="case",
+                title="Case",
+                run_dir=run_dir,
+                claim="Claim",
+                caveat="Caveat",
+            )
+        ],
+    )
+
+    exported = "\n".join(path.read_text(encoding="utf-8", errors="ignore") for path in site_dir.rglob("*") if path.is_file())
+    assert "/Users/kc" not in exported
+    assert "OPENAI_API_KEY" not in exported
+    assert "ANTHROPIC_API_KEY" not in exported
+    assert not (site_dir / "artifacts" / "case" / "wiki").exists()
+
+
 def _write_json(path: Path, *, records: list[dict] | None = None, meta: dict | None = None) -> None:
     payload = {"schema_version": "test", "records": records or [], **(meta or {})}
     path.write_text(json.dumps(payload), encoding="utf-8")

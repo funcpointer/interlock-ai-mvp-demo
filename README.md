@@ -45,6 +45,12 @@ Deploy `runs/demo-package/site/` as a static site. This is the recommended VC
 sharing surface because it has no run button, no local path inputs, no server
 execution, and no access to files outside the exported artifacts.
 
+Current deployed VC demo:
+
+```text
+https://interlock-ai-mvp-demo.vercel.app
+```
+
 The AES/domain glossary is loaded from `examples/aes_glossary.yaml` by default.
 It now feeds extraction, parameter naming, context labeling, corpus runs, and
 search expansion. It is still an MVP glossary, not a complete AES ontology.

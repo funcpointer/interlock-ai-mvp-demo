@@ -1237,3 +1237,53 @@ Security posture:
 - no arbitrary path input,
 - no review execution endpoint,
 - no access to local filesystem beyond exported artifacts.
+
+## checkpoint-2026-05-25-vercel-deploy
+
+Purpose:
+
+- deploy the sanitized static VC demo package to a shareable URL,
+- verify the deployed page loads and shows the expected investor-demo content,
+- tighten the static package export so local paths and key names are not shipped.
+
+Changed:
+
+- `demo_package.py` now writes sanitized JSON artifacts,
+- raw wiki pages are no longer copied into the deployable site,
+- copied metrics omit `env_keys_loaded`,
+- generated reports replace raw copied reports,
+- package summary no longer includes local run paths,
+- added regression test for deploy-artifact sanitization,
+- added `docs/VERCEL_DEPLOYMENT_2026-05-25.md`,
+- README now includes the deployed Vercel URL.
+
+Deployment:
+
+```text
+https://interlock-ai-mvp-demo.vercel.app
+```
+
+Validation result:
+
+```text
+tests/test_demo_package.py
+  2 passed
+
+make eval-demo-package
+  public version demo passed
+  public cross-doc demo passed
+  negative control passed
+  scanned control passed
+  wrote runs/demo-package/site/index.html
+
+deploy safety grep
+  no local path / key-name matches
+
+browser verification
+  production URL loaded
+  4 cases rendered
+  4 review findings
+  4 review required
+  18 coverage warnings
+  26 citation/crop images present
+```

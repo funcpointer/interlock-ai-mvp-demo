@@ -3,8 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from html import escape
 from pathlib import Path
-from shutil import copy2, copytree, rmtree
+from shutil import copy2, rmtree
 from typing import Any
+import copy
+import json
+import re
 
 from .artifacts import read_artifact
 
@@ -72,16 +75,17 @@ def _render_case(case: DemoCase, *, site_dir: Path) -> dict[str, Any]:
 
     findings = _read_records(run_dir / "findings.json")
     metrics = _read_metrics(run_dir / "metrics.json")
-    triage = _read_optional(run_dir / "triage.json")
+    triage = _sanitize(_read_optional(run_dir / "triage.json"))
 
     artifact_dir = site_dir / "artifacts" / case.case_id
     artifact_dir.mkdir(parents=True, exist_ok=True)
-    for name in ["report.md", "findings.json", "metrics.json", "triage.json", "reasoning_graph.json", "decision_traces.json"]:
+    for name in ["findings.json", "triage.json", "reasoning_graph.json", "decision_traces.json"]:
         source = run_dir / name
         if source.exists():
-            copy2(source, artifact_dir / name)
-    if (run_dir / "wiki").exists():
-        copytree(run_dir / "wiki", artifact_dir / "wiki", dirs_exist_ok=True)
+            _write_sanitized_json(source, artifact_dir / name)
+    if (run_dir / "metrics.json").exists():
+        _write_sanitized_metrics(run_dir / "metrics.json", artifact_dir / "metrics.json")
+    _write_case_report(case, artifact_dir / "report.md", findings=findings, metrics=metrics, triage=triage)
 
     assets_dir = site_dir / "assets" / case.case_id
     assets_dir.mkdir(parents=True, exist_ok=True)
@@ -266,7 +270,7 @@ def _summary_md(rendered_cases: list[dict[str, Any]]) -> str:
         lines.extend([
             f"### {case.title}",
             "",
-            f"- Run: `{item['run_dir']}`",
+            f"- Artifact folder: `site/artifacts/{case.case_id}/`",
             f"- Review findings: {_review_findings_count(item)}",
             f"- Review required: {metrics.get('review_required_findings', _count(item['findings'], 'severity', 'review_required'))}",
             f"- Coverage warnings: {metrics.get('coverage_warning_findings', _count(item['findings'], 'finding_type', 'coverage_warning'))}",
@@ -304,6 +308,84 @@ def _read_optional(path: Path) -> dict[str, Any]:
 
 def _count(records: list[dict[str, Any]], key: str, value: str) -> int:
     return sum(1 for record in records if record.get(key) == value)
+
+
+def _write_sanitized_json(source: Path, dest: Path) -> None:
+    payload = _sanitize(read_artifact(source))
+    dest.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_sanitized_metrics(source: Path, dest: Path) -> None:
+    payload = _sanitize(read_artifact(source))
+    metrics = payload.get("metrics", {})
+    metrics.pop("env_keys_loaded", None)
+    dest.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+
+
+def _write_case_report(
+    case: DemoCase,
+    dest: Path,
+    *,
+    findings: list[dict[str, Any]],
+    metrics: dict[str, Any],
+    triage: dict[str, Any],
+) -> None:
+    lines = [
+        f"# {case.title}",
+        "",
+        case.claim,
+        "",
+        f"Note: {case.caveat}",
+        "",
+        "## Metrics",
+        "",
+        f"- Review findings: {_review_findings_count({'findings': findings, 'metrics': metrics})}",
+        f"- Review required: {metrics.get('review_required_findings', _count(findings, 'severity', 'review_required'))}",
+        f"- Coverage warnings: {metrics.get('coverage_warning_findings', _count(findings, 'finding_type', 'coverage_warning'))}",
+        f"- Alignment decisions: {metrics.get('alignment_decisions', 0)}",
+        f"- Comparison decisions: {metrics.get('comparison_decisions', 0)}",
+        f"- Absence searches: {metrics.get('absence_searches', 0)}",
+        "",
+        "## Findings",
+        "",
+    ]
+    if not findings:
+        lines.append("No findings.")
+    for finding in findings:
+        lines.extend([
+            f"### {finding.get('finding_id')}: {finding.get('subject')} / {finding.get('parameter')}",
+            "",
+            f"- Type: `{finding.get('finding_type')}`",
+            f"- Severity: `{finding.get('severity')}`",
+            f"- Authority: `{finding.get('authoritative_side')}` ({finding.get('authority_basis')})",
+            f"- Summary: {finding.get('summary')}",
+            "",
+        ])
+    issues = triage.get("issues", [])
+    lines.extend(["## Triage", ""])
+    if not issues:
+        lines.append("No triage issues.")
+    for issue in issues:
+        lines.append(f"- {issue.get('severity')}: {issue.get('title')} - {issue.get('summary')}")
+    dest.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _sanitize(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {key: _sanitize(child) for key, child in value.items()}
+    if isinstance(value, list):
+        return [_sanitize(child) for child in value]
+    if isinstance(value, str):
+        return _sanitize_text(value)
+    return copy.deepcopy(value)
+
+
+def _sanitize_text(text: str) -> str:
+    text = re.sub(r"/Users/kc/\S+", "[local path redacted]", text)
+    text = text.replace("ANTHROPIC_API_KEY", "CLOUD_KEY_CONFIGURED")
+    text = text.replace("OPENAI_API_KEY", "CLOUD_KEY_CONFIGURED")
+    text = text.replace("VOYAGE_API_KEY", "CLOUD_KEY_CONFIGURED")
+    return text
 
 
 def _css() -> str:
