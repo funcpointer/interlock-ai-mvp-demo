@@ -58,6 +58,8 @@ Voice-over:
 >
 > The engine persists intermediate artifacts: extracted pages, regions, evidence, document graphs, reasoning decisions, findings, metrics, and logs. That matters because accuracy work needs observability. When a flag is wrong, we can inspect whether the issue came from extraction, subject alignment, unit comparison, authority resolution, or rendering.
 >
+> There is also a context layer: graph, search index, and review wiki. It gives the reviewer a second-brain view of the packet, so they can move from a finding to the surrounding document context, related evidence, and reasoning trail.
+>
 > JSON is the source of truth. The report, graph, search layer, wiki, and UI are derived from it. That keeps the prototype easy to debug now and easy to port later.
 
 ## 2:45-3:10 — Close
