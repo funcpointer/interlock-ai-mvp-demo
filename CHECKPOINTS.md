@@ -65,3 +65,41 @@ checkpoint-scanned --no-kuzu: 1.251s
 checkpoint-kuzu with Kuzu: 27.588s
   build_kuzu_graph: 26.098s
 ```
+
+## checkpoint-2026-05-25-rg-search
+
+Purpose:
+
+- add a deterministic search/debug layer over persisted review-map artifacts,
+- keep search out of final finding authority,
+- make reviewer/debug queries fast without invoking cloud models.
+
+Changed:
+
+- `search/review_map.jsonl` emitted on every review run,
+- `interlock_mvp search RUN QUERY`,
+- `examples/aes_glossary.yaml`,
+- `make eval-search`,
+- source-aware ranking so findings/diffs beat raw evidence when both match.
+
+Validation result:
+
+```text
+make test
+  11 passed
+
+make eval-fast
+  unit tests: 11 passed
+  version gold: 5 findings, 5 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 7 findings, 4 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make eval-search
+  query: transformer rating
+  top hits: finding -> diff -> claim/evidence
+```
+
+Known current finding:
+
+- duplicate XFMR rating findings still exist in the graph output. They are visible in search and should be deduped in a later accuracy pass, not hidden in the search layer.

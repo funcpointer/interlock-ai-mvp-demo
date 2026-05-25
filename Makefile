@@ -2,7 +2,7 @@ PY := /Users/kc/venv-12/bin/python
 FIXTURES := /Users/kc/Documents/Claude/Projects/interlock-ai-v2/fixtures/pdfs
 AUTH := examples/aes_authority.yaml
 
-.PHONY: test eval-version eval-negative eval-cross eval-scanned eval-fast eval-kuzu eval-full doctor
+.PHONY: test eval-version eval-negative eval-cross eval-scanned eval-fast eval-kuzu eval-search eval-full doctor
 
 test:
 	$(PY) -m pytest -q
@@ -31,4 +31,7 @@ eval-fast: test eval-version eval-negative eval-cross eval-scanned
 eval-kuzu:
 	$(PY) -m interlock_mvp review $(FIXTURES)/doc_a_60pct.pdf $(FIXTURES)/doc_b_90pct.pdf --mode version --out runs/checkpoint-kuzu --authority-config $(AUTH) --no-cloud --max-candidates 80
 
-eval-full: eval-fast eval-kuzu
+eval-search:
+	$(PY) -m interlock_mvp search runs/checkpoint-version "transformer rating" --limit 8
+
+eval-full: eval-fast eval-search eval-kuzu

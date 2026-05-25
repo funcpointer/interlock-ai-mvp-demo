@@ -1,0 +1,33 @@
+schema_version: interlock_mvp.glossary.v1
+aliases:
+  transformer:
+    - xfmr
+    - xfrmr
+    - tx
+  rating:
+    - rated power
+    - kva
+    - mva
+  impedance:
+    - "%z"
+    - percent z
+    - impedance percent
+  fault_current:
+    - fault current
+    - rms sym
+    - short circuit
+  fuse:
+    - low-peak
+    - lpn-rk
+    - krp-c
+    - rk1
+    - rk5
+  voltage:
+    - kv
+    - volts
+    - primary voltage
+    - secondary voltage
+  tcc:
+    - time current curve
+    - coordination curve
+    - selective coordination

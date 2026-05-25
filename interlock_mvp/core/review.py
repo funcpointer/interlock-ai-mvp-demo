@@ -17,6 +17,7 @@ from .graph import build_kuzu_graph
 from .logging import JsonlLogger
 from .models import ReviewRequest, ReviewResult
 from .report import render_report
+from .search import write_search_index
 from .verification import findings_from_diff_graph
 
 
@@ -162,6 +163,18 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         warning_count=len(verifier_warnings),
     )
 
+    stage_started = time.time()
+    search_records = write_search_index(
+        request.out_dir,
+        evidence=evidence,
+        doc_graph_a=graph_a,
+        doc_graph_b=graph_b,
+        diff_graph=diff_graph,
+        findings=findings,
+    )
+    _finish_stage(logger, stage_timings, "write_search_index", stage_started, search_records=search_records)
+    metrics["search_records"] = search_records
+
     if request.no_kuzu:
         graph_message = "skipped by --no-kuzu"
         logger.event("stage_skipped", stage="build_kuzu_graph", reason=graph_message)
@@ -231,7 +244,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         metrics=metrics,
         warnings=warnings,
     )
-    _finish_stage(logger, stage_timings, "write_artifacts", stage_started, artifact_count=14)
+    _finish_stage(logger, stage_timings, "write_artifacts", stage_started, artifact_count=15)
     logger.event("run_finished", findings=len(findings), elapsed_seconds=metrics["elapsed_seconds"])
 
     return ReviewResult(

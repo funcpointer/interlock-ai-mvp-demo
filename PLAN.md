@@ -35,6 +35,7 @@ Implemented:
 - Eval runner.
 - Optional Kuzu graph build.
 - Stage-level JSONL logs and metrics.
+- `rg`-backed search over persisted review-map artifacts.
 
 Current validated fixture classes:
 
@@ -108,6 +109,7 @@ metrics.json
 logs.jsonl
 report.md
 crops/
+search/review_map.jsonl
 graph.kuzu/        # optional, derived, skipped by --no-kuzu
 ```
 
@@ -193,6 +195,8 @@ Status: mostly done.
 
 ### Phase B: Search-Assisted Debugging
 
+Status: first slice implemented.
+
 Add `search` over persisted JSON/text artifacts. Use `rg --json` as the deterministic primitive.
 
 Search must operate on extracted artifacts, not PDFs directly:
@@ -202,6 +206,12 @@ search/evidence.jsonl
 search/claims.jsonl
 search/contexts.jsonl
 search/findings.jsonl
+```
+
+Current MVP writes a combined:
+
+```text
+search/review_map.jsonl
 ```
 
 Agentic behavior is limited to:
@@ -278,4 +288,5 @@ Do not checkpoint after cosmetic-only edits unless they change demo behavior.
 5. Add `search` artifacts and `rg`-backed CLI search.
 6. Add AES glossary.
 7. Re-run fast checkpoint suite.
-8. Only then consider LanceDB/local SLM integration.
+8. Improve search ranking so diff/finding hits beat generic evidence when the query names a discrepancy.
+9. Only then consider LanceDB/local SLM integration.

@@ -14,6 +14,7 @@ from .core.eval import run_eval
 from .core.env import DEFAULT_OLD_REPO_ENV, load_env_file, load_key_files
 from .core.models import ReviewRequest
 from .core.review import run_review
+from .core.search import search_run
 
 app = typer.Typer(help="InterLock MVP cited directional PDF review CLI.")
 console = Console()
@@ -104,6 +105,39 @@ def inspect(
 
 
 @app.command()
+def search(
+    run_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False, readable=True)],
+    query: Annotated[str, typer.Argument(help="Search query")],
+    glossary: Annotated[Path | None, typer.Option(help="Optional AES glossary YAML")] = Path("examples/aes_glossary.yaml"),
+    limit: Annotated[int, typer.Option(help="Maximum hits")] = 20,
+) -> None:
+    try:
+        hits = search_run(run_dir, query, glossary_path=glossary, limit=limit)
+    except FileNotFoundError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+    table = Table(title=f"InterLock Search: {query}")
+    table.add_column("Score", justify="right")
+    table.add_column("Source")
+    table.add_column("Doc")
+    table.add_column("Page")
+    table.add_column("Subject")
+    table.add_column("Parameter")
+    table.add_column("Quote")
+    for hit in hits:
+        table.add_row(
+            str(hit.get("score", "")),
+            str(hit.get("source", "")),
+            str(hit.get("doc_id", "")),
+            "" if hit.get("page") is None else str(hit.get("page")),
+            str(hit.get("subject", ""))[:28],
+            str(hit.get("parameter", ""))[:24],
+            _clip(str(hit.get("quote") or hit.get("text") or ""), 90),
+        )
+    console.print(table)
+
+
+@app.command()
 def doctor() -> None:
     load_env_file(DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None)
     load_key_files()
@@ -163,6 +197,11 @@ def _tmp_write_ok() -> bool:
             return path.read_text(encoding="utf-8") == "ok"
     except Exception:
         return False
+
+
+def _clip(text: str, limit: int) -> str:
+    clean = " ".join(text.split())
+    return clean if len(clean) <= limit else clean[: limit - 3] + "..."
 
 
 if __name__ == "__main__":
