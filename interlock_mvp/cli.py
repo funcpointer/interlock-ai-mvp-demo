@@ -194,7 +194,7 @@ def doctor() -> None:
     load_env_file(DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None)
     load_key_files()
     checks = []
-    for module in ["fitz", "pydantic", "typer", "rich", "rapidfuzz", "pint", "kuzu", "jinja2", "PIL", "structlog", "yaml", "anthropic"]:
+    for module in ["fitz", "pydantic", "typer", "rich", "rapidfuzz", "pint", "kuzu", "lancedb", "jinja2", "PIL", "structlog", "yaml", "anthropic"]:
         checks.append((module, _import_ok(module)))
     checks.append(("cloud_key", bool(__import__("os").environ.get("OPENAI_API_KEY") or __import__("os").environ.get("ANTHROPIC_API_KEY"))))
     checks.append(("kuzu_temp_write", _kuzu_temp_ok()))

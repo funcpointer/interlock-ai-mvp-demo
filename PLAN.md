@@ -39,6 +39,7 @@ Implemented:
 - Stage-level JSONL logs and metrics.
 - `rg`-backed search over persisted review-map artifacts.
 - Local second-brain SQLite/FTS index over review-map artifacts.
+- LanceDB index over review-map artifacts with deterministic local embeddings.
 - Corpus manifest runner for AES/private partner document batches.
 
 Current validated fixture classes:
@@ -136,6 +137,8 @@ report.md
 crops/
 search/review_map.jsonl
 search/second_brain.sqlite
+search/lancedb/
+search/lancedb_meta.json
 graph.kuzu/        # optional, derived, skipped by --no-kuzu
 ```
 

@@ -46,6 +46,8 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
         "report.md",
         "search/review_map.jsonl",
         "search/second_brain.sqlite",
+        "search/lancedb",
+        "search/lancedb_meta.json",
     ]:
         assert (out_dir / name).exists(), name
 

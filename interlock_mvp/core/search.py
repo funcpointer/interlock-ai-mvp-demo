@@ -1,15 +1,24 @@
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import sqlite3
 import subprocess
+from contextlib import contextmanager
+from hashlib import blake2b
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from .models import SCHEMA_VERSION
 from .models import DiffGraph, DocumentGraph, EvidenceItem, Finding, ReasoningGraph
+
+LANCEDB_VECTOR_DIM = 128
+LANCEDB_TABLE = "review_records"
+LANCEDB_EMBEDDING = "deterministic_hash_v1"
+LANCEDB_MAX_DISTANCE = 1.45
 
 
 def write_search_index(
@@ -34,6 +43,7 @@ def write_search_index(
     records.extend(_finding_records(findings))
     _write_jsonl(search_dir / "review_map.jsonl", records)
     _write_second_brain(search_dir / "second_brain.sqlite", records)
+    _write_lancedb(search_dir / "lancedb", records)
     return len(records)
 
 
@@ -77,6 +87,8 @@ def search_run(run_dir: Path, query: str, *, glossary_path: Path | None = None, 
             score += _source_boost(record)
             if method == "sqlite_fts":
                 score += 4
+            if method == "lancedb":
+                score += 3
             if term.lower() == str(record.get("subject", "")).lower():
                 score += 5
             if term.lower() in str(record.get("parameter", "")).lower():
@@ -386,6 +398,61 @@ def _write_second_brain(path: Path, records: list[dict[str, Any]]) -> None:
         conn.close()
 
 
+def _write_lancedb(path: Path, records: list[dict[str, Any]]) -> None:
+    meta_path = path.parent / "lancedb_meta.json"
+    if path.exists():
+        shutil.rmtree(path)
+    rows = [
+        {
+            "search_id": str(record.get("search_id", "")),
+            "source": str(record.get("source", "")),
+            "doc_id": str(record.get("doc_id", "")),
+            "page": int(record["page"]) if record.get("page") is not None else -1,
+            "subject": str(record.get("subject", "")),
+            "parameter": str(record.get("parameter", "")),
+            "text": str(record.get("text", "")),
+            "payload": json.dumps(record, sort_keys=True),
+            "vector": _text_vector(_record_embedding_text(record)),
+        }
+        for record in records
+        if str(record.get("search_id", ""))
+    ]
+    if not rows:
+        _write_lancedb_meta(meta_path, ok=False, records=0, message="no records")
+        return
+    try:
+        import lancedb
+
+        db = lancedb.connect(str(path))
+        with _suppress_stderr_fd():
+            db.create_table(LANCEDB_TABLE, data=rows, mode="overwrite")
+        _write_lancedb_meta(meta_path, ok=True, records=len(rows), message="created")
+    except Exception as exc:
+        _write_lancedb_meta(meta_path, ok=False, records=0, message=f"{type(exc).__name__}: {exc}")
+
+
+def _write_lancedb_meta(path: Path, *, ok: bool, records: int, message: str) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": SCHEMA_VERSION,
+                "ok": ok,
+                "records": records,
+                "message": message,
+                "table": LANCEDB_TABLE,
+                "embedding": LANCEDB_EMBEDDING,
+                "max_distance": LANCEDB_MAX_DISTANCE,
+                "vector_dim": LANCEDB_VECTOR_DIM,
+                "authority": "derived_search_only",
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+
 def _load_aliases(glossary_path: Path | None) -> dict[str, list[str]]:
     if not glossary_path or not glossary_path.exists():
         return {}
@@ -419,6 +486,7 @@ def _rg_records(search_dir: Path, term: str) -> list[dict[str, Any]]:
 def _retrieval_records(search_dir: Path, term: str) -> list[tuple[str, dict[str, Any]]]:
     records: list[tuple[str, dict[str, Any]]] = []
     records.extend(("sqlite_fts", record) for record in _sqlite_records(search_dir / "second_brain.sqlite", term))
+    records.extend(("lancedb", record) for record in _lancedb_records(search_dir / "lancedb", term))
     records.extend(("rg", record) for record in _rg_records(search_dir, term))
     return records
 
@@ -449,6 +517,31 @@ def _sqlite_records(path: Path, term: str) -> list[dict[str, Any]]:
         conn.close()
 
 
+def _lancedb_records(path: Path, term: str) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    try:
+        import lancedb
+
+        db = lancedb.connect(str(path))
+        table = db.open_table(LANCEDB_TABLE)
+        rows = table.search(_text_vector(term)).limit(100).to_list()
+    except Exception:
+        return []
+    records: list[dict[str, Any]] = []
+    for row in rows:
+        distance = row.get("_distance")
+        if distance is not None and float(distance) > LANCEDB_MAX_DISTANCE:
+            continue
+        try:
+            record = json.loads(str(row.get("payload", "{}")))
+        except json.JSONDecodeError:
+            continue
+        record["lancedb_distance"] = distance
+        records.append(record)
+    return records
+
+
 def _fts_query(term: str) -> str:
     tokens = [token for token in term.replace("-", " ").replace("_", " ").split() if token]
     cleaned = [token.replace('"', "").replace("'", "") for token in tokens]
@@ -477,6 +570,39 @@ def _source_boost(record: dict[str, Any]) -> int:
     return 0
 
 
+def _record_embedding_text(record: dict[str, Any]) -> str:
+    return " ".join(
+        str(record.get(key, ""))
+        for key in ["source", "subject", "parameter", "value", "unit", "quote", "text", "context_id"]
+    )
+
+
+def _text_vector(text: str) -> list[float]:
+    vector = [0.0] * LANCEDB_VECTOR_DIM
+    features = _text_features(text)
+    if not features:
+        return vector
+    for feature in features:
+        digest = blake2b(feature.encode("utf-8"), digest_size=8).digest()
+        idx = int.from_bytes(digest[:4], "little") % LANCEDB_VECTOR_DIM
+        sign = 1.0 if digest[4] % 2 == 0 else -1.0
+        vector[idx] += sign
+    norm = sum(value * value for value in vector) ** 0.5
+    if norm == 0:
+        return vector
+    return [round(value / norm, 6) for value in vector]
+
+
+def _text_features(text: str) -> list[str]:
+    normalized = text.lower().replace("%z", " impedance percent ")
+    tokens = [token for token in normalized.replace("-", " ").replace("_", " ").split() if token]
+    cleaned = ["".join(ch for ch in token if ch.isalnum() or ch in {"%", "."}).strip(".") for token in tokens]
+    cleaned = [token for token in cleaned if token]
+    features = cleaned[:]
+    features.extend(f"{a} {b}" for a, b in zip(cleaned, cleaned[1:]))
+    return features
+
+
 def _dedup_preserve_order(values: list[str]) -> list[str]:
     seen = set()
     result = []
@@ -486,3 +612,16 @@ def _dedup_preserve_order(values: list[str]) -> list[str]:
         seen.add(value)
         result.append(value)
     return result
+
+
+@contextmanager
+def _suppress_stderr_fd():
+    saved = os.dup(2)
+    devnull = os.open(os.devnull, os.O_WRONLY)
+    try:
+        os.dup2(devnull, 2)
+        yield
+    finally:
+        os.dup2(saved, 2)
+        os.close(saved)
+        os.close(devnull)

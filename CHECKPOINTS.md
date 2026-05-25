@@ -427,8 +427,8 @@ tests/test_corpus.py
   3 passed
 
 make coverage
-  39 passed
-  source coverage: 73%
+  40 passed
+  source coverage: 74%
 
 make eval-aes-seed
   seeded_version_doc_a_60_doc_b_90: eval_passed, 4 findings, 4 review_required
@@ -450,3 +450,54 @@ make eval-fast
 Known limit:
 
 - the seed corpus is not AES-private data. It is a coverage bridge. Real accuracy work now depends on dropping partner PDFs/notes into `corpora/aes/docs/` or referencing absolute paths from `corpora/aes/local_manifest.yaml`.
+
+## checkpoint-2026-05-25-lancedb-search
+
+Purpose:
+
+- bring LanceDB into the MVP as a derived retrieval store,
+- keep LanceDB out of finding authority until embeddings/search prove useful on real AES corpora,
+- preserve `rg` and SQLite FTS as independent retrieval paths,
+- make every search hit carry retrieval-method provenance.
+
+Changed:
+
+- added `lancedb` dependency,
+- `write_search_index` now writes:
+  - `search/review_map.jsonl`
+  - `search/second_brain.sqlite`
+  - `search/lancedb/`
+  - `search/lancedb_meta.json`
+- `search_run` now fuses `sqlite_fts`, `lancedb`, and `rg` hits,
+- LanceDB records use `deterministic_hash_v1` local embeddings with `vector_dim=128`,
+- CLI `doctor` checks `lancedb`,
+- package version bumped to `0.11.0`.
+
+Validation result:
+
+```text
+tests/test_search.py tests/test_review_integration.py
+  3 passed
+
+make coverage
+  40 passed
+  source coverage: 74%
+
+make eval-fast
+  unit tests: 40 passed during target run
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 4 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make eval-search
+  top transformer-rating hits include retrieval_methods:
+    sqlite_fts + lancedb + rg
+
+make eval-aes-seed
+  4/4 corpus pairs eval_passed with LanceDB artifacts written
+```
+
+Known limit:
+
+- `deterministic_hash_v1` is only a local lexical-vector bootstrap. It proves the LanceDB artifact path and fusion logic. It is not a substitute for real embeddings from a local SLM/Ollama model or cloud model.

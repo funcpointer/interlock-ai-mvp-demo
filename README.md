@@ -19,7 +19,7 @@ from interlock_mvp.core.models import ReviewRequest
 result = run_review(ReviewRequest(...))
 ```
 
-Canonical outputs are JSON artifacts. `report.md` and `graph.kuzu/` are derived.
+Canonical outputs are JSON artifacts. `report.md`, `graph.kuzu/`, and search indexes are derived.
 
 Important review-map artifacts:
 
@@ -30,7 +30,7 @@ Important review-map artifacts:
 
 Use `--no-kuzu` when Kuzu is not part of the question being tested. Kuzu is derived from JSON today; skipping it does not skip finding logic.
 
-Search runs against persisted `search/review_map.jsonl` and `search/second_brain.sqlite` artifacts, not against PDFs directly.
+Search runs against persisted `search/review_map.jsonl`, `search/second_brain.sqlite`, and `search/lancedb/` artifacts, not against PDFs directly. LanceDB is currently fed by deterministic local hash embeddings so it is a retrieval/debug aid, not finding authority.
 
 ## AES Corpus Intake
 

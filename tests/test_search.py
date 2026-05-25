@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 from interlock_mvp.core.models import DiffGraph, DocumentGraph, EvidenceItem
 from interlock_mvp.core.search import expand_query, search_run, write_search_index
@@ -47,8 +48,49 @@ def test_search_run_returns_cited_artifact_hits(tmp_path: Path) -> None:
 
     assert count == 1
     assert (tmp_path / "search" / "second_brain.sqlite").exists()
+    assert (tmp_path / "search" / "lancedb").exists()
+    lance_meta = json.loads((tmp_path / "search" / "lancedb_meta.json").read_text(encoding="utf-8"))
+    assert lance_meta["ok"] is True
+    assert lance_meta["records"] == 1
+    assert lance_meta["embedding"] == "deterministic_hash_v1"
+    assert lance_meta["max_distance"] == 1.45
     assert hits
     assert hits[0]["record_id"] == "ev1"
     assert hits[0]["doc_id"] == "A"
     assert hits[0]["page"] == 7
     assert "sqlite_fts" in hits[0]["retrieval_methods"]
+    assert "lancedb" in hits[0]["retrieval_methods"]
+
+
+def test_lancedb_path_does_not_return_unrelated_vector_only_hits(tmp_path: Path) -> None:
+    evidence = [
+        EvidenceItem(
+            evidence_id="ev1",
+            doc_id="A",
+            page=7,
+            bbox=[1, 2, 3, 4],
+            region_id="r1",
+            kind="parameter_value",
+            subject="XFMR",
+            parameter="rating",
+            value="1000",
+            unit="kVA",
+            raw_text="1000KVA XFMR",
+            normalized_text="1000kva xfmr",
+            normalized_value="1000 kva",
+            confidence="high",
+            source_method="test",
+            crop_path="crops/A_p7_r1.png",
+            context_id="A:tcc3",
+        )
+    ]
+    write_search_index(
+        tmp_path,
+        evidence=evidence,
+        doc_graph_a=DocumentGraph(doc_id="A"),
+        doc_graph_b=DocumentGraph(doc_id="B"),
+        diff_graph=DiffGraph(),
+        findings=[],
+    )
+
+    assert search_run(tmp_path, "totally absent phrase", glossary_path=None) == []
