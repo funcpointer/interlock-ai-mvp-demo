@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import json
+import re
 
 from .models import AuthorityDecision, CandidateFinding, DiffEdge, EvidenceCitation, EvidenceItem, Finding
 
@@ -80,8 +81,7 @@ def findings_from_diff_graph(
 
 
 def authored_language_violations(text: str) -> list[str]:
-    lowered = f" {text.lower()} "
-    return sorted(word for word in BANNED_AUTHORED_WORDS if f" {word} " in lowered)
+    return sorted(word for word in BANNED_AUTHORED_WORDS if re.search(rf"\b{re.escape(word)}\b", text, re.IGNORECASE))
 
 
 def _deterministic_finding(

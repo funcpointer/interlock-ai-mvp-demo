@@ -66,8 +66,7 @@ def build_diff_graph(graph_a: DocumentGraph, graph_b: DocumentGraph) -> DiffGrap
                 claim_b
                 for claim_b in b_claims
                 if _parameters_align(claim_a.parameter, claim_b.parameter, cross_doc_spec=True)
-                and _subjects_align(claim_a.subject_id, claim_b.subject_id, mode="semantic")
-                and _is_transformer_claim(claim_b)
+                and _cross_doc_spec_subjects_compatible(claim_a, claim_b)
             ]
         if not matches:
             if claim_a.parameter in {"rating", "impedance", "fault_current"}:
@@ -243,8 +242,6 @@ def _context_label(graph: DocumentGraph, context_id: str) -> str:
 def _parameters_align(a: str, b: str, *, cross_doc_spec: bool = False) -> bool:
     if a == b:
         return True
-    if {a, b} == {"primary_voltage", "voltage"}:
-        return True
     if cross_doc_spec and a == "primary_voltage" and b == "rating":
         return False
     return False
@@ -265,9 +262,13 @@ def _subjects_align(a_id: str, b_id: str, *, mode: str) -> bool:
         return True
     if mode == "semantic" and "XFMR" in a.upper() and ("XFMR" in b.upper() or "TRANSFORMER" in b.upper()):
         return True
-    if mode == "semantic" and "XFMR" in a.upper():
-        return True
     return subject_similarity(a, b) >= (95 if mode == "strict" else 88)
+
+
+def _cross_doc_spec_subjects_compatible(claim_a: ClaimNode, claim_b: ClaimNode) -> bool:
+    if _subjects_align(claim_a.subject_id, claim_b.subject_id, mode="semantic"):
+        return True
+    return _is_transformer_subject(claim_a.subject_id) and _is_transformer_claim(claim_b)
 
 
 def _subject_label(subject_id: str) -> str:
@@ -289,11 +290,16 @@ def _is_transformer_claim(claim: ClaimNode) -> bool:
         "XFMR" in label
         or "XFMR" in raw
         or "TRANSFORMER" in raw
-        or "KVA" in raw
         or "%Z" in raw
+        or "IMPEDANCE" in raw
         or "∆-Y" in raw
         or "DELTA" in raw
     )
+
+
+def _is_transformer_subject(subject_id: str) -> bool:
+    label = _subject_label(subject_id)
+    return "XFMR" in label or "TRANSFORMER" in label
 
 
 def _claim_admissible_for_diff(claim: ClaimNode) -> bool:

@@ -3,13 +3,33 @@ expected_findings:
   - finding_type: value_mismatch
     subject_contains: XFMR
     parameter: rating
-  - finding_type: value_mismatch
-    subject_contains: XFMR
-    parameter: primary_voltage
+    evidence_a:
+      page: 1
+      value: "1100"
+      unit: kVA
+      quote_contains: Rated Power
+    evidence_b:
+      value: "1000"
+      unit: KVA
+      quote_contains: 1000KVA
   - finding_type: value_mismatch
     subject_contains: XFMR
     parameter: impedance
+    evidence_a:
+      page: 1
+      value: "4.5"
+      unit: "%"
+      quote_contains: Rated Impedance
+    evidence_b:
+      value: "5.75"
+      unit: "%"
+      quote_contains: 5.75% Z
 forbidden_findings:
   - parameter: secondary_voltage
   - parameter: bil
+  - finding_type: value_mismatch
+    parameter: primary_voltage
+    evidence_b:
+      value: "277"
+      unit: V
 expected_coverage_warnings: []

@@ -2,10 +2,14 @@ PY := /Users/kc/venv-12/bin/python
 FIXTURES := /Users/kc/Documents/Claude/Projects/interlock-ai-v2/fixtures/pdfs
 AUTH := examples/aes_authority.yaml
 
-.PHONY: test eval-version eval-negative eval-cross eval-scanned eval-fast eval-kuzu eval-search eval-examples eval-full doctor
+.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-kuzu eval-search eval-examples eval-full doctor
 
 test:
 	$(PY) -m pytest -q
+
+coverage:
+	$(PY) -m coverage run --source=interlock_mvp -m pytest -q
+	$(PY) -m coverage report -m --skip-covered --fail-under=70
 
 doctor:
 	$(PY) -m interlock_mvp doctor

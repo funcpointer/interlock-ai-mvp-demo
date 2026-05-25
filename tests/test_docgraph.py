@@ -98,6 +98,57 @@ def test_duplicate_same_value_edges_collapse() -> None:
     assert len(rating_edges) == 1
 
 
+def test_cross_doc_transformer_rating_can_align_to_transformer_context_without_exact_tag() -> None:
+    regions = [
+        _region("A", 1, "ra1", "Equipment Data Sheet"),
+        _region("A", 1, "ra2", "Equipment ID: XFMR-001 Rated Power: 1100 kVA"),
+        _region("B", 2, "rb1", "Time Current Curve #3"),
+        _region("B", 2, "rb2", "JCN80E 1000KVA 5.75%Z delta-Y 480/277V"),
+    ]
+    evidence = [
+        _claim("A", 1, "ra2", "ev1", "XFMR-001", "rating", "1100", "kVA", "Equipment ID: XFMR-001 Rated Power: 1100 kVA"),
+        _claim("B", 2, "rb2", "ev2", "JCN80E", "rating", "1000", "KVA", "JCN80E 1000KVA 5.75%Z delta-Y 480/277V"),
+    ]
+    graph_a, graph_b, _updated = build_document_graphs(regions=regions, evidence=evidence)
+    diff = build_diff_graph(graph_a, graph_b)
+
+    assert any(edge.diff_type == "value_mismatch" and edge.parameter == "rating" for edge in diff.edges)
+
+
+def test_cross_doc_primary_voltage_does_not_align_to_secondary_or_generic_voltage() -> None:
+    regions = [
+        _region("A", 1, "ra1", "Equipment Data Sheet"),
+        _region("A", 1, "ra2", "Equipment ID: XFMR-001 Primary Voltage: 12.47 kV"),
+        _region("B", 2, "rb1", "Time Current Curve #3"),
+        _region("B", 2, "rb2", "JCN80E 1000KVA 5.75%Z delta-Y 480/277V"),
+    ]
+    evidence = [
+        _claim("A", 1, "ra2", "ev1", "XFMR-001", "primary_voltage", "12.47", "kV", "Equipment ID: XFMR-001 Primary Voltage: 12.47 kV"),
+        _claim("B", 2, "rb2", "ev2", "JCN80E", "voltage", "277", "V", "JCN80E 1000KVA 5.75%Z delta-Y 480/277V"),
+    ]
+    graph_a, graph_b, _updated = build_document_graphs(regions=regions, evidence=evidence)
+    diff = build_diff_graph(graph_a, graph_b)
+
+    assert not [edge for edge in diff.edges if edge.parameter == "primary_voltage" and edge.diff_type == "value_mismatch"]
+
+
+def test_cross_doc_transformer_rating_does_not_align_to_unrelated_kva_load() -> None:
+    regions = [
+        _region("A", 1, "ra1", "Equipment Data Sheet"),
+        _region("A", 1, "ra2", "Equipment ID: XFMR-001 Rated Power: 1100 kVA"),
+        _region("B", 2, "rb1", "Load Summary"),
+        _region("B", 2, "rb2", "Panel L1 connected load 1000KVA"),
+    ]
+    evidence = [
+        _claim("A", 1, "ra2", "ev1", "XFMR-001", "rating", "1100", "kVA", "Equipment ID: XFMR-001 Rated Power: 1100 kVA"),
+        _claim("B", 2, "rb2", "ev2", "PANEL-L1", "rating", "1000", "KVA", "Panel L1 connected load 1000KVA"),
+    ]
+    graph_a, graph_b, _updated = build_document_graphs(regions=regions, evidence=evidence)
+    diff = build_diff_graph(graph_a, graph_b)
+
+    assert not [edge for edge in diff.edges if edge.diff_type == "value_mismatch" and edge.subject == "XFMR-001"]
+
+
 def _region(doc_id: str, page: int, region_id: str, text: str) -> RegionRecord:
     return RegionRecord(
         region_id=region_id,

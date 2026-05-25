@@ -229,3 +229,56 @@ Accuracy result:
 - Version gold kept all expected findings but removed the duplicate XFMR rating finding.
 - Real IEEE/SEL smoke dropped from 17 findings to 3 findings by eliminating prose-percent noise.
 - Remaining real IEEE/SEL findings still need review; two are possible impedance missing-items and one is equipment presence.
+
+## checkpoint-2026-05-25-test-coverage-contracts
+
+Purpose:
+
+- strengthen tests around the accuracy contracts that can break a funding demo,
+- make eval YAML assert cited evidence values/units/pages/quotes, not just top-level finding labels,
+- prevent cross-document transformer specs from pairing to unrelated low-voltage or KVA-only lines,
+- add an executable coverage gate.
+
+Changed:
+
+- eval matchers now support nested evidence assertions and `_in` matchers,
+- cross-doc semantic fallback no longer treats every B-side claim as compatible with A-side `XFMR`,
+- `primary_voltage` no longer aligns to generic `voltage`,
+- transformer cross-doc fallback requires B evidence to be transformer-specific, not just KVA-bearing,
+- verifier authored-language guard now catches banned terms followed by punctuation,
+- added evidence-mining, verification, and end-to-end `run_review` tests,
+- `make coverage` runs source coverage with `--fail-under=70`,
+- package version bumped to `0.7.0`.
+
+Validation result:
+
+```text
+make coverage
+  30 passed
+  source coverage: 73%
+
+make eval-fast
+  unit tests: 30 passed during target run
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 4 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make eval-examples
+  synth equipment spec v2/v3: 0 findings, eval passed
+  real IEEE vs SEL: 3 findings, 1 review_required, eval passed
+
+make eval-search
+  query: transformer rating
+  top hit: finding
+
+make eval-kuzu
+  version gold: 4 findings, 4 review_required
+  Kuzu graph built without warning
+```
+
+Accuracy finding:
+
+- The old cross-doc primary-voltage expectation was too weak and allowed A `12.47 kV` to pair with B `277 V`.
+- The tightened contract forbids that citation class instead of pretending it is a valid high-confidence mismatch.
+- Correct primary-voltage recall now requires better extraction/subject attribution, not a looser graph matcher.

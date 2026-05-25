@@ -67,9 +67,21 @@ def _matches_any(findings: list[dict[str, Any]], matcher: dict[str, Any]) -> boo
 
 def _matches(finding: dict[str, Any], matcher: dict[str, Any]) -> bool:
     for key, expected in matcher.items():
+        if isinstance(expected, dict):
+            actual = finding.get(key)
+            if not isinstance(actual, dict):
+                return False
+            if not _matches(actual, expected):
+                return False
+            continue
         if key.endswith("_contains"):
             actual_key = key.removesuffix("_contains")
             if str(expected).lower() not in str(finding.get(actual_key, "")).lower():
+                return False
+            continue
+        if key.endswith("_in"):
+            actual_key = key.removesuffix("_in")
+            if finding.get(actual_key) not in expected:
                 return False
             continue
         if key == "expected_pages":

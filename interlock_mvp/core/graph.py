@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,10 @@ def build_kuzu_graph(
         import kuzu
 
         db_path = run_dir / "graph.kuzu"
+        if db_path.is_dir():
+            shutil.rmtree(db_path)
+        elif db_path.exists():
+            db_path.unlink()
         db = kuzu.Database(str(db_path))
         conn = kuzu.Connection(db)
         _create_schema(conn)

@@ -6,12 +6,36 @@ expected_findings:
   - finding_type: value_mismatch
     subject_contains: KRP-C-1600SP
     parameter: fault_current
+    evidence_a:
+      value: "20,000"
+      unit: A
+      quote_contains: Fault X1 20,000A
+    evidence_b:
+      value: "200,000"
+      unit: A
+      quote_contains: Fault X1 200,000A
   - finding_type: value_mismatch
     subject_contains: XFMR
     parameter: impedance
+    evidence_a:
+      value: "5.75"
+      unit: "%Z"
+      quote_contains: 5.75%Z
+    evidence_b:
+      value: "0.575"
+      unit: "%Z"
+      quote_contains: 0.575%Z
   - finding_type: value_mismatch
     subject_contains: XFMR
     parameter: rating
+    evidence_a:
+      value: "1000"
+      unit: KVA
+      quote_contains: 1000KVA XFMR
+    evidence_b:
+      value: "100"
+      unit: KVA
+      quote_contains: 100KVA XFMR
 forbidden_findings:
   - subject: XFMR
     parameter: rating
