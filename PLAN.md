@@ -271,6 +271,220 @@ Use Ollama/local SLMs for:
 
 Never let local SLMs publish findings without deterministic/verifier gates.
 
+### Phase F: Reasoning Graph Hardening
+
+Status: planned next.
+
+The current graph is useful but too artifact-shaped. It traces where evidence came from, but it does not yet model enough of the reviewer reasoning:
+
+- why claim A aligned to claim B,
+- which alternatives were rejected,
+- why a missing item is true absence versus extraction failure,
+- which comparisons were deterministic versus verifier-assisted,
+- which relation had low confidence.
+
+First-principles rule:
+
+- a **node** is a durable review object a reviewer may inspect independently,
+- a **relation** is a simple asserted connection between objects,
+- when a connection has confidence, method, rejected alternatives, rationale, or audit value, promote it to a node.
+
+Current acceptable nodes:
+
+- `Document`
+- `Page`
+- `Region`
+- `Evidence`
+- `Context`
+- `Subject`
+- `Claim`
+- `DiffEdge`
+- `Finding`
+- `AuthorityDecision`
+
+Current relations are mostly provenance:
+
+- `DOCUMENT_HAS_PAGE`
+- `PAGE_HAS_REGION`
+- `REGION_SUPPORTS_EVIDENCE`
+- `CONTEXT_HAS_SUBJECT`
+- `SUBJECT_HAS_CLAIM`
+- `CLAIM_IN_CONTEXT`
+- `FINDING_CITES_EVIDENCE`
+- `FINDING_HAS_AUTHORITY`
+- `DIFF_CITES_CLAIM`
+
+That is enough for traceability, not enough for engineering-grade review reasoning.
+
+#### F1: Add Reasoning Decision Models
+
+Add explicit internal models:
+
+```python
+AlignmentDecision
+ComparisonDecision
+AbsenceSearch
+```
+
+`AlignmentDecision` records:
+
+- `alignment_id`
+- `a_claim_id`
+- `b_claim_id`
+- `subject_method`: exact / alias / context_bridge / semantic / model_proposed
+- `parameter_method`: exact / normalized / rejected
+- `context_method`: exact / canonicalized / cross_doc_bridge / missing
+- `confidence`
+- `accepted`
+- `rationale`
+- `rejected_b_claim_ids`
+
+`ComparisonDecision` records:
+
+- `comparison_id`
+- `alignment_id`
+- `comparison_type`: equivalent / value_mismatch / needs_engineer_review
+- `unit_method`: exact / pint / custom_percent_impedance / dimension_mismatch
+- `plausibility_notes`
+- `deterministic`
+- `verifier_status`: not_run / passed / downgraded / rejected
+- `rationale`
+
+`AbsenceSearch` records:
+
+- `absence_id`
+- `a_subject_id` or `a_claim_id`
+- `searched_doc_id`
+- `searched_context_ids`
+- `searched_parameters`
+- `query_terms`
+- `candidate_ids_considered`
+- `rejected_candidate_ids`
+- `coverage_status`: searched / low_text / no_aligned_context / extractor_gap
+- `confidence`
+- `rationale`
+
+Acceptance:
+
+- all three models serialize into JSON artifacts,
+- every `missing_item` finding references an `AbsenceSearch`,
+- every `value_mismatch` or `needs_engineer_review` finding references a `ComparisonDecision`,
+- tests prove findings can be traced back to decision nodes and cited evidence.
+
+#### F2: Replace Thin `DiffEdge` Semantics Incrementally
+
+Do not delete `DiffEdge` immediately. First make it a compatibility projection derived from decisions.
+
+Order:
+
+1. Keep `diff_graph.json` shape stable.
+2. Add `reasoning_graph.json` with decisions.
+3. Generate findings from `ComparisonDecision` and `AbsenceSearch`.
+4. Keep old diff graph in artifacts for search/debug compatibility.
+5. Once evals pass, decide whether `DiffEdge` stays as a derived view or disappears.
+
+Acceptance:
+
+- existing `make eval-fast` passes,
+- `findings.json` count and gold expectations stay stable unless a stricter contract exposes a real false positive,
+- search still returns finding/diff/evidence hits,
+- `reasoning_graph.json` explains the path from evidence to finding.
+
+#### F3: Make Kuzu Mirror the Reasoning Graph
+
+Kuzu should mirror the canonical JSON, not invent structure.
+
+Add node tables:
+
+- `AlignmentDecision`
+- `ComparisonDecision`
+- `AbsenceSearch`
+
+Add relation tables:
+
+- `ALIGNMENT_LEFT_CLAIM`
+- `ALIGNMENT_RIGHT_CLAIM`
+- `ALIGNMENT_REJECTED_CLAIM`
+- `COMPARISON_FROM_ALIGNMENT`
+- `ABSENCE_SEARCHED_CONTEXT`
+- `ABSENCE_REJECTED_CANDIDATE`
+- `FINDING_FROM_COMPARISON`
+- `FINDING_FROM_ABSENCE_SEARCH`
+
+Acceptance:
+
+- `make eval-kuzu` builds without warnings,
+- a Kuzu query can answer: "why was this finding created?",
+- a Kuzu query can answer: "what did we reject before calling this missing?"
+
+#### F4: Strengthen Eval Around Reasoning, Not Just Output
+
+Extend eval YAML matchers with:
+
+```yaml
+expected_findings:
+  - finding_type: value_mismatch
+    parameter: rating
+    evidence_a:
+      value: "1000"
+    evidence_b:
+      value: "100"
+    comparison:
+      comparison_type: value_mismatch
+      unit_method: pint
+    alignment:
+      subject_method_in: [exact, context_bridge]
+      rejected_b_claim_count_max: 2
+```
+
+For missing items:
+
+```yaml
+expected_findings:
+  - finding_type: missing_item
+    subject_contains: LPN-RK-500SP
+    absence_search:
+      coverage_status: searched
+      searched_context_contains: tcc3
+```
+
+Acceptance:
+
+- eval fails if a finding has the right label but wrong evidence,
+- eval fails if a missing item has no absence-search trace,
+- eval fails if an alignment used an explicitly forbidden method.
+
+#### F5: Instrument Reasoning Quality Metrics
+
+Add metrics:
+
+- alignment decisions by method/confidence/accepted,
+- rejected candidate count per accepted alignment,
+- comparison decisions by type/unit method/verifier status,
+- absence searches by coverage status/confidence,
+- findings by decision source,
+- document-context fallback rate,
+- generic-subject rate.
+
+Acceptance:
+
+- metrics reveal whether a run is relying too much on weak context bridges,
+- metrics reveal missing-item risk caused by low-text or unsearched contexts,
+- report includes a compact "review reasoning health" section.
+
+#### F6: Do Not Overbuild
+
+Out of scope for this phase:
+
+- LanceDB,
+- local SLM publishing decisions,
+- UI,
+- new workflow/orchestration framework,
+- replacing PyMuPDF,
+- graph algorithms that do not change findings or auditability.
+
+Those only become useful after decision nodes exist.
+
 ## Checkpoint Policy
 
 Checkpoint after:
@@ -319,14 +533,37 @@ The second-brain SQLite index is also derived, but cheap enough to build every r
 
 ## Near-Term Execution Plan
 
+Completed:
+
 1. Make Kuzu optional because it is derived, not because it is slow.
 2. Add Makefile targets for repeatable tests/evals.
 3. Run accuracy checkpoint suite.
-4. Initialize repo checkpoint if no git repo exists.
-5. Add `search` artifacts and `rg`-backed CLI search.
-6. Add AES glossary.
-7. Re-run accuracy checkpoint suite.
-8. Improve search ranking so diff/finding hits beat generic evidence when the query names a discrepancy.
-9. Add candidate-proposal mode from search results, still `proposal_only`.
-10. Add table-aware extraction for currently weak examples: PID, HVAC schedules, relay settings.
+4. Add `search` artifacts and `rg`-backed CLI search.
+5. Add AES glossary.
+6. Improve search ranking so diff/finding hits beat generic evidence when the query names a discrepancy.
+7. Tighten eval contracts around cited evidence.
+
+Next:
+
+1. Add `AlignmentDecision`, `ComparisonDecision`, and `AbsenceSearch` models.
+2. Emit `reasoning_graph.json` without changing `findings.json`.
+3. Add tests proving current findings trace through reasoning decisions.
+4. Generate findings from decisions while preserving current gold output where still valid.
+5. Extend eval YAML to assert alignment/comparison/absence-search details.
+6. Mirror reasoning decision nodes into Kuzu.
+7. Add reasoning-health metrics to `metrics.json` and `report.md`.
+8. Re-run:
+
+```bash
+make coverage
+make eval-fast
+make eval-examples
+make eval-search
+make eval-kuzu
+```
+
+Then:
+
+9. Add table-aware extraction for weak examples: PID, HVAC schedules, relay settings.
+10. Add candidate-proposal mode from search results, still `proposal_only`.
 11. Only then consider LanceDB/local SLM integration.
