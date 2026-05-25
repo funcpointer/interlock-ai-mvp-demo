@@ -50,6 +50,17 @@ def test_neighbor_context_attaches_general_value_to_prior_equipment() -> None:
     assert attached.source_method.endswith("+neighbor_context")
 
 
+def test_step_size_percent_is_not_impedance() -> None:
+    evidence = mine_evidence(
+        pages=[_page("A", 1)],
+        regions=[_region("A", 1, "r1", "Step Size: 0.625%")],
+        annotations=[],
+    )
+
+    value = [item for item in evidence if item.kind == "parameter_value"][0]
+    assert value.parameter == "percent"
+
+
 def test_annotations_preserve_comment_and_highlight_as_evidence() -> None:
     evidence = mine_evidence(
         pages=[_page("B", 2)],

@@ -45,6 +45,9 @@ Implemented:
 - Derived Markdown review wiki over each run: index, log, documents, subjects, findings, reasoning decisions.
 - Context memory layer: memory-palace rooms/trails derived from contexts and fed into second-brain search.
 - Diagnostic triage command that reads persisted artifacts and writes `triage.json`.
+- Transformer-spec context extraction: multi-page spec/table section carry,
+  main-equipment subject attachment, and context-aware percent/impedance
+  classification.
 
 Current validated fixture classes:
 
@@ -63,6 +66,9 @@ Current accuracy caution:
   for partner vocabulary without becoming an authority source. It must not
   invent equipment identity from weak row text; exact citations and reasoning
   gates still decide findings.
+- Public AES smoke runs are useful stress tests, but not gold product demos by
+  themselves. The best demo needs a paired revision/cross-doc set with explicit
+  expected/forbidden findings.
 
 ## Invariants
 
@@ -617,15 +623,17 @@ Completed:
 9. Generate non-coverage findings by iterating `ComparisonDecision` and `AbsenceSearch`; keep `DiffEdge` as lookup/debug context.
 10. Remove the stale candidate-generation path and add `decision_traces.json` as the finding-level signal ledger.
 11. Add `triage` command and use it on fixture/public-AES runs to expose extraction/context/reasoning failures.
+12. Add transformer-spec context carry, main-equipment subject attachment, and fix `%` misclassification caused by matching the `z` in `size`.
 
 Next:
 
-1. Build real AES eval YAML for public/private corpus pairs: expected, forbidden, max review-required, coverage expectations.
-2. Improve subject/context alignment for cross-document review; public-AES smoke currently produces absence-only findings with zero comparisons.
-3. Add OCR/VLM extraction for pages that triage marks weak/low-text.
-4. Add table-aware extraction for schedules, settings, and drawing/spec tables.
-5. Add real local embeddings for LanceDB after extraction/context failures are measured.
-6. Add Kuzu smoke queries for finding-to-decision-trace traceability.
+1. Build a demo-quality paired corpus case: real AES packet if available, otherwise a clearly labeled synthetic mutation of a public AES transformer spec sheet.
+2. Add eval YAML for that pair: expected, forbidden, max review-required, coverage expectations.
+3. Improve subject/context alignment for cross-document review using that paired data.
+4. Add OCR/VLM extraction for pages that triage marks weak/low-text.
+5. Add table-aware extraction for schedules, settings, and drawing/spec tables beyond the current section-header carry.
+6. Add real local embeddings for LanceDB after extraction/context failures are measured.
+7. Add Kuzu smoke queries for finding-to-decision-trace traceability.
 
 Validation after each step:
 

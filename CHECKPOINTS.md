@@ -892,3 +892,79 @@ Operational finding:
 - The full Somerset drawing package can dominate runtime. Keep it available for
   targeted extraction tests, but do not put it in the default local smoke
   manifest until a bounded page-range/intake mode exists.
+
+## checkpoint-2026-05-25-transformer-spec-context
+
+Purpose:
+
+- improve real spec-sheet extraction without adding another infrastructure layer,
+- attach table values to the main equipment when the document is clearly a
+  transformer datasheet/specification sheet,
+- make section context classify ambiguous percent rows correctly.
+
+Changed:
+
+- added public-spec context patterns:
+  - `Main Power Transformer Specification Sheet`,
+  - `Project Specific Information`,
+  - `Transformer Electrical Ratings`,
+  - `Capacity Ratings`,
+  - `Voltage Ratings`,
+  - `Impedance Information`,
+  - `On-Load Tap Changer`,
+  - `Bushings`,
+- added cautious cross-page context carry for equipment/spec tables only,
+- added main-equipment subject attachment for generic parameter values inside
+  transformer spec contexts,
+- added context-aware parameter correction: percent rows under
+  `Impedance Information` become `impedance`,
+- fixed the old `%` classifier bug where any `z` in text made a percent row
+  look like impedance (`Step Size: 0.625%` now stays `percent`),
+- package version bumped to `0.18.0`.
+
+Validation result:
+
+```text
+tests/test_docgraph.py tests/test_evidence.py
+  16 passed
+
+make eval-aes-corpus
+  public_aes_der_standard_vs_goldbook: completed
+  public_aes_der_standard_vs_transformer_spec_sheet: completed
+
+make eval-triage
+  52 tests passed
+  version/cross/negative/scanned evals passed
+
+make coverage
+  52 passed
+  source coverage: 82%
+```
+
+Public AES artifact improvement:
+
+```text
+Before:
+  B transformer-spec values on pages 4/5 were mostly subject=GENERAL.
+  "Step Size: 0.625%" was misclassified as impedance because "size" contains "z".
+
+After:
+  ev00100 "Primary - Secondary (ONAF): 10%" =>
+    subject=XFMR
+    parameter=impedance
+    context=B:impedance_information
+
+  ev00109 "Step Size: 0.625%" =>
+    subject=GENERAL
+    parameter=percent
+    context=B:tap_changer
+```
+
+Accuracy finding:
+
+- This improves the document graph for real transformer specification sheets.
+- It does not yet make the public DER-standard-vs-transformer-spec pair produce
+  value comparisons, because that pair is not a true paired revision/cross-doc
+  project set. The next demo-quality data step is a real paired transformer
+  spec/drawing/study pair or a bounded synthetic mutation of a public AES spec
+  sheet with explicit gold.

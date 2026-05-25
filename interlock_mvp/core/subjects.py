@@ -51,8 +51,10 @@ def canonical_parameter(text: str, unit: str, domain: DomainDictionary | None = 
         return "fault_current"
     if unit_lower in {"ka", "a"}:
         return "current"
-    if unit_lower in {"%", "%z"}:
-        return "impedance" if "z" in lower or "impedance" in lower else "percent"
+    if unit_lower == "%z":
+        return "impedance"
+    if unit_lower == "%":
+        return "impedance" if re.search(r"\bimpedance\b|%\s*z\b|\bz\s*%", lower) else "percent"
     return "parameter"
 
 

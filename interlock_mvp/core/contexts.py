@@ -11,10 +11,26 @@ CONTEXT_PATTERNS = [
     (re.compile(r"\bTransformer\s+Inrush\s+(\d+)\b", re.I), "transformer_inrush", "transformer_inrush"),
     (re.compile(r"\bTransformer\s+Damage\s+Curve\b", re.I), "transformer_damage_curve", "transformer_damage_curve"),
     (re.compile(r"\bSelective Coordination Stud(?:y|ies)\b", re.I), "selective_coordination_studies", "coordination_study"),
+    (re.compile(r"\bMain\s+Power\s+Transformer\s+Specification\s+Sheet\b", re.I), "equipment_data_sheet", "equipment_data_sheet"),
+    (re.compile(r"\bProject\s+Specific\s+Information\b", re.I), "equipment_data_sheet", "equipment_data_sheet"),
     (re.compile(r"\bEquipment Data Sheet\b", re.I), "equipment_data_sheet", "equipment_data_sheet"),
     (re.compile(r"\bNameplate Parameters\b", re.I), "nameplate_parameters", "nameplate_table"),
+    (re.compile(r"\bTransformer\s+Electrical\s+Ratings\b", re.I), "transformer_electrical_ratings", "nameplate_table"),
+    (re.compile(r"\bCapacity\s+Ratings\b", re.I), "capacity_ratings", "rating_table"),
+    (re.compile(r"\bVoltage\s+Ratings\b", re.I), "voltage_ratings", "rating_table"),
+    (re.compile(r"\bImpedance\s+Information\b", re.I), "impedance_information", "impedance_table"),
+    (re.compile(r"\bOn[- ]Load\s+Tap\s+Changer\b|\bOLTC\b", re.I), "tap_changer", "tap_changer"),
+    (re.compile(r"\bBushings?\b", re.I), "bushings", "bushing_table"),
 ]
 ROW_MARKER_RE = re.compile(r"^\s*(\d{1,3})\s+")
+CONTINUING_CONTEXT_KINDS = {
+    "equipment_data_sheet",
+    "nameplate_table",
+    "rating_table",
+    "impedance_table",
+    "tap_changer",
+    "bushing_table",
+}
 
 
 def context_label_for_region(
@@ -52,6 +68,9 @@ def context_label_for_region(
     if region.doc_id in current_by_doc:
         context_id, canonical, kind, page = current_by_doc[region.doc_id]
         if page != region.page:
+            if kind in CONTINUING_CONTEXT_KINDS:
+                current_by_doc[region.doc_id] = (context_id, canonical, kind, region.page)
+                return context_id, canonical, kind, ""
             context_id = f"{region.doc_id}:document_p{region.page}"
             current_by_doc[region.doc_id] = (context_id, f"document_p{region.page}", "document", region.page)
             return context_id, f"document_p{region.page}", "document", ""
@@ -68,6 +87,14 @@ def align_context_label(label: str) -> str:
         return f"tcc{next(group for group in tcc_match.groups() if group)}"
     if "equipment_data_sheet" in norm or "nameplate" in norm:
         return "equipment_data_sheet"
+    if any(token in norm for token in ("transformer_electrical_ratings", "capacity_ratings", "voltage_ratings")):
+        return norm
+    if "impedance_information" in norm:
+        return "impedance_information"
+    if "tap_changer" in norm:
+        return "tap_changer"
+    if "bushings" in norm:
+        return "bushings"
     if "selective_coordination" in norm:
         return "selective_coordination_studies"
     return norm or "document"

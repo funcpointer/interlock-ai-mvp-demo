@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import re
 
 from .contexts import align_context_label, align_context_label_strict, context_label_for_region
 from .domain import DomainDictionary
@@ -28,13 +29,92 @@ def build_document_graphs(
             (f"{item.doc_id}:document", "document", "document", ""),
         )
         confidence = "high" if label != "document" else "low"
-        updated_evidence.append(item.model_copy(update={"context_id": context_id, "context_confidence": confidence}))
+        updated_evidence.append(
+            item.model_copy(
+                update={
+                    "context_id": context_id,
+                    "context_confidence": confidence,
+                    **_contextual_claim_updates(item, label),
+                }
+            )
+        )
+    updated_evidence = _attach_main_equipment_subjects(regions, updated_evidence, context_by_region)
 
     return (
         _build_graph_for_doc("A", regions, updated_evidence, context_by_region),
         _build_graph_for_doc("B", regions, updated_evidence, context_by_region),
         updated_evidence,
     )
+
+
+def _contextual_claim_updates(item: EvidenceItem, context_label: str) -> dict[str, str]:
+    if item.kind != "parameter_value":
+        return {}
+    aligned = align_context_label(context_label)
+    if item.parameter == "percent" and aligned == "impedance_information":
+        return {"parameter": "impedance", "source_method": f"{item.source_method}+context_parameter"}
+    return {}
+
+
+def _attach_main_equipment_subjects(
+    regions: list[RegionRecord],
+    evidence: list[EvidenceItem],
+    context_by_region: dict[str, tuple[str, str, str, str]],
+) -> list[EvidenceItem]:
+    main_subject_by_doc = _main_equipment_subject_by_doc(regions)
+    if not main_subject_by_doc:
+        return evidence
+    updated: list[EvidenceItem] = []
+    for item in evidence:
+        main_subject = main_subject_by_doc.get(item.doc_id)
+        if not main_subject or item.kind != "parameter_value" or item.subject != "GENERAL":
+            updated.append(item)
+            continue
+        _context_id, context_label, context_kind, _raw = context_by_region.get(
+            item.region_id,
+            (item.context_id, "document", "document", ""),
+        )
+        if not _is_main_equipment_context(context_label, context_kind):
+            updated.append(item)
+            continue
+        updated.append(
+            item.model_copy(
+                update={
+                    "subject": main_subject,
+                    "confidence": "medium",
+                    "source_method": f"{item.source_method}+main_equipment_context",
+                }
+            )
+        )
+    return updated
+
+
+def _main_equipment_subject_by_doc(regions: list[RegionRecord]) -> dict[str, str]:
+    text_by_doc: dict[str, list[str]] = defaultdict(list)
+    for region in sorted(regions, key=lambda r: (r.doc_id, r.page, r.bbox[1], r.bbox[0])):
+        if region.page <= 5:
+            text_by_doc[region.doc_id].append(region.text)
+    result: dict[str, str] = {}
+    for doc_id, chunks in text_by_doc.items():
+        text = " ".join(chunks).lower()
+        if "transformer" not in text:
+            continue
+        if re.search(r"\b(main\s+power\s+transformer|power\s+transformers?)\b", text) and any(
+            marker in text for marker in ("specification sheet", "datasheet", "technical datasheet", "specified data")
+        ):
+            result[doc_id] = "XFMR"
+    return result
+
+
+def _is_main_equipment_context(context_label: str, context_kind: str) -> bool:
+    aligned = align_context_label(context_label)
+    return context_kind in {"equipment_data_sheet", "nameplate_table", "rating_table", "impedance_table"} or aligned in {
+        "equipment_data_sheet",
+        "transformer_electrical_ratings",
+        "capacity_ratings",
+        "voltage_ratings",
+        "impedance_information",
+    }
 
 
 def build_diff_graph(graph_a: DocumentGraph, graph_b: DocumentGraph) -> DiffGraph:

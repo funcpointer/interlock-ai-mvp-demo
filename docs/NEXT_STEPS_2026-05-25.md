@@ -81,14 +81,21 @@ Done as a first public-data pass:
 Finding:
 
 - public AES smoke pairs complete, but they are absence-search heavy and have zero
-  value comparisons. The system is extracting many values but not attaching them
-  to strong cross-document subjects/contexts.
+  value comparisons.
+- checkpoint `checkpoint-2026-05-25-transformer-spec-context` improved the
+  transformer spec side: generic values in transformer spec contexts now attach
+  to `XFMR`, and percent rows under `Impedance Information` become impedance.
+- the remaining blocker is paired-data quality and cross-document alignment, not
+  whether the transformer spec sheet can be parsed at all.
 
 Immediate next action:
 
-- build eval YAML for one public-AES pair only after manually selecting a small,
-  meaningful expected/forbidden subset; do not treat all public smoke findings as
-  product-quality findings yet.
+- create a demo-quality paired spec/study/drawing case:
+  - either obtain one real AES paired packet,
+  - or create a bounded synthetic mutation of the public transformer spec sheet
+    and label it explicitly as synthetic.
+- build eval YAML for that pair with expected/forbidden citations. Do not treat
+  arbitrary public smoke findings as product-quality findings.
 
 ### P2: Extraction Upgrade Based on Failures
 
@@ -111,10 +118,11 @@ Then add targeted extraction lanes:
 
 Current triage priority:
 
-1. table/section context extraction for standards/spec sheets,
-2. subject attachment from nearby labels and table headings,
-3. OCR/VLM only on pages triage marks low-text/weak,
-4. bounded page-range support before large drawing packages become a regular
+1. paired corpus/gold creation for a demo-quality AES-style example,
+2. table extraction for schedules/settings beyond section headers,
+3. subject attachment from nearby labels and table headings,
+4. OCR/VLM only on pages triage marks low-text/weak,
+5. bounded page-range support before large drawing packages become a regular
    corpus target.
 
 ### P2: Real Embeddings for LanceDB

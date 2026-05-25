@@ -149,6 +149,52 @@ def test_cross_doc_transformer_rating_does_not_align_to_unrelated_kva_load() -> 
     assert not [edge for edge in diff.edges if edge.diff_type == "value_mismatch" and edge.subject == "XFMR-001"]
 
 
+def test_transformer_spec_context_attaches_generic_values_to_main_equipment() -> None:
+    regions = [
+        _region("B", 1, "rb1", "Main Power Transformer Specification Sheet"),
+        _region("B", 2, "rb2", "AES Solar and Wind Generation Power Transformers MTR Appendix B - Datasheet"),
+        _region("B", 3, "rb3", "Transformer Electrical Ratings"),
+        _region("B", 3, "rb4", "Capacity Ratings"),
+        _region("B", 3, "rb5", "Primary to Secondary Winding: 84/112/140 MVA"),
+    ]
+    evidence = [
+        _claim("B", 3, "rb5", "ev1", "GENERAL", "rating", "140", "MVA", "Primary to Secondary Winding: 84/112/140 MVA"),
+    ]
+
+    _graph_a, graph_b, updated = build_document_graphs(regions=regions, evidence=evidence)
+
+    claim = graph_b.claims[0]
+    assert claim.subject_id == "B:subject:xfmr"
+    assert graph_b.subjects[0].canonical_label == "XFMR"
+    assert updated[0].subject == "XFMR"
+    assert updated[0].source_method.endswith("+main_equipment_context")
+
+
+def test_impedance_context_carries_across_page_and_stops_at_oltc() -> None:
+    regions = [
+        _region("B", 1, "rb1", "Main Power Transformer Specification Sheet"),
+        _region("B", 2, "rb2", "Project Specific Information"),
+        _region("B", 4, "rb3", "Impedance Information"),
+        _region("B", 5, "rb4", "Primary - Secondary (ONAF): 10% (+/- allowed tolerance)"),
+        _region("B", 5, "rb5", "On-Load Tap Changer (OLTC)"),
+        _region("B", 5, "rb6", "Step Size: 0.625%"),
+    ]
+    evidence = [
+        _claim("B", 5, "rb4", "ev1", "GENERAL", "percent", "10", "%", "Primary - Secondary (ONAF): 10% (+/- allowed tolerance)"),
+        _claim("B", 5, "rb6", "ev2", "GENERAL", "percent", "0.625", "%", "Step Size: 0.625%"),
+    ]
+
+    _graph_a, graph_b, updated = build_document_graphs(regions=regions, evidence=evidence)
+
+    claims_by_ev = {claim.evidence_ids[0]: claim for claim in graph_b.claims}
+    assert claims_by_ev["ev1"].parameter == "impedance"
+    assert claims_by_ev["ev1"].subject_id == "B:subject:xfmr"
+    assert claims_by_ev["ev2"].parameter == "percent"
+    assert claims_by_ev["ev2"].subject_id == "B:subject:general"
+    updated_by_id = {item.evidence_id: item for item in updated}
+    assert updated_by_id["ev1"].source_method.endswith("+context_parameter+main_equipment_context")
+
+
 def _region(doc_id: str, page: int, region_id: str, text: str) -> RegionRecord:
     return RegionRecord(
         region_id=region_id,
