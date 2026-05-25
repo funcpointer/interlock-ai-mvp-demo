@@ -1,130 +1,71 @@
-# 2-5 Minute Demo Voice-Over Script
+# Demo Video Voice-Over Script
 
-Target length: 3 to 4 minutes.
+Target length: 3 minutes.
 
-Open before recording:
+## 0:00-0:25 — Open
 
-- Streamlit app: `https://interlock-ai-mvp-demo-ddptwdsnkhnf84zqf6nd3q.streamlit.app/`
-- Source repo: `https://github.com/funcpointer/interlock-ai-mvp-demo`
-
-Use the app defaults:
-
-- cloud calls disabled,
-- Kuzu disabled,
-- preset public demos.
-
-## 0:00-0:25 — Problem
-
-On screen: Streamlit app landing view.
+Action: Open `https://interlock-ai-mvp-demo-ddptwdsnkhnf84zqf6nd3q.streamlit.app/`.
 
 Voice-over:
 
-> InterLock AI is a review assistant for engineering document packages. In energy infrastructure work, reviewers compare specifications, studies, drawings, standards, contracts, and checklists by hand. The problem is not that engineers lack judgment. The problem is that high-consequence mismatches hide across files, and they often surface late, when redesign is expensive.
+> InterLock AI is an engineering review assistant for comparing technical PDFs. The wedge is simple: find verifiable mismatches across documents, cite the source evidence, and help senior reviewers inspect the right issues faster.
 >
-> This MVP focuses on one wedge: cross-file discrepancy detection with citations. It does not replace an engineer. It gives the reviewer a shorter, more systematic list of evidence-backed items to inspect.
+> This does not replace engineering judgment. It gives the reviewer an evidence-backed review map instead of another uncited AI summary.
 
-## 0:25-1:25 — Version Review Demo
+## 0:25-1:20 — Version Review
 
-On screen:
-
-1. Choose `Public version demo`.
-2. Keep cloud calls off.
-3. Click `Run review`.
-4. Wait for findings.
+Action: Select `Public version demo`, keep cloud calls off, and click `Run review`.
 
 Voice-over:
 
-> First I will run a version review. This compares a baseline engineering PDF against a revised PDF. In this mode, the revised document is treated as authoritative, but every finding still has to be cited back to source evidence.
+> First, I am running a version review. This compares a baseline PDF against a revised PDF. In version mode, the revised document is treated as authoritative, but the system still has to prove every finding with source citations.
 >
-> The bundled demo uses a real public AES transformer specification sheet and a watermarked synthetic revision. The synthetic revision is intentional: it gives us a controlled expected answer so we can evaluate whether the system finds the planted discrepancies without overclaiming.
->
-> Here the system found two review-required findings. The first is a transformer rating mismatch: the baseline says 140 MVA, while the revised document says 120 MVA. The second is an impedance mismatch: 10 percent versus 8 percent.
+> This demo uses a real public AES transformer specification sheet and a watermarked synthetic revision. The synthetic revision gives us known expected discrepancies, so we can test precision instead of just showing a nice-looking output.
 
-On screen:
-
-- Open the first finding.
-- Point to subject, parameter, A value, B value.
-- Point to page quote and crop.
-- Open the second finding and do the same.
+Action: Open the two review-required findings. Point to subject, parameter, values, authority, quotes, and crop images.
 
 Voice-over:
 
-> The important part is not just the number. Each flag has the subject, the parameter, the values on both sides, the authority direction, page numbers, quotes, bounding boxes, and a crop from the original PDF. That is the core product behavior: no citation, no finding.
+> The system found two review-required findings: transformer rating changed from 140 MVA to 120 MVA, and impedance changed from 10 percent to 8 percent.
+>
+> Each finding includes the subject, parameter, values from both documents, authority direction, page references, quotes, bounding boxes, and a crop from the PDF. The rule is: no citation, no finding.
 
-## 1:25-2:20 — Cross-Document Review Demo
+## 1:20-2:05 — Cross-Document Review
 
-On screen:
-
-1. Choose `Public cross-doc demo`.
-2. Click `Run review`.
-3. Show findings.
+Action: Select `Public cross-doc demo` and click `Run review`.
 
 Voice-over:
 
-> Now I will switch to cross-document review. This is closer to the broader InterLock thesis: compare different document types, not just two revisions of the same file.
+> Now I am switching to cross-document review. This is the broader product direction: comparing different document types, not just two revisions of the same file.
 >
-> In this demo, the system compares the transformer specification against a synthetic protection-study excerpt. The values appear in a different document shape, but the reviewer still cares whether the assumptions agree.
->
-> The authority model is explicit. For this demo configuration, a protection study ranks above a specification. If authority is unknown, the system should not overstate direction. It should route the item to engineer review.
+> Here the system compares the transformer specification against a synthetic protection-study excerpt. The same engineering assumptions appear in a different document shape, which is much closer to real review work.
 
-On screen:
-
-- Open a cross-doc finding.
-- Show authority direction.
-- Show quote/crop evidence from both documents.
+Action: Open a cross-doc finding. Point to authority and evidence from both files.
 
 Voice-over:
 
-> This matters because a generic "A does not equal B" flag is not enough for engineering review. The reviewer needs to know which document is treated as controlling, why that authority decision was made, and where the evidence came from.
+> Authority matters here. A generic "A does not equal B" flag is not enough. The reviewer needs to know which document is treated as controlling and why. In this demo, the AES authority configuration ranks the protection study above the specification.
+>
+> If authority is unknown, the system should not overclaim. It should route the item to engineer review.
 
-## 2:20-3:10 — Audit Trail And Artifacts
+## 2:05-2:45 — Architecture
 
-On screen:
-
-1. Expand artifacts/debug section.
-2. Show `findings.json`, `metrics.json`, `reasoning_graph.json`, and `decision_traces.json` if available.
+Action: Expand artifacts or debug/details. Show `findings.json`, `metrics.json`, `reasoning_graph.json`, and `decision_traces.json` if visible.
 
 Voice-over:
 
-> Under the UI, the engine writes a full audit trail. The UI is only an adapter. The same core review function can be called from the CLI, an API, or a future production interface.
+> The UI is only an adapter. The core product is a reusable review engine: the CLI, Streamlit app, and a future API can all call the same review function.
 >
-> The canonical outputs are JSON artifacts: findings, metrics, extracted evidence, document graphs, reasoning decisions, and decision traces. The markdown report, graph, search index, and UI are derived from those artifacts.
+> The engine persists intermediate artifacts: extracted pages, regions, evidence, document graphs, reasoning decisions, findings, metrics, and logs. That matters because accuracy work needs observability. When a flag is wrong, we can inspect whether the issue came from extraction, subject alignment, unit comparison, authority resolution, or rendering.
 >
-> This makes the system debuggable. If a finding is wrong, we can inspect whether the problem came from extraction, subject alignment, unit comparison, authority resolution, or final rendering.
+> JSON is the source of truth. The report, graph, search layer, wiki, and UI are derived from it. That keeps the prototype easy to debug now and easy to port later.
 
-## 3:10-3:45 — Limits And Why They Are Honest
+## 2:45-3:10 — Close
 
-On screen:
-
-- Show note about scans/coverage warnings if available.
-- Or keep findings visible and speak to limitations.
+Action: Return to the findings list.
 
 Voice-over:
 
-> There are real limits. The public demo does not claim solved OCR or image-only drawing review. If a PDF page has too little extractable text, the system should produce a coverage warning instead of pretending it reviewed the page.
+> The MVP is intentionally conservative. It handles cited parameter discrepancies first, and it surfaces low-text or scanned pages as coverage warnings instead of pretending it reviewed what it could not read.
 >
-> The next accuracy lift is OCR, VLM extraction, table structure, and evaluation on private AES review packets. The MVP is intentionally conservative: cited high-confidence discrepancies first, broader document intelligence second.
-
-## 3:45-4:00 — Close
-
-On screen:
-
-- Return to findings list or source repo.
-
-Voice-over:
-
-> The wedge is simple: turn a pile of engineering PDFs into a cited review map, flag mismatches that are expensive to miss, and give senior reviewers evidence they can inspect quickly. The platform path is broader review across studies, drawings, specs, standards, contracts, and checklists.
-
-## Shorter 2-Minute Cut
-
-Use this if the recording needs to be tighter:
-
-1. Say the problem in 15 seconds.
-2. Run only the version demo.
-3. Show both findings and their citations.
-4. Mention the cross-doc demo exists and uses the same engine.
-5. Close with "no citation, no finding."
-
-## One-Sentence Close
-
-InterLock turns engineering PDFs into a cited review map, flags high-consequence mismatches, and gives senior reviewers evidence they can inspect instead of another uncited AI summary.
+> The next accuracy lift is OCR, VLM extraction, table structure, and evaluation on private AES document packets. But the product thesis is already visible: turn engineering PDFs into a cited review map, flag costly mismatches, and make expert review faster and more systematic.
