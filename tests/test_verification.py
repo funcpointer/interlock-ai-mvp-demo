@@ -324,9 +324,9 @@ def test_absence_search_sources_missing_item_finding() -> None:
 
 
 def test_banned_authored_language_detection_handles_punctuation() -> None:
-    violations = authored_language_violations("This is WRONG. That result would be hazardous; not quoted.")
+    violations = authored_language_violations("This is WRONG. That result would be hazardous; not safety language.")
 
-    assert violations == ["hazardous", "wrong"]
+    assert violations == ["hazardous", "safety", "wrong"]
 
 
 def test_external_model_review_enriches_existing_finding_without_changing_gate(monkeypatch) -> None:
@@ -336,7 +336,7 @@ def test_external_model_review_enriches_existing_finding_without_changing_gate(m
         assert model
         return ExternalFindingReview(
             supports_finding=True,
-            reviewer_note="The cited values, authority, and context quorum are consistent with a reviewer-facing discrepancy.",
+            reviewer_note="Citations support the stated mismatch.",
             caution_note="Reviewer should confirm engineering significance before action.",
         )
 
@@ -406,7 +406,7 @@ def test_value_mismatch_summary_uses_reviewer_facing_authority_language() -> Non
         max_cost_usd=0,
     )
 
-    assert findings[0].summary == "XFMR rating: authoritative Doc B cites 120 MVA; baseline Doc A cites 140 MVA."
+    assert findings[0].summary == "Doc B is authoritative for this review; the cited Doc B value differs from the baseline Doc A value."
 
 
 def test_external_model_review_rejects_banned_authored_language(monkeypatch) -> None:
@@ -495,7 +495,7 @@ def _context_support(
         signal_types=signal_types or ["context_room", "search_hit", "graph_alignment"],
         context_ids=["A:ctx:ratings", "B:ctx:ratings"],
         search_ids=["claim:b1"],
-        summary="Context quorum supporting signal.",
+        summary="Aligned cited context.",
         downgrade_reasons=downgrade_reasons or [],
     )
 

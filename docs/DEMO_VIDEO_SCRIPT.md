@@ -60,7 +60,7 @@ Voice-over:
 >
 > There is also a context layer: graph, search index, and review wiki. It gives the reviewer a second-brain view of the packet, so they can move from a finding to the surrounding document context, related evidence, and reasoning trail.
 >
-> In the UI, this shows up as a context quorum panel: did the graph connect the cited claims, did search find related packet evidence, and did the memory layer place the evidence in the right document room. These signals can raise or lower confidence and explain why the evidence belongs together. But they are never enough by themselves. The published finding still needs direct citations and deterministic comparison logic.
+> In the UI, this shows up as a compact context check: did the graph connect the cited claims, did search find related packet evidence, and did the memory layer place the evidence in the right document room. These signals explain why the cited evidence was compared. They are never enough by themselves. The published finding still needs direct citations and deterministic comparison logic.
 >
 > If cloud review is enabled, an external model can add an advisory reviewer note to an already-cited finding. It is deliberately downstream of the evidence gate: it can support or caution, but it cannot create findings.
 >

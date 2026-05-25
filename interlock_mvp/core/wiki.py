@@ -250,17 +250,15 @@ def _finding_lines(finding: Finding) -> list[str]:
 
 
 def _finding_context_support_lines(finding: Finding) -> list[str]:
-    verdict = "strong alignment" if finding.context_support_supports else "context caution"
+    verdict = "aligned context" if finding.context_support_supports else "context caution"
     signals = "; ".join(_context_signal_label(signal) for signal in finding.context_support_signal_types)
     return [
-        "## Citation Pairing Context",
+        "## Context Check",
         "",
         f"- Support id: `{finding.context_support_id or ''}`",
         f"- Verdict: {verdict}",
         f"- Confidence: `{finding.context_support_confidence or 'unknown'}`",
-        "- Note: this explains why the cited evidence was compared; it is not proof by itself.",
-        f"- Signals: {signals or 'none'}",
-        f"- Summary: {finding.context_support_summary}",
+        f"- Signals checked: {signals or 'none'}",
     ]
 
 
@@ -275,9 +273,9 @@ def _context_signal_label(signal: str) -> str:
 
 
 def _finding_model_review_lines(finding: Finding) -> list[str]:
-    verdict = "supports the cited finding" if finding.model_review_supports else "adds caution for reviewer inspection"
+    verdict = "supports citations" if finding.model_review_supports else "adds caution"
     lines = [
-        "## External Model Advisory Review",
+        "## External Model Check",
         "",
         f"- Model: `{finding.model_review_model}`",
         f"- Verdict: {verdict}",

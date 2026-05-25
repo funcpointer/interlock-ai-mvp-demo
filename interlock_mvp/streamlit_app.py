@@ -260,16 +260,14 @@ def _render_context_support(finding: dict[str, Any]) -> None:
     confidence = finding.get("context_support_confidence") or "unknown"
     signals = [str(signal) for signal in (finding.get("context_support_signal_types") or [])]
     labels = [_context_signal_label(signal) for signal in signals]
-    title = "Why these citations were compared"
-    with st.expander(f"{title} ({confidence} context confidence)", expanded=False):
+    with st.expander(f"Context check: {confidence} confidence", expanded=False):
         if supports:
-            st.success("Context layer found the cited values in aligned document sections.")
+            st.success("The citations sit in aligned document context.")
         else:
-            st.warning("Context layer found weak or generic surrounding context.")
-        st.caption("Supporting signal only. The finding still comes from the cited values and deterministic comparison.")
+            st.warning("The surrounding context is weak or generic.")
+        st.caption("Supporting signal only. The finding comes from the cited values.")
         if labels:
-            st.markdown("**Signals:** " + "; ".join(labels))
-        st.caption(str(finding.get("context_support_summary") or ""))
+            st.markdown("**Checked:** " + "; ".join(labels))
 
 
 def _context_signal_label(signal: str) -> str:
@@ -285,15 +283,15 @@ def _context_signal_label(signal: str) -> str:
 def _render_model_review(finding: dict[str, Any]) -> None:
     supports = finding.get("model_review_supports")
     model = finding.get("model_review_model") or "external model"
-    title = "External model reviewer supports the cited finding" if supports else "External model reviewer adds caution"
-    st.info(
-        f"**{title}** (`{model}`)\n\n"
-        "Advisory only. The model cannot create findings or bypass citations; it reviews the already-cited evidence and context quorum."
-    )
-    st.markdown(str(finding.get("model_review_summary") or ""))
-    cautions = finding.get("model_review_cautions") or []
-    if cautions:
-        st.caption("Cautions: " + "; ".join(str(item) for item in cautions))
+    title = "supports citations" if supports else "adds caution"
+    with st.expander(f"External model check: {title}", expanded=False):
+        st.caption(f"Model: {model}. Advisory only; it cannot create findings or bypass citations.")
+        summary = str(finding.get("model_review_summary") or "").strip()
+        if summary:
+            st.markdown(summary)
+        cautions = finding.get("model_review_cautions") or []
+        if cautions:
+            st.caption("Cautions: " + "; ".join(str(item) for item in cautions))
 
 
 def _render_citation(run_dir: Path, label: str, citation: dict[str, Any]) -> None:

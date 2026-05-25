@@ -15,6 +15,7 @@ BANNED_AUTHORED_WORDS = {
     "incorrect",
     "mistake",
     "unsafe",
+    "safety",
     "dangerous",
     "hazardous",
     "defective",
@@ -178,7 +179,9 @@ def _review_finding_with_openai(finding: Finding, *, model: str) -> ExternalFind
                     "Set supports_finding=true when the citations contain the stated subject, parameter, values, and authority/context "
                     "needed for the existing finding, even if a human engineer must decide significance. Set supports_finding=false only "
                     "when there is a citation, identity, authority, unit-equivalence, or context gap. Do not create new findings. "
-                    "Return concise reviewer-facing JSON. Avoid these authored words: wrong, error, incorrect, mistake, unsafe, dangerous, hazardous, defective."
+                    "Keep reviewer_note under 25 words and do not restate the full values unless necessary. "
+                    "Leave caution_note empty unless there is a citation, identity, authority, unit, or context problem. "
+                    "Return concise reviewer-facing JSON. Avoid these authored words: wrong, error, incorrect, mistake, unsafe, safety, dangerous, hazardous, defective."
                 ),
             },
             {
@@ -345,17 +348,11 @@ def _diff_summary(edge: DiffEdge, a: EvidenceItem | None, b: EvidenceItem | None
 
 
 def _value_mismatch_summary(edge: DiffEdge, a: EvidenceItem, b: EvidenceItem, authority: AuthorityDecision) -> str:
-    value_a = _display_value(a)
-    value_b = _display_value(b)
     if authority.authoritative_side == "B":
-        return f"{edge.subject} {edge.parameter}: authoritative Doc B cites {value_b}; baseline Doc A cites {value_a}."
+        return f"Doc B is authoritative for this review; the cited Doc B value differs from the baseline Doc A value."
     if authority.authoritative_side == "A":
-        return f"{edge.subject} {edge.parameter}: authoritative Doc A cites {value_a}; Doc B cites {value_b}."
-    return f"{edge.subject} {edge.parameter}: Doc A cites {value_a}; Doc B cites {value_b}. Authority is unresolved."
-
-
-def _display_value(evidence: EvidenceItem) -> str:
-    return " ".join(part for part in [evidence.value, evidence.unit] if part).strip()
+        return f"Doc A is authoritative for this review; the cited Doc A value differs from the Doc B value."
+    return "The cited documents disagree, but authority is unresolved."
 
 
 def _citation(evidence: EvidenceItem) -> EvidenceCitation:
