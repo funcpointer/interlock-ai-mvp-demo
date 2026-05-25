@@ -5,7 +5,7 @@
 Purpose:
 
 - make telemetry the default debugging surface,
-- make Kuzu optional for fast loops,
+- make Kuzu optional because it is derived, not authoritative,
 - codify repeatable fixture evaluation.
 
 Changed:
@@ -32,13 +32,14 @@ make eval-full
 
 Checkpoint rule:
 
-- use `eval-fast` after normal code changes,
+- use `eval-fast` after normal code changes because it preserves the accuracy contracts while skipping only cloud/Kuzu,
 - use `eval-full` before demo/release or after graph/Kuzu changes.
 
 Known current finding:
 
-- Kuzu build is useful for graph inspection but too slow for inner-loop debugging.
+- Kuzu build is useful for graph inspection but does not currently affect findings.
 - JSON graph artifacts remain canonical.
+- Slow paths are acceptable when they improve extraction, recall, precision, citations, or verification. Skipping Kuzu is not a statement that speed outranks accuracy.
 
 Validation result:
 
@@ -72,7 +73,8 @@ Purpose:
 
 - add a deterministic search/debug layer over persisted review-map artifacts,
 - keep search out of final finding authority,
-- make reviewer/debug queries fast without invoking cloud models.
+- make reviewer/debug queries available without invoking cloud models,
+- keep search as recall/debug support, not finding authority.
 
 Changed:
 

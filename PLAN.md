@@ -7,7 +7,7 @@ Build a CLI-first review engine for exactly two engineering PDFs. It produces ci
 - version review: baseline document vs revised document,
 - cross-document review: different document classes such as spec vs protection study.
 
-The product claim stays narrow: InterLock helps senior reviewers find verifiable mismatches faster. It does not certify engineering correctness.
+The product claim stays narrow: InterLock helps senior reviewers find verifiable mismatches more systematically. It does not certify engineering correctness.
 
 The CLI is an adapter only. Business logic lives in:
 
@@ -56,6 +56,8 @@ Current validated fixture classes:
 - Cloud LLM/VLM may propose or verify candidates, but cannot silently publish findings.
 - Local SLM/search tools may improve recall, but deterministic/verifier gates still decide findings.
 - Logs and metrics are first-class artifacts, not afterthoughts.
+- Slow is acceptable when it buys accuracy, precision, recall, citations, or reviewer trust.
+- Fast is only a convenience when the skipped work is derived, non-authoritative, or already covered by persisted artifacts.
 
 ## Core Commands
 
@@ -150,24 +152,24 @@ Required metrics:
 - cloud cost estimate
 - Kuzu status
 
-Current telemetry finding: Kuzu graph build can dominate runtime. Therefore Kuzu is optional for inner-loop evaluation.
+Current telemetry finding: Kuzu graph build can dominate runtime. That is acceptable when graph inspection is the goal. Kuzu is optional only because it is a derived mirror of canonical JSON, not because speed outranks accuracy.
 
 ## Evaluation Policy
 
 Evaluation is mandatory at checkpoints.
 
-Fast checkpoint suite:
+Accuracy checkpoint suite:
 
 - unit tests
 - version gold eval
 - negative eval
 - cross-doc eval
 - scanned/low-text review sanity
-- all with `--no-cloud --no-kuzu`
+- all with `--no-cloud --no-kuzu` only because cloud export is gated and Kuzu is derived
 
 Full checkpoint suite:
 
-- fast checkpoint suite
+- accuracy checkpoint suite
 - one Kuzu-enabled run
 - optional cloud/VLM run only when document export is explicitly allowed
 
@@ -183,7 +185,7 @@ Acceptance now means:
 
 ## Accuracy Roadmap
 
-### Phase A: Fast, Inspectable Baseline
+### Phase A: Inspectable Baseline
 
 Status: mostly done.
 
@@ -235,6 +237,8 @@ Do not keep growing regexes forever. Add richer extraction only where it improve
 
 PyMuPDF remains the citation/crop geometry layer.
 
+This phase is allowed to be slow. Accuracy, recall, and citation quality are the reason to do it.
+
 ### Phase D: Semantic Recall
 
 After graph nodes are stable, add LanceDB or another vector/hybrid index over:
@@ -279,14 +283,37 @@ Checkpoint contents:
 
 Do not checkpoint after cosmetic-only edits unless they change demo behavior.
 
+## Runtime Policy
+
+Runtime budget is subordinate to review quality.
+
+Accept slow paths for:
+
+- OCR,
+- VLM extraction,
+- table reconstruction,
+- model-proposed candidates,
+- semantic/vector recall,
+- graph traversal that changes candidates or reviewer-visible evidence,
+- extra verification passes that reduce false positives.
+
+Do not accept slow paths for:
+
+- rebuilding a derived mirror that does not alter findings,
+- repeated work that can be cached,
+- hidden retries without telemetry,
+- expensive model calls without cost counters and source citations.
+
+Kuzu is currently in the second category: useful for inspection, not part of finding authority.
+
 ## Near-Term Execution Plan
 
-1. Make Kuzu optional for fast evaluation.
+1. Make Kuzu optional because it is derived, not because it is slow.
 2. Add Makefile targets for repeatable tests/evals.
-3. Run fast checkpoint suite.
+3. Run accuracy checkpoint suite.
 4. Initialize repo checkpoint if no git repo exists.
 5. Add `search` artifacts and `rg`-backed CLI search.
 6. Add AES glossary.
-7. Re-run fast checkpoint suite.
+7. Re-run accuracy checkpoint suite.
 8. Improve search ranking so diff/finding hits beat generic evidence when the query names a discrepancy.
 9. Only then consider LanceDB/local SLM integration.

@@ -20,6 +20,6 @@ result = run_review(ReviewRequest(...))
 
 Canonical outputs are JSON artifacts. `report.md` and `graph.kuzu/` are derived.
 
-Use `--no-kuzu` for fast evaluation/debug loops. Build Kuzu only for graph inspection checkpoints.
+Use `--no-kuzu` when Kuzu is not part of the question being tested. Kuzu is derived from JSON today; skipping it does not skip finding logic.
 
 Search runs against persisted `search/review_map.jsonl` artifacts using `rg`, not against PDFs directly.
