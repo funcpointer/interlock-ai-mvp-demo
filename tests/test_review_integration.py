@@ -72,6 +72,8 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
     assert reasoning["alignments"][0]["alignment_id"] == finding["alignment_id"]
     assert reasoning["context_supports"][0]["diff_id"] == "diff00001"
     assert finding["context_support_id"] == reasoning["context_supports"][0]["support_id"]
+    assert finding["context_support_supports"] == reasoning["context_supports"][0]["supports"]
+    assert finding["context_support_confidence"] == reasoning["context_supports"][0]["confidence"]
     assert finding["context_support_summary"]
     traces = json.loads((out_dir / "decision_traces.json").read_text(encoding="utf-8"))["records"]
     assert traces[0]["finding_id"] == finding["finding_id"]

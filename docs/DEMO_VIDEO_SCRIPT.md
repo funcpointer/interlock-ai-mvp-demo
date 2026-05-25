@@ -60,7 +60,7 @@ Voice-over:
 >
 > There is also a context layer: graph, search index, and review wiki. It gives the reviewer a second-brain view of the packet, so they can move from a finding to the surrounding document context, related evidence, and reasoning trail.
 >
-> Those context signals also support the finding decision: they can raise or lower confidence and explain why the evidence belongs together. But they are never enough by themselves. The published finding still needs direct citations and deterministic comparison logic.
+> In the UI, this shows up as a context quorum panel: did the graph connect the cited claims, did search find related packet evidence, and did the memory layer place the evidence in the right document room. These signals can raise or lower confidence and explain why the evidence belongs together. But they are never enough by themselves. The published finding still needs direct citations and deterministic comparison logic.
 >
 > JSON is the source of truth. The report, graph, search layer, wiki, and UI are derived from it. That keeps the prototype easy to debug now and easy to port later.
 

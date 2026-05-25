@@ -4,6 +4,7 @@ import interlock_mvp.streamlit_app as app
 from interlock_mvp.streamlit_app import (
     ARTIFACT_DOWNLOADS,
     WIKI_PREVIEW_FILES,
+    _context_signal_label,
     _download_name,
     _input_options,
     _mime_for,
@@ -102,3 +103,10 @@ def test_wiki_labels_are_human_readable() -> None:
     assert _wiki_tab_label("wiki/review-map.md") == "Review Map"
     assert _wiki_tab_label("wiki/memory-palace.md") == "Memory Palace"
     assert _wiki_page_label("wiki/context-rooms/room_a.md") == "context-rooms/room_a"
+
+
+def test_context_signal_labels_are_reviewer_facing() -> None:
+    assert _context_signal_label("context_room") == "same kind of document room/table/section"
+    assert _context_signal_label("graph_alignment") == "graph links both cited claims through document context"
+    assert _context_signal_label("possible_equivalent_elsewhere") == "search found possible equivalent evidence elsewhere"
+    assert _context_signal_label("custom_signal") == "custom signal"

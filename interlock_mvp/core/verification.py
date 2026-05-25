@@ -142,6 +142,8 @@ def _diff_edge_to_finding(
         comparison_id=(reasoning_ids or {}).get("comparison_id"),
         absence_id=(reasoning_ids or {}).get("absence_id"),
         context_support_id=context_support.support_id if context_support else None,
+        context_support_supports=context_support.supports if context_support else None,
+        context_support_confidence=context_support.confidence if context_support else None,
         context_support_summary=context_support.summary if context_support else "",
         context_support_signal_types=context_support.signal_types if context_support else [],
     )

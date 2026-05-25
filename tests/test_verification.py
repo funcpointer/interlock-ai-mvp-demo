@@ -194,6 +194,8 @@ def test_context_support_can_upgrade_medium_identity_value_mismatch() -> None:
     assert findings[0].severity == "review_required"
     assert findings[0].confidence == "high"
     assert findings[0].context_support_id == "ctx00001"
+    assert findings[0].context_support_supports is True
+    assert findings[0].context_support_confidence == "high"
 
 
 def test_context_support_does_not_upgrade_weak_identity() -> None:
@@ -268,6 +270,8 @@ def test_context_support_downgrades_possible_equivalent_elsewhere() -> None:
 
     assert findings[0].severity == "possible_issue"
     assert findings[0].confidence == "medium"
+    assert findings[0].context_support_supports is False
+    assert findings[0].context_support_confidence == "medium"
     assert "possible_equivalent_elsewhere" in findings[0].context_support_signal_types
 
 

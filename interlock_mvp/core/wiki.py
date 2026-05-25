@@ -228,11 +228,12 @@ def _finding_lines(finding: Finding) -> list[str]:
         f"- Alignment decision: `{finding.alignment_id or ''}`",
         f"- Comparison decision: `{finding.comparison_id or ''}`",
         f"- Absence search: `{finding.absence_id or ''}`",
-        f"- Context support: `{finding.context_support_id or ''}` {finding.context_support_summary}",
-        "",
-        "## Citations",
         "",
     ]
+    if finding.context_support_summary:
+        lines.extend(_finding_context_support_lines(finding))
+        lines.append("")
+    lines.extend(["## Citations", ""])
     if finding.evidence_a:
         lines.extend(_citation_lines("Doc A", finding.evidence_a))
     if finding.evidence_b:
@@ -242,6 +243,31 @@ def _finding_lines(finding: Finding) -> list[str]:
         lines.extend(f"- {note}" for note in finding.plausibility_notes)
     lines.append("")
     return lines
+
+
+def _finding_context_support_lines(finding: Finding) -> list[str]:
+    verdict = "supports this finding" if finding.context_support_supports else "adds caution"
+    signals = "; ".join(_context_signal_label(signal) for signal in finding.context_support_signal_types)
+    return [
+        "## Context Quorum",
+        "",
+        f"- Support id: `{finding.context_support_id or ''}`",
+        f"- Verdict: {verdict}",
+        f"- Confidence: `{finding.context_support_confidence or 'unknown'}`",
+        "- Note: supporting signal only; source citations and deterministic comparison remain required.",
+        f"- Signals: {signals or 'none'}",
+        f"- Summary: {finding.context_support_summary}",
+    ]
+
+
+def _context_signal_label(signal: str) -> str:
+    return {
+        "context_room": "same kind of document room/table/section",
+        "graph_alignment": "graph links both cited claims through document context",
+        "search_hit": "search found related packet evidence",
+        "missing_context": "evidence is only in generic or missing context",
+        "possible_equivalent_elsewhere": "search found possible equivalent evidence elsewhere",
+    }.get(signal, signal.replace("_", " "))
 
 
 def _context_room_lines(room: ContextRoom) -> list[str]:

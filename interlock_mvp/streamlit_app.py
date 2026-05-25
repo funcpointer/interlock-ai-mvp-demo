@@ -233,13 +233,42 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
             f"Authority: {finding.get('authoritative_side')} ({finding.get('authority_basis')})"
         )
         if finding.get("context_support_summary"):
-            signals = ", ".join(finding.get("context_support_signal_types") or [])
-            st.info(f"Context support signal: {finding.get('context_support_summary')} Signals: {signals}")
+            _render_context_support(finding)
         col_a, col_b = st.columns(2)
         with col_a:
             _render_citation(run_dir, "Doc A", finding.get("evidence_a") or {})
         with col_b:
             _render_citation(run_dir, "Doc B", finding.get("evidence_b") or {})
+
+
+def _render_context_support(finding: dict[str, Any]) -> None:
+    supports = finding.get("context_support_supports")
+    confidence = finding.get("context_support_confidence") or "unknown"
+    signals = [str(signal) for signal in (finding.get("context_support_signal_types") or [])]
+    labels = [_context_signal_label(signal) for signal in signals]
+    title = "Context quorum supports this finding" if supports else "Context quorum adds caution"
+    body = (
+        "The finding still requires direct citations and deterministic comparison logic. "
+        "These context signals explain why the cited evidence belongs together and may adjust confidence."
+    )
+    message = f"**{title}** ({confidence} confidence)\n\n{body}"
+    if supports:
+        st.success(message)
+    else:
+        st.warning(message)
+    if labels:
+        st.markdown("**Signals used:** " + "; ".join(labels))
+    st.caption(str(finding.get("context_support_summary") or ""))
+
+
+def _context_signal_label(signal: str) -> str:
+    return {
+        "context_room": "same kind of document room/table/section",
+        "graph_alignment": "graph links both cited claims through document context",
+        "search_hit": "search found related packet evidence",
+        "missing_context": "evidence is only in generic or missing context",
+        "possible_equivalent_elsewhere": "search found possible equivalent evidence elsewhere",
+    }.get(signal, signal.replace("_", " "))
 
 
 def _render_citation(run_dir: Path, label: str, citation: dict[str, Any]) -> None:

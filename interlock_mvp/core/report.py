@@ -115,14 +115,34 @@ def _finding_lines(finding: Finding) -> list[str]:
     if finding.plausibility_notes:
         lines.append(f"- Plausibility notes: {'; '.join(finding.plausibility_notes)}")
     if finding.context_support_summary:
-        signals = ", ".join(finding.context_support_signal_types)
-        lines.append(f"- Context support: {finding.context_support_summary} Signals: {signals}")
+        lines.extend(_context_support_lines(finding))
     lines.append(f"- Verifier notes: {finding.verifier_notes}")
     if finding.evidence_a:
         lines.extend(_citation_lines("Doc A", finding.evidence_a))
     if finding.evidence_b:
         lines.extend(_citation_lines("Doc B", finding.evidence_b))
     return lines
+
+
+def _context_support_lines(finding: Finding) -> list[str]:
+    verdict = "supports this finding" if finding.context_support_supports else "adds caution"
+    signals = "; ".join(_context_signal_label(signal) for signal in finding.context_support_signal_types)
+    return [
+        f"- Context quorum: {verdict} ({finding.context_support_confidence or 'unknown'} confidence).",
+        "- Context note: supporting signal only; source citations and deterministic comparison remain required.",
+        f"- Context signals: {signals or 'none'}",
+        f"- Context summary: {finding.context_support_summary}",
+    ]
+
+
+def _context_signal_label(signal: str) -> str:
+    return {
+        "context_room": "same kind of document room/table/section",
+        "graph_alignment": "graph links both cited claims through document context",
+        "search_hit": "search found related packet evidence",
+        "missing_context": "evidence is only in generic or missing context",
+        "possible_equivalent_elsewhere": "search found possible equivalent evidence elsewhere",
+    }.get(signal, signal.replace("_", " "))
 
 
 def _citation_lines(label: str, citation) -> list[str]:

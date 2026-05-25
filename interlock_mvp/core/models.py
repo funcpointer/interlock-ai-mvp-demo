@@ -161,6 +161,8 @@ class Finding(BaseModel):
     comparison_id: str | None = None
     absence_id: str | None = None
     context_support_id: str | None = None
+    context_support_supports: bool | None = None
+    context_support_confidence: Confidence | None = None
     context_support_summary: str = ""
     context_support_signal_types: list[str] = Field(default_factory=list)
 
