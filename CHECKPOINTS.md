@@ -341,3 +341,56 @@ Kuzu decision-node sanity:
 Known limit:
 
 - This is a compatibility-layer slice. Reasoning decisions are currently derived from `DiffEdge`; the next hardening step is to generate findings directly from `ComparisonDecision` and `AbsenceSearch`, then make rejected alternatives first-class at match time rather than reconstructed after the fact.
+
+## checkpoint-2026-05-25-decision-sourced-findings
+
+Purpose:
+
+- move the active finding path closer to expert-review flow,
+- make `ComparisonDecision` and `AbsenceSearch` the source of non-coverage findings,
+- keep `DiffEdge` as compatibility/debug context instead of the primary finding iterator.
+
+Changed:
+
+- added `findings_from_reasoning_graph`,
+- `run_review` now verifies findings by iterating `reasoning_graph.comparisons` and `reasoning_graph.absence_searches`,
+- coverage warnings remain sourced from coverage diff edges because they are extraction-health findings, not engineering comparisons,
+- verifier metrics now include `comparison_sourced_findings`, `absence_sourced_findings`, and `coverage_edge_sourced_findings`,
+- integration tests pin decision-sourced finding counts,
+- package version bumped to `0.9.0`.
+
+Validation result:
+
+```text
+make coverage
+  36 passed
+  source coverage: 73%
+
+make eval-fast
+  unit tests: 36 passed during target run
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 4 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make eval-examples
+  synth equipment spec v2/v3: 0 findings, eval passed
+  real IEEE vs SEL: 3 findings, 1 review_required, eval passed
+
+make eval-search
+  query: transformer rating
+  top hit: finding
+
+make eval-kuzu
+  version gold: 4 findings, 4 review_required
+  Kuzu graph built without warning
+
+checkpoint-version decision-source metrics:
+  comparison_sourced_findings: 3
+  absence_sourced_findings: 1
+  coverage_edge_sourced_findings: 0
+```
+
+Known limit:
+
+- `ComparisonDecision` and `AbsenceSearch` are still derived after `DiffEdge` construction. Next step: capture rejected alternatives during matching/search itself, then make `DiffEdge` a pure projection from decisions.

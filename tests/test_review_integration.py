@@ -67,6 +67,8 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
     metrics = json.loads((out_dir / "metrics.json").read_text(encoding="utf-8"))["metrics"]
     assert metrics["alignment_decisions"] == 1
     assert metrics["comparison_decisions"] == 1
+    assert metrics["comparison_sourced_findings"] == 1.0
+    assert metrics["absence_sourced_findings"] == 0.0
     assert "Review Reasoning Health" in (out_dir / "report.md").read_text(encoding="utf-8")
 
     logs = (out_dir / "logs.jsonl").read_text(encoding="utf-8")

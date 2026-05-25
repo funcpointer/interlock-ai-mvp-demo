@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import os
 import json
+import os
 import re
 
-from .models import AuthorityDecision, CandidateFinding, DiffEdge, EvidenceCitation, EvidenceItem, Finding
+from .models import AuthorityDecision, CandidateFinding, DiffEdge, EvidenceCitation, EvidenceItem, Finding, ReasoningGraph
 
 BANNED_AUTHORED_WORDS = {
     "wrong",
@@ -78,6 +78,63 @@ def findings_from_diff_graph(
         finding = _diff_edge_to_finding(edge, evidence_by_id, authority, mode, (reasoning_by_diff_id or {}).get(edge.diff_id, {}))
         if finding:
             findings.append(finding)
+    return findings, warnings, metrics
+
+
+def findings_from_reasoning_graph(
+    *,
+    reasoning_graph: ReasoningGraph,
+    diff_edges: list[DiffEdge],
+    evidence_by_id: dict[str, EvidenceItem],
+    authority: AuthorityDecision,
+    mode: str,
+    no_cloud: bool,
+    dry_run: bool,
+    max_cost_usd: float,
+) -> tuple[list[Finding], list[str], dict[str, float]]:
+    warnings: list[str] = []
+    metrics = {
+        "estimated_cloud_cost_usd": 0.0,
+        "comparison_sourced_findings": 0.0,
+        "absence_sourced_findings": 0.0,
+        "coverage_edge_sourced_findings": 0.0,
+    }
+    if dry_run or no_cloud or not _cloud_key_present():
+        warnings.append("cloud verification skipped; deterministic verifier used")
+
+    diff_by_id = {edge.diff_id: edge for edge in diff_edges}
+    findings: list[Finding] = []
+
+    for comparison in reasoning_graph.comparisons:
+        edge = diff_by_id.get(comparison.diff_id)
+        if not edge:
+            continue
+        reasoning_ids = {"comparison_id": comparison.comparison_id}
+        if comparison.alignment_id:
+            reasoning_ids["alignment_id"] = comparison.alignment_id
+        finding = _diff_edge_to_finding(edge, evidence_by_id, authority, mode, reasoning_ids)
+        if finding:
+            findings.append(finding)
+            metrics["comparison_sourced_findings"] += 1.0
+
+    for absence in reasoning_graph.absence_searches:
+        edge = diff_by_id.get(absence.diff_id)
+        if not edge:
+            continue
+        finding = _diff_edge_to_finding(edge, evidence_by_id, authority, mode, {"absence_id": absence.absence_id})
+        if finding:
+            findings.append(finding)
+            metrics["absence_sourced_findings"] += 1.0
+
+    for edge in diff_edges:
+        if edge.diff_type != "coverage_warning":
+            continue
+        finding = _diff_edge_to_finding(edge, evidence_by_id, authority, mode, {})
+        if finding:
+            findings.append(finding)
+            metrics["coverage_edge_sourced_findings"] += 1.0
+
+    findings.sort(key=_finding_sort_key)
     return findings, warnings, metrics
 
 
@@ -191,6 +248,17 @@ def _diff_edge_to_finding(
         comparison_id=(reasoning_ids or {}).get("comparison_id"),
         absence_id=(reasoning_ids or {}).get("absence_id"),
     )
+
+
+def _finding_sort_key(finding: Finding) -> tuple[int, str]:
+    type_rank = {
+        "value_mismatch": 0,
+        "needs_engineer_review": 1,
+        "missing_item": 2,
+        "reference_conflict": 3,
+        "coverage_warning": 4,
+    }
+    return (type_rank.get(finding.finding_type, 9), finding.finding_id)
 
 
 def _diff_summary(edge: DiffEdge, a: EvidenceItem | None, b: EvidenceItem | None, authority: AuthorityDecision) -> str:

@@ -382,7 +382,7 @@ Order:
 
 1. Keep `diff_graph.json` shape stable.
 2. Add `reasoning_graph.json` with decisions. **Implemented.**
-3. Generate findings from `ComparisonDecision` and `AbsenceSearch`.
+3. Generate findings from `ComparisonDecision` and `AbsenceSearch`. **Implemented for non-coverage findings.**
 4. Keep old diff graph in artifacts for search/debug compatibility.
 5. Once evals pass, decide whether `DiffEdge` stays as a derived view or disappears.
 
@@ -391,7 +391,8 @@ Acceptance:
 - existing `make eval-fast` passes,
 - `findings.json` count and gold expectations stay stable unless a stricter contract exposes a real false positive,
 - search still returns finding/diff/evidence hits,
-- `reasoning_graph.json` explains the path from evidence to finding, **implemented as a compatibility layer**.
+- `reasoning_graph.json` explains the path from evidence to finding, **implemented**,
+- metrics report `comparison_sourced_findings`, `absence_sourced_findings`, and `coverage_edge_sourced_findings`, **implemented**.
 
 #### F3: Make Kuzu Mirror the Reasoning Graph
 
@@ -548,15 +549,15 @@ Completed:
 6. Improve search ranking so diff/finding hits beat generic evidence when the query names a discrepancy.
 7. Tighten eval contracts around cited evidence.
 8. Add reasoning decision models, `reasoning_graph.json`, finding decision IDs, reasoning metrics, report reasoning health, search records, Kuzu decision nodes, and eval assertions over reasoning decisions.
+9. Generate non-coverage findings by iterating `ComparisonDecision` and `AbsenceSearch`; keep `DiffEdge` as lookup/debug context.
 
 Next:
 
-1. Generate findings directly from `ComparisonDecision` and `AbsenceSearch` while preserving current gold output where still valid.
-2. Add Kuzu smoke queries for finding-to-decision traceability.
-3. Improve rejected-alternative capture inside alignment/missing search instead of deriving it after the fact.
-4. Add table-aware extraction for weak examples: PID, HVAC schedules, relay settings.
-5. Add candidate-proposal mode from search results, still `proposal_only`.
-6. Only then consider LanceDB/local SLM integration.
+1. Add Kuzu smoke queries for finding-to-decision traceability.
+2. Improve rejected-alternative capture inside alignment/missing search instead of deriving it after the fact.
+3. Add table-aware extraction for weak examples: PID, HVAC schedules, relay settings.
+4. Add candidate-proposal mode from search results, still `proposal_only`.
+5. Only then consider LanceDB/local SLM integration.
 
 Validation after each step:
 

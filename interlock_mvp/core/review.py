@@ -16,10 +16,10 @@ from .extraction import extract_pdf
 from .graph import build_kuzu_graph
 from .logging import JsonlLogger
 from .models import ReviewRequest, ReviewResult
-from .reasoning import build_reasoning_graph, reasoning_lookup
+from .reasoning import build_reasoning_graph
 from .report import render_report
 from .search import write_search_index
-from .verification import findings_from_diff_graph
+from .verification import findings_from_reasoning_graph
 
 
 def run_review(request: ReviewRequest) -> ReviewResult:
@@ -145,7 +145,8 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     _finish_stage(logger, stage_timings, "generate_candidates", stage_started, **candidate_metrics)
 
     stage_started = time.time()
-    findings, verifier_warnings, verifier_metrics = findings_from_diff_graph(
+    findings, verifier_warnings, verifier_metrics = findings_from_reasoning_graph(
+        reasoning_graph=reasoning_graph,
         diff_edges=diff_graph.edges,
         evidence_by_id=evidence_lookup(evidence),
         authority=authority,
@@ -153,7 +154,6 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         no_cloud=request.no_cloud,
         dry_run=request.dry_run,
         max_cost_usd=request.max_cost_usd,
-        reasoning_by_diff_id=reasoning_lookup(reasoning_graph),
     )
     warnings.extend(verifier_warnings)
     metrics.update(verifier_metrics)

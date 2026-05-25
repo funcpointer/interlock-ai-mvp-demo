@@ -1,9 +1,31 @@
-from interlock_mvp.core.models import AuthorityDecision, DiffEdge, EvidenceItem
-from interlock_mvp.core.verification import authored_language_violations, findings_from_diff_graph
+from interlock_mvp.core.models import (
+    AbsenceSearch,
+    AlignmentDecision,
+    AuthorityDecision,
+    ComparisonDecision,
+    DiffEdge,
+    EvidenceItem,
+    ReasoningGraph,
+)
+from interlock_mvp.core.verification import authored_language_violations, findings_from_reasoning_graph
 
 
-def test_diff_graph_finding_requires_cited_evidence() -> None:
-    findings, warnings, _metrics = findings_from_diff_graph(
+def test_reasoning_graph_finding_requires_cited_evidence() -> None:
+    findings, warnings, _metrics = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            comparisons=[
+                ComparisonDecision(
+                    comparison_id="comp00001",
+                    diff_id="diff00001",
+                    alignment_id="align00001",
+                    comparison_type="value_mismatch",
+                    unit_method="pint",
+                    deterministic=True,
+                    verifier_status="not_run",
+                    rationale="missing cited evidence",
+                )
+            ]
+        ),
         diff_edges=[
             DiffEdge(
                 diff_id="diff00001",
@@ -30,7 +52,35 @@ def test_diff_graph_finding_requires_cited_evidence() -> None:
 
 
 def test_known_authority_strong_deterministic_diff_is_review_required() -> None:
-    findings, _warnings, _metrics = findings_from_diff_graph(
+    findings, _warnings, metrics = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            alignments=[
+                AlignmentDecision(
+                    alignment_id="align00001",
+                    diff_id="diff00001",
+                    a_claim_id="A:claim:a1",
+                    b_claim_id="B:claim:b1",
+                    subject_method="exact",
+                    parameter_method="exact",
+                    context_method="canonicalized",
+                    confidence="high",
+                    accepted=True,
+                    rationale="A differs from B.",
+                )
+            ],
+            comparisons=[
+                ComparisonDecision(
+                    comparison_id="comp00001",
+                    diff_id="diff00001",
+                    alignment_id="align00001",
+                    comparison_type="value_mismatch",
+                    unit_method="pint",
+                    deterministic=True,
+                    verifier_status="not_run",
+                    rationale="A differs from B.",
+                )
+            ],
+        ),
         diff_edges=[
             DiffEdge(
                 diff_id="diff00001",
@@ -53,10 +103,10 @@ def test_known_authority_strong_deterministic_diff_is_review_required() -> None:
         no_cloud=True,
         dry_run=False,
         max_cost_usd=0,
-        reasoning_by_diff_id={"diff00001": {"alignment_id": "align00001", "comparison_id": "comp00001"}},
     )
 
     assert len(findings) == 1
+    assert metrics["comparison_sourced_findings"] == 1.0
     assert findings[0].severity == "review_required"
     assert findings[0].confidence == "high"
     assert findings[0].evidence_a is not None
@@ -66,7 +116,21 @@ def test_known_authority_strong_deterministic_diff_is_review_required() -> None:
 
 
 def test_unknown_authority_downgrades_strong_deterministic_diff() -> None:
-    findings, _warnings, _metrics = findings_from_diff_graph(
+    findings, _warnings, _metrics = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            comparisons=[
+                ComparisonDecision(
+                    comparison_id="comp00001",
+                    diff_id="diff00001",
+                    alignment_id="align00001",
+                    comparison_type="value_mismatch",
+                    unit_method="pint",
+                    deterministic=True,
+                    verifier_status="not_run",
+                    rationale="A differs from B.",
+                )
+            ]
+        ),
         diff_edges=[
             DiffEdge(
                 diff_id="diff00001",
@@ -95,6 +159,53 @@ def test_unknown_authority_downgrades_strong_deterministic_diff() -> None:
     assert findings[0].severity == "possible_issue"
     assert findings[0].confidence == "medium"
     assert findings[0].authoritative_side == "unknown_direction"
+
+
+def test_absence_search_sources_missing_item_finding() -> None:
+    findings, _warnings, metrics = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            absence_searches=[
+                AbsenceSearch(
+                    absence_id="abs00001",
+                    diff_id="diff00002",
+                    a_subject_id="A:subject:lpn_rk_500sp",
+                    searched_doc_id="B",
+                    searched_context_ids=["A:tcc3"],
+                    searched_parameters=["equipment_presence"],
+                    query_terms=["LPN-RK-500SP", "equipment_presence"],
+                    coverage_status="searched",
+                    confidence="high",
+                    rationale="No matching B subject was found.",
+                )
+            ]
+        ),
+        diff_edges=[
+            DiffEdge(
+                diff_id="diff00002",
+                diff_type="missing_item",
+                a_node_id="A:subject:lpn_rk_500sp",
+                alignment_status="unmatched_a",
+                subject="LPN-RK-500SP",
+                parameter="equipment_presence",
+                rationale="No matching B subject was found.",
+                evidence_ids=["a1"],
+                identity_strength="strong",
+                deterministic_discrepancy=True,
+            )
+        ],
+        evidence_by_id={"a1": _equipment("a1", "A", "LPN-RK-500SP")},
+        authority=_authority("B"),
+        mode="version",
+        no_cloud=True,
+        dry_run=False,
+        max_cost_usd=0,
+    )
+
+    assert len(findings) == 1
+    assert metrics["absence_sourced_findings"] == 1.0
+    assert findings[0].finding_type == "missing_item"
+    assert findings[0].absence_id == "abs00001"
+    assert findings[0].comparison_id is None
 
 
 def test_banned_authored_language_detection_handles_punctuation() -> None:
@@ -130,6 +241,27 @@ def _evidence(evidence_id: str, doc_id: str, value: str, unit: str) -> EvidenceI
         raw_text=f"{value}{unit} XFMR",
         normalized_text=f"{value}{unit} xfmr",
         normalized_value=f"{value} {unit}",
+        confidence="high",
+        source_method="test",
+        crop_path=f"crops/{evidence_id}.png",
+    )
+
+
+def _equipment(evidence_id: str, doc_id: str, subject: str) -> EvidenceItem:
+    return EvidenceItem(
+        evidence_id=evidence_id,
+        doc_id=doc_id,
+        page=1,
+        bbox=[1, 2, 3, 4],
+        region_id=f"r{evidence_id}",
+        kind="equipment_id",
+        subject=subject,
+        parameter="identity",
+        value=subject,
+        unit="",
+        raw_text=subject,
+        normalized_text=subject.lower(),
+        normalized_value=subject.lower(),
         confidence="high",
         source_method="test",
         crop_path=f"crops/{evidence_id}.png",
