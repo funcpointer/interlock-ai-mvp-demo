@@ -6,6 +6,7 @@ from interlock_mvp.streamlit_app import (
     WIKI_PREVIEW_FILES,
     _citation_label,
     _context_support_details,
+    _context_support_witnesses,
     _context_signal_label,
     _download_name,
     _finding_title,
@@ -153,7 +154,10 @@ def test_finding_card_copy_is_reviewer_native() -> None:
 
 def test_context_support_details_show_concrete_trace_without_signal_dump() -> None:
     finding = {
-        "context_support_context_ids": ["A:capacity_ratings", "B:capacity_ratings"],
+        "context_support_context_refs": [
+            {"doc_id": "A", "label": "capacity ratings", "pages": [4]},
+            {"doc_id": "B", "label": "capacity ratings", "pages": [3]},
+        ],
         "context_support_search_ids": ["s1", "s2", "s3"],
         "context_support_signal_types": ["context_room", "graph_alignment", "search_hit"],
         "subject": "XFMR",
@@ -161,6 +165,26 @@ def test_context_support_details_show_concrete_trace_without_signal_dump() -> No
     }
 
     assert _context_support_details(finding) == [
-        "Compared sections: Doc A - capacity ratings; Doc B - capacity ratings",
+        "Compared sections: Doc A - capacity ratings (p4); Doc B - capacity ratings (p3)",
         "Related packet evidence: 3 search hit(s) for XFMR / rating",
+    ]
+
+
+def test_context_support_witnesses_show_representative_records() -> None:
+    finding = {
+        "context_support_search_refs": [
+            {
+                "search_id": "evidence:ev1",
+                "source": "evidence",
+                "doc_id": "A",
+                "page": 4,
+                "value": "140",
+                "unit": "MVA",
+                "quote": "Primary to Secondary Winding: 84/112/140 MVA",
+            }
+        ]
+    }
+
+    assert _context_support_witnesses(finding) == [
+        'Evidence Doc A p4: 140 MVA - "Primary to Secondary Winding: 84/112/140 MVA"'
     ]

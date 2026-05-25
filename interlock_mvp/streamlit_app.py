@@ -265,13 +265,18 @@ def _render_context_support(finding: dict[str, Any]) -> None:
         if details:
             for detail in details:
                 st.markdown(f"- {detail}")
+        witnesses = _context_support_witnesses(finding)
+        if witnesses:
+            st.markdown("**Representative context evidence**")
+            for witness in witnesses:
+                st.markdown(f"- {witness}")
 
 
 def _context_support_details(finding: dict[str, Any]) -> list[str]:
     details: list[str] = []
-    context_ids = [str(item) for item in (finding.get("context_support_context_ids") or [])]
-    if context_ids:
-        details.append("Compared sections: " + "; ".join(_human_context_id(item) for item in context_ids[:4]))
+    context_refs = [item for item in (finding.get("context_support_context_refs") or []) if isinstance(item, dict)]
+    if context_refs:
+        details.append("Compared sections: " + "; ".join(_human_context_ref(item) for item in context_refs[:4]))
     search_ids = [str(item) for item in (finding.get("context_support_search_ids") or [])]
     if search_ids:
         subject = str(finding.get("subject") or "subject")
@@ -281,11 +286,50 @@ def _context_support_details(finding: dict[str, Any]) -> list[str]:
         details.append("Caution: search found a possible equivalent value elsewhere")
     return details
 
-def _human_context_id(context_id: str) -> str:
-    parts = context_id.split(":", 1)
-    doc = parts[0] if len(parts) == 2 else ""
-    label = parts[-1].replace("_", " ")
-    return f"Doc {doc} - {label}" if doc in {"A", "B"} else label
+
+def _context_support_witnesses(finding: dict[str, Any]) -> list[str]:
+    refs = [item for item in (finding.get("context_support_search_refs") or []) if isinstance(item, dict)]
+    witnesses: list[str] = []
+    for ref in refs[:3]:
+        rendered = _human_search_ref(ref)
+        if rendered:
+            witnesses.append(rendered)
+    return witnesses
+
+
+def _human_context_ref(ref: dict[str, Any]) -> str:
+    doc_id = str(ref.get("doc_id") or "")
+    label = str(ref.get("label") or ref.get("context_id") or "").replace("_", " ")
+    pages = [int(page) for page in (ref.get("pages") or []) if isinstance(page, int)]
+    page_text = _page_span_text(pages)
+    prefix = f"Doc {doc_id} - " if doc_id in {"A", "B"} else ""
+    return f"{prefix}{label}{page_text}"
+
+
+def _human_search_ref(ref: dict[str, Any]) -> str:
+    doc_id = str(ref.get("doc_id") or "")
+    page = ref.get("page")
+    source = str(ref.get("source") or "record").replace("_", " ")
+    value = _citation_value(ref)
+    quote = " ".join(str(ref.get("quote") or "").split())
+    quote_text = f' - "{_clip_text(quote, 120)}"' if quote else ""
+    where = f"Doc {doc_id}" if doc_id in {"A", "B"} else "Packet"
+    page_text = f" p{page}" if page else ""
+    value_text = f": {value}" if value else ""
+    return f"{source.title()} {where}{page_text}{value_text}{quote_text}"
+
+
+def _page_span_text(pages: list[int]) -> str:
+    if not pages:
+        return ""
+    unique = sorted(set(pages))
+    if len(unique) == 1:
+        return f" (p{unique[0]})"
+    return f" (p{unique[0]}-{unique[-1]})"
+
+
+def _clip_text(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[: limit - 3] + "..."
 
 
 def _context_signal_label(signal: str) -> str:

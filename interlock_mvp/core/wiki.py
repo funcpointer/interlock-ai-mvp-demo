@@ -252,18 +252,20 @@ def _finding_lines(finding: Finding) -> list[str]:
 def _finding_context_support_lines(finding: Finding) -> list[str]:
     verdict = "aligned context" if finding.context_support_supports else "context caution"
     signals = "; ".join(_context_signal_label(signal) for signal in finding.context_support_signal_types)
-    return [
+    lines = [
         "## Context Check",
         "",
         f"- Support id: `{finding.context_support_id or ''}`",
         f"- Verdict: {verdict}",
         f"- Confidence: `{finding.context_support_confidence or 'unknown'}`",
     ]
-    if finding.context_support_context_ids:
-        sections = "; ".join(_human_context_id(item) for item in finding.context_support_context_ids[:4])
+    if finding.context_support_context_refs:
+        sections = "; ".join(_human_context_ref(item) for item in finding.context_support_context_refs[:4])
         lines.append(f"- Compared sections: {sections}")
     if finding.context_support_search_ids:
         lines.append(f"- Related packet evidence: {len(finding.context_support_search_ids)} supporting search hit(s)")
+    for ref in finding.context_support_search_refs[:3]:
+        lines.append(f"- Context witness: {_human_search_ref(ref)}")
     if signals:
         lines.append(f"- Debug signals: {signals}")
     return lines
@@ -279,11 +281,28 @@ def _context_signal_label(signal: str) -> str:
     }.get(signal, signal.replace("_", " "))
 
 
-def _human_context_id(context_id: str) -> str:
-    parts = context_id.split(":", 1)
-    doc = parts[0] if len(parts) == 2 else ""
-    label = parts[-1].replace("_", " ")
-    return f"Doc {doc} - {label}" if doc in {"A", "B"} else label
+def _human_context_ref(ref) -> str:
+    page_text = _page_span_text(ref.pages)
+    prefix = f"Doc {ref.doc_id} - " if ref.doc_id in {"A", "B"} else ""
+    return f"{prefix}{ref.label}{page_text}"
+
+
+def _human_search_ref(ref) -> str:
+    where = f"Doc {ref.doc_id}" if ref.doc_id in {"A", "B"} else "Packet"
+    page_text = f" p{ref.page}" if ref.page else ""
+    value = " ".join(part for part in [ref.value, ref.unit] if part).strip()
+    value_text = f": {value}" if value else ""
+    quote_text = f' - "{_clip(ref.quote, 120)}"' if ref.quote else ""
+    return f"{ref.source.title()} {where}{page_text}{value_text}{quote_text}"
+
+
+def _page_span_text(pages: list[int]) -> str:
+    if not pages:
+        return ""
+    unique = sorted(set(pages))
+    if len(unique) == 1:
+        return f" (p{unique[0]})"
+    return f" (p{unique[0]}-{unique[-1]})"
 
 
 def _finding_model_review_lines(finding: Finding) -> list[str]:

@@ -141,6 +141,27 @@ class EvidenceCitation(BaseModel):
     unit: str = ""
 
 
+class ContextReference(BaseModel):
+    context_id: str
+    doc_id: str
+    label: str
+    kind: str = ""
+    pages: list[int] = Field(default_factory=list)
+
+
+class SearchReference(BaseModel):
+    search_id: str
+    source: str
+    doc_id: str = ""
+    page: int | None = None
+    context_id: str = ""
+    subject: str = ""
+    parameter: str = ""
+    value: str = ""
+    unit: str = ""
+    quote: str = ""
+
+
 class Finding(BaseModel):
     finding_id: str
     mode: ReviewMode
@@ -167,6 +188,8 @@ class Finding(BaseModel):
     context_support_signal_types: list[str] = Field(default_factory=list)
     context_support_context_ids: list[str] = Field(default_factory=list)
     context_support_search_ids: list[str] = Field(default_factory=list)
+    context_support_context_refs: list[ContextReference] = Field(default_factory=list)
+    context_support_search_refs: list[SearchReference] = Field(default_factory=list)
     model_review_status: str = "not_run"
     model_review_model: str = ""
     model_review_supports: bool | None = None
@@ -285,6 +308,8 @@ class ContextSupport(BaseModel):
     signal_types: list[str] = Field(default_factory=list)
     context_ids: list[str] = Field(default_factory=list)
     search_ids: list[str] = Field(default_factory=list)
+    context_refs: list[ContextReference] = Field(default_factory=list)
+    search_refs: list[SearchReference] = Field(default_factory=list)
     summary: str
     downgrade_reasons: list[str] = Field(default_factory=list)
 
