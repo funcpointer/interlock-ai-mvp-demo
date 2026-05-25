@@ -1,0 +1,230 @@
+from __future__ import annotations
+
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import Any
+import json
+import shutil
+
+import streamlit as st
+
+from .core.artifacts import read_artifact
+from .core.env import DEFAULT_OLD_REPO_ENV
+from .core.models import ReviewRequest
+from .core.review import run_review
+from .core.triage import triage_run
+
+
+ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_AUTHORITY = ROOT / "examples/aes_authority.yaml"
+DEFAULT_GLOSSARY = ROOT / "examples/aes_glossary.yaml"
+PUBLIC_SPEC = ROOT / "corpora/aes/docs/public_aes/somerset_main_power_transformer_spec_sheet.pdf"
+PUBLIC_VERSION_REV = ROOT / "corpora/aes/docs/public_aes/somerset_main_power_transformer_spec_sheet_synth_rev.pdf"
+PUBLIC_CROSS_DOC = ROOT / "corpora/aes/docs/public_aes/somerset_transformer_protection_study_excerpt_synth.pdf"
+
+
+def main() -> None:
+    st.set_page_config(page_title="InterLock AI MVP", layout="wide")
+    st.title("InterLock AI MVP")
+    st.caption("Cited directional review for two engineering PDFs.")
+
+    with st.sidebar:
+        st.header("Run")
+        options = _input_options()
+        source = st.radio("Input", options, index=0)
+        no_cloud = st.checkbox("Disable cloud calls", value=True)
+        no_kuzu = st.checkbox("Skip Kuzu graph", value=True)
+
+    if source == "Upload PDFs":
+        _upload_flow(no_cloud=no_cloud, no_kuzu=no_kuzu)
+    else:
+        _preset_flow(source, no_cloud=no_cloud, no_kuzu=no_kuzu)
+
+
+def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool) -> None:
+    if source == "Public version demo":
+        request = ReviewRequest(
+            doc_a_path=PUBLIC_SPEC,
+            doc_b_path=PUBLIC_VERSION_REV,
+            mode="version",
+            out_dir=ROOT / "runs/streamlit-public-version",
+            authority_config_path=DEFAULT_AUTHORITY,
+            domain_glossary_path=DEFAULT_GLOSSARY,
+            env_file_path=DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None,
+            doc_a_type="specification",
+            doc_b_type="specification",
+            no_cloud=no_cloud,
+            no_kuzu=no_kuzu,
+        )
+    else:
+        request = ReviewRequest(
+            doc_a_path=PUBLIC_SPEC,
+            doc_b_path=PUBLIC_CROSS_DOC,
+            mode="cross_doc",
+            out_dir=ROOT / "runs/streamlit-public-cross-doc",
+            authority_config_path=DEFAULT_AUTHORITY,
+            domain_glossary_path=DEFAULT_GLOSSARY,
+            env_file_path=DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None,
+            doc_a_type="specification",
+            doc_b_type="protection_study",
+            no_cloud=no_cloud,
+            no_kuzu=no_kuzu,
+        )
+    st.info("Preset demos are controlled, watermarked synthetic cases over public/fixture documents.")
+    if st.button("Run review", type="primary"):
+        _run_and_render(request)
+
+
+def _upload_flow(*, no_cloud: bool, no_kuzu: bool) -> None:
+    col_a, col_b = st.columns(2)
+    with col_a:
+        doc_a = st.file_uploader("Doc A PDF", type=["pdf"], key="doc_a")
+        doc_a_type = st.selectbox("Doc A type", ["auto", "specification", "protection_study", "drawing", "checklist"], index=0)
+    with col_b:
+        doc_b = st.file_uploader("Doc B PDF", type=["pdf"], key="doc_b")
+        doc_b_type = st.selectbox("Doc B type", ["auto", "specification", "protection_study", "drawing", "checklist"], index=0)
+    mode = st.radio("Mode", ["version", "cross_doc"], horizontal=True)
+
+    if st.button("Run uploaded review", type="primary", disabled=not (doc_a and doc_b)):
+        with TemporaryDirectory(prefix="interlock-streamlit-") as temp_dir:
+            temp_root = Path(temp_dir)
+            doc_a_path = temp_root / _safe_upload_name(doc_a.name, fallback="doc_a.pdf")
+            doc_b_path = temp_root / _safe_upload_name(doc_b.name, fallback="doc_b.pdf")
+            doc_a_path.write_bytes(doc_a.getvalue())
+            doc_b_path.write_bytes(doc_b.getvalue())
+            out_dir = ROOT / "runs/streamlit-upload"
+            request = ReviewRequest(
+                doc_a_path=doc_a_path,
+                doc_b_path=doc_b_path,
+                mode=mode,  # type: ignore[arg-type]
+                out_dir=out_dir,
+                authority_config_path=DEFAULT_AUTHORITY,
+                domain_glossary_path=DEFAULT_GLOSSARY,
+                env_file_path=DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None,
+                doc_a_type=doc_a_type,
+                doc_b_type=doc_b_type,
+                no_cloud=no_cloud,
+                no_kuzu=no_kuzu,
+            )
+            _run_and_render(request)
+
+
+def _run_and_render(request: ReviewRequest) -> None:
+    with st.spinner("Reviewing PDFs..."):
+        result = run_review(request)
+        triage_run(result.out_dir, write=True)
+    _render_run(result.out_dir)
+
+
+def _render_run(run_dir: Path) -> None:
+    findings = _records(run_dir / "findings.json")
+    metrics = _metrics(run_dir / "metrics.json")
+    triage = _object(run_dir / "triage.json")
+    review_findings = [finding for finding in findings if finding.get("finding_type") != "coverage_warning"]
+    coverage_findings = [finding for finding in findings if finding.get("finding_type") == "coverage_warning"]
+
+    cols = st.columns(5)
+    cols[0].metric("Review findings", len(review_findings))
+    cols[1].metric("Review required", metrics.get("review_required_findings", 0))
+    cols[2].metric("Coverage warnings", len(coverage_findings))
+    cols[3].metric("Comparisons", metrics.get("comparison_decisions", 0))
+    cols[4].metric("Absence searches", metrics.get("absence_searches", 0))
+
+    st.subheader("Findings")
+    if not review_findings:
+        st.write("No review findings.")
+    for finding in review_findings:
+        _render_finding(run_dir, finding)
+
+    if coverage_findings:
+        with st.expander(f"Extraction coverage warnings ({len(coverage_findings)})", expanded=True):
+            st.warning(
+                "Some pages have empty or weak text layers. The system is refusing to claim review coverage for those pages without OCR/VLM extraction."
+            )
+            for finding in coverage_findings[:6]:
+                citation = finding.get("evidence_a") or finding.get("evidence_b") or {}
+                st.caption(citation.get("quote") or finding.get("summary"))
+                _render_crop(run_dir, citation)
+
+    with st.expander("Triage", expanded=bool(triage.get("issues"))):
+        issues = triage.get("issues", [])
+        if not issues:
+            st.write("No triage issues.")
+        for issue in issues:
+            st.write(f"**{issue.get('severity')}** - {issue.get('title')}")
+            st.caption(issue.get("summary", ""))
+
+    with st.expander("Artifacts"):
+        for name in ["report.md", "findings.json", "metrics.json", "triage.json", "reasoning_graph.json", "decision_traces.json"]:
+            path = run_dir / name
+            if path.exists():
+                st.download_button(name, data=path.read_bytes(), file_name=name, mime="application/octet-stream")
+
+
+def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
+    with st.container(border=True):
+        st.markdown(f"### {finding.get('finding_id')}: {finding.get('subject')} / {finding.get('parameter')}")
+        st.write(finding.get("summary", ""))
+        st.caption(
+            f"Type: {finding.get('finding_type')} | Severity: {finding.get('severity')} | "
+            f"Authority: {finding.get('authoritative_side')} ({finding.get('authority_basis')})"
+        )
+        col_a, col_b = st.columns(2)
+        with col_a:
+            _render_citation(run_dir, "Doc A", finding.get("evidence_a") or {})
+        with col_b:
+            _render_citation(run_dir, "Doc B", finding.get("evidence_b") or {})
+
+
+def _render_citation(run_dir: Path, label: str, citation: dict[str, Any]) -> None:
+    st.markdown(f"**{label}**")
+    if not citation:
+        st.caption("No citation.")
+        return
+    st.caption(f"Page {citation.get('page')}: {citation.get('quote')}")
+    _render_crop(run_dir, citation)
+
+
+def _render_crop(run_dir: Path, citation: dict[str, Any]) -> None:
+    crop = citation.get("crop_path")
+    if not crop:
+        return
+    path = (run_dir / crop).resolve()
+    try:
+        path.relative_to(run_dir.resolve())
+    except ValueError:
+        return
+    if path.exists():
+        st.image(str(path), use_container_width=True)
+
+
+def _records(path: Path) -> list[dict[str, Any]]:
+    return read_artifact(path).get("records", []) if path.exists() else []
+
+
+def _metrics(path: Path) -> dict[str, Any]:
+    return read_artifact(path).get("metrics", {}) if path.exists() else {}
+
+
+def _object(path: Path) -> dict[str, Any]:
+    return read_artifact(path) if path.exists() else {}
+
+
+def _safe_upload_name(name: str, *, fallback: str) -> str:
+    clean = "".join(char for char in name if char.isalnum() or char in {"-", "_", "."}).strip(".")
+    if not clean.lower().endswith(".pdf"):
+        clean = fallback
+    return clean or fallback
+
+
+def _input_options() -> list[str]:
+    options = ["Upload PDFs"]
+    if PUBLIC_SPEC.exists() and PUBLIC_CROSS_DOC.exists():
+        options.insert(0, "Public cross-doc demo")
+    if PUBLIC_SPEC.exists() and PUBLIC_VERSION_REV.exists():
+        options.insert(0, "Public version demo")
+    return options
+
+
+if __name__ == "__main__":
+    main()

@@ -48,6 +48,7 @@ def test_demo_package_writes_static_site_and_copies_crops(tmp_path: Path) -> Non
     assert "InterLock AI MVP Demo" in html
     assert "find_00001" in html
     assert "assets/case/a.png" in html
+    assert "Review Findings" in html
     assert (site_dir / "assets" / "case" / "a.png").exists()
     assert (site_dir / "artifacts" / "case" / "findings.json").exists()
     assert (tmp_path / "demo" / "summary.md").exists()
@@ -89,6 +90,53 @@ def test_demo_package_sanitizes_deploy_artifacts(tmp_path: Path) -> None:
     assert "OPENAI_API_KEY" not in exported
     assert "ANTHROPIC_API_KEY" not in exported
     assert not (site_dir / "artifacts" / "case" / "wiki").exists()
+
+
+def test_demo_package_collapses_coverage_warnings(tmp_path: Path) -> None:
+    run_dir = tmp_path / "run"
+    crops = run_dir / "crops"
+    crops.mkdir(parents=True)
+    for i in range(2):
+        (crops / f"p{i}.png").write_bytes(b"fake")
+    _write_json(
+        run_dir / "findings.json",
+        records=[
+            {
+                "finding_id": f"find_0000{i + 1}",
+                "finding_type": "coverage_warning",
+                "severity": "informational",
+                "confidence": "high",
+                "subject": f"A page {i + 1}",
+                "parameter": "coverage",
+                "summary": "Page text extraction status: empty",
+                "authoritative_side": "unknown",
+                "authority_basis": "coverage",
+                "evidence_a": {"page": i + 1, "quote": "Page text extraction status: empty", "crop_path": f"crops/p{i}.png"},
+                "evidence_b": None,
+            }
+            for i in range(2)
+        ],
+    )
+    _write_json(run_dir / "metrics.json", meta={"metrics": {"findings": 2, "coverage_warning_findings": 2}})
+    _write_json(run_dir / "triage.json", meta={"issues": []})
+
+    site_dir = write_demo_package(
+        out_dir=tmp_path / "demo",
+        cases=[
+            DemoCase(
+                case_id="scanned",
+                title="Scanned",
+                run_dir=run_dir,
+                claim="Claim",
+                caveat="Caveat",
+            )
+        ],
+    )
+
+    html = (site_dir / "index.html").read_text(encoding="utf-8")
+    assert "No review findings" in html
+    assert "Extraction Coverage Warning" in html
+    assert "2 page-level coverage warning" in html
 
 
 def _write_json(path: Path, *, records: list[dict] | None = None, meta: dict | None = None) -> None:

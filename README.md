@@ -13,6 +13,7 @@ make eval-public-demo
 make eval-public-cross-doc-demo
 make eval-demo-package
 make ui
+make streamlit
 ```
 
 The CLI is only an adapter. The reusable entrypoint is:
@@ -50,6 +51,18 @@ Current deployed VC demo:
 ```text
 https://interlock-ai-mvp-demo.vercel.app
 ```
+
+For a dynamic upload/review app, use Streamlit:
+
+```bash
+make streamlit
+```
+
+The Streamlit app supports preset demos and two-PDF uploads. It is the right
+surface for a private interactive demo. The static Vercel site remains the
+recommended broad-share VC URL.
+
+Details: `docs/STREAMLIT_DYNAMIC_APP_2026-05-25.md`.
 
 The AES/domain glossary is loaded from `examples/aes_glossary.yaml` by default.
 It now feeds extraction, parameter naming, context labeling, corpus runs, and

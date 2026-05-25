@@ -1287,3 +1287,33 @@ browser verification
   18 coverage warnings
   26 citation/crop images present
 ```
+
+## checkpoint-2026-05-25-streamlit-dynamic-app
+
+Purpose:
+
+- add a dynamic upload/review surface for private interactive demos,
+- keep the broad VC URL static and safe,
+- fix the scanned/low-text presentation so coverage warnings are aggregated
+  instead of reading like broken duplicated findings.
+
+Changed:
+
+- added `interlock_mvp/streamlit_app.py`,
+- added root `streamlit_app.py`,
+- added `requirements.txt`,
+- added `make streamlit`,
+- added Streamlit dependency,
+- static demo package now collapses coverage warnings into one extraction
+  coverage section per case,
+- Streamlit app renders review findings separately from coverage warnings,
+- added tests for Streamlit upload-name safety, upload-only fallback, demo
+  package sanitization, and coverage-warning collapse.
+
+Deployment posture:
+
+- `https://interlock-ai-mvp-demo.vercel.app` remains the static VC URL.
+- Streamlit is the private interactive URL path once connected to a GitHub repo
+  or another Streamlit-capable host.
+- Hosted Streamlit falls back to upload-only mode if gitignored preset PDFs are
+  absent.

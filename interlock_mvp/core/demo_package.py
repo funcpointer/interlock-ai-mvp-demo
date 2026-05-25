@@ -170,8 +170,11 @@ def _case_card_html(item: dict[str, Any]) -> str:
 def _case_section_html(item: dict[str, Any]) -> str:
     case: DemoCase = item["case"]
     findings = item["findings"]
+    review_findings = [finding for finding in findings if finding.get("finding_type") != "coverage_warning"]
+    coverage_findings = [finding for finding in findings if finding.get("finding_type") == "coverage_warning"]
     metrics = item["metrics"]
-    finding_html = "\n".join(_finding_html(case.case_id, finding) for finding in findings) or "<p class='empty'>No findings.</p>"
+    finding_html = "\n".join(_finding_html(case.case_id, finding) for finding in review_findings) or "<p class='empty'>No review findings.</p>"
+    coverage_html = _coverage_summary_html(case.case_id, coverage_findings) if coverage_findings else ""
     triage_html = _triage_html(item["triage"])
     return f"""
     <section class="case" id="{escape(case.case_id)}">
@@ -190,6 +193,7 @@ def _case_section_html(item: dict[str, Any]) -> str:
         <span>{escape(str(metrics.get('decision_traces_with_downgrades', 0)))} downgraded traces</span>
       </div>
       {finding_html}
+      {coverage_html}
       <details>
         <summary>Triage</summary>
         {triage_html}
@@ -238,6 +242,23 @@ def _citation_html(case_id: str, label: str, citation: dict[str, Any]) -> str:
       <blockquote>{escape(str(citation.get('quote', '')))}</blockquote>
       {image}
     </div>"""
+
+
+def _coverage_summary_html(case_id: str, findings: list[dict[str, Any]]) -> str:
+    examples = []
+    for finding in findings[:4]:
+        citation = finding.get("evidence_a") or finding.get("evidence_b") or {}
+        crop_path = citation.get("static_crop_path") or ""
+        image = f"<img src='{escape(crop_path)}' alt='{escape(case_id)} coverage crop'>" if crop_path else ""
+        examples.append(
+            f"<div class='coverage-example'><h4>Page {escape(str(citation.get('page', '')))}</h4>{image}</div>"
+        )
+    return f"""
+    <article class="coverage-summary">
+      <h3>Extraction Coverage Warning</h3>
+      <p>{len(findings)} page-level coverage warning(s). The text layer is empty or weak, so the system is refusing to claim review coverage without OCR/VLM extraction.</p>
+      <div class="coverage-grid">{''.join(examples)}</div>
+    </article>"""
 
 
 def _triage_html(payload: dict[str, Any]) -> str:
@@ -396,7 +417,7 @@ def _css() -> str:
     .summary, .cards, .mini-metrics { display:grid; gap:12px; } .summary { grid-template-columns:repeat(4,minmax(0,1fr)); margin:20px 0; } .summary div, .card, .note, .finding { background:white; border:1px solid var(--line); border-radius:8px; } .summary div { border-top:3px solid var(--accent); padding:14px; } .summary strong { display:block; font-size:28px; } .summary span, dt { color:var(--muted); font-size:13px; } .note { padding:18px; }
     .cards { grid-template-columns:repeat(4,minmax(0,1fr)); margin:18px 0; } .card { padding:14px; } .card a, .artifact, .artifact-row a { color:var(--accent); } .card p { color:var(--muted); } dl { display:grid; grid-template-columns:130px 1fr; gap:6px 12px; margin:10px 0; } dd { margin:0; }
     .case { margin-top:28px; } .case-head { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; } .artifact { white-space:nowrap; border:1px solid var(--line); border-radius:6px; padding:8px 10px; text-decoration:none; background:white; } .mini-metrics { grid-template-columns:repeat(4,minmax(0,1fr)); margin:12px 0; } .mini-metrics span { background:#f4f7f9; padding:8px 10px; border-radius:6px; color:var(--muted); }
-    .finding { padding:16px; margin:14px 0; } .finding.review_required { border-left:5px solid var(--bad); } .finding.possible_issue { border-left:5px solid var(--warn); } .finding.informational { border-left:5px solid var(--ok); } .finding-head { display:flex; justify-content:space-between; gap:18px; } .finding-head span { height:max-content; border:1px solid var(--line); border-radius:999px; padding:4px 9px; font-size:12px; color:var(--muted); white-space:nowrap; } .finding p { margin:0 0 10px; color:var(--muted); }
+    .finding, .coverage-summary { padding:16px; margin:14px 0; } .finding.review_required { border-left:5px solid var(--bad); } .finding.possible_issue { border-left:5px solid var(--warn); } .finding.informational { border-left:5px solid var(--ok); } .coverage-summary { border-left:5px solid var(--accent); background:white; border:1px solid var(--line); border-radius:8px; } .coverage-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; } .coverage-example h4 { margin-top:0; } .finding-head { display:flex; justify-content:space-between; gap:18px; } .finding-head span { height:max-content; border:1px solid var(--line); border-radius:999px; padding:4px 9px; font-size:12px; color:var(--muted); white-space:nowrap; } .finding p, .coverage-summary p { margin:0 0 10px; color:var(--muted); }
     .citations { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; } .citation { border-top:1px solid var(--line); padding-top:12px; } blockquote { margin:0 0 10px; padding:8px 10px; background:#f4f7f9; border-left:3px solid var(--accent); } img { max-width:100%; border:1px solid var(--line); background:white; } details { margin:14px 0; } .artifact-row { display:flex; flex-wrap:wrap; gap:10px; } .artifact-row a { border:1px solid var(--line); padding:8px 10px; border-radius:6px; background:white; text-decoration:none; }
-    @media (max-width: 860px) { .hero, .case-head, .finding-head { flex-direction:column; align-items:flex-start; } .summary, .cards, .mini-metrics, .citations { grid-template-columns:1fr; } }
+    @media (max-width: 860px) { .hero, .case-head, .finding-head { flex-direction:column; align-items:flex-start; } .summary, .cards, .mini-metrics, .citations, .coverage-grid { grid-template-columns:1fr; } }
     """
