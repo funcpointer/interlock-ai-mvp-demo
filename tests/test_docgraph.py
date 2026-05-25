@@ -46,6 +46,23 @@ def test_equivalent_unit_claim_does_not_diff() -> None:
     assert not [edge for edge in diff.edges if edge.diff_type == "value_mismatch"]
 
 
+def test_reference_subjects_do_not_become_missing_equipment() -> None:
+    regions = [
+        _region("A", 1, "ra1", "Equipment Data Sheet"),
+        _region("A", 1, "ra2", "Standards compliance: NEMA MG 1-2016, IEC 60034-1"),
+        _region("B", 1, "rb1", "Equipment Data Sheet"),
+        _region("B", 1, "rb2", "Standards compliance: NEMA MG 1-2016"),
+    ]
+    evidence = [
+        _reference("A", 1, "ra2", "ev1", "IEC 60034-1"),
+        _reference("B", 1, "rb2", "ev2", "NEMA MG 1-2016"),
+    ]
+    graph_a, graph_b, _updated = build_document_graphs(regions=regions, evidence=evidence)
+    diff = build_diff_graph(graph_a, graph_b)
+
+    assert not [edge for edge in diff.edges if edge.subject in {"IEC 60034-1", "NEMA MG 1-2016"}]
+
+
 def _region(doc_id: str, page: int, region_id: str, text: str) -> RegionRecord:
     return RegionRecord(
         region_id=region_id,
@@ -105,6 +122,27 @@ def _claim(
         normalized_text=raw_text.lower(),
         normalized_value=f"{value} {unit}".lower(),
         confidence="high",
+        source_method="test",
+        crop_path=f"crops/{region_id}.png",
+    )
+
+
+def _reference(doc_id: str, page: int, region_id: str, evidence_id: str, value: str) -> EvidenceItem:
+    return EvidenceItem(
+        evidence_id=evidence_id,
+        doc_id=doc_id,
+        page=page,
+        bbox=[0, 0, 100, 20],
+        region_id=region_id,
+        kind="reference",
+        subject=value,
+        parameter="reference",
+        value=value,
+        unit="",
+        raw_text=value,
+        normalized_text=value.lower(),
+        normalized_value=value.lower(),
+        confidence="medium",
         source_method="test",
         crop_path=f"crops/{region_id}.png",
     )

@@ -168,7 +168,7 @@ def _build_graph_for_doc(
     subject_contexts: dict[str, set[str]] = defaultdict(set)
     claims: list[ClaimNode] = []
     for item in doc_evidence:
-        if item.kind not in {"equipment_id", "parameter_value", "reference"}:
+        if item.kind not in {"equipment_id", "parameter_value"}:
             continue
         subject_label = item.subject
         subject_id = f"{doc_id}:subject:{normalize_key(subject_label)}"

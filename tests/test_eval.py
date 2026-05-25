@@ -23,3 +23,27 @@ def test_eval_fails_uncited_finding(tmp_path: Path) -> None:
     ok, issues = run_eval(tmp_path, eval_path)
     assert not ok
     assert any("lacks source citation" in issue for issue in issues)
+
+
+def test_eval_enforces_max_findings(tmp_path: Path) -> None:
+    write_json(
+        tmp_path / "findings.json",
+        records=[
+            {
+                "finding_id": "f1",
+                "finding_type": "coverage_warning",
+                "severity": "informational",
+                "summary": "coverage note",
+                "verifier_notes": "ok",
+                "evidence_a": None,
+                "evidence_b": None,
+            }
+        ],
+    )
+    eval_path = tmp_path / "eval.yaml"
+    eval_path.write_text("expected_findings: []\nmax_findings: 0\n", encoding="utf-8")
+
+    ok, issues = run_eval(tmp_path, eval_path)
+
+    assert not ok
+    assert any("exceeds max_findings" in issue for issue in issues)

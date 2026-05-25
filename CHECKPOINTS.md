@@ -152,3 +152,43 @@ Authority rule:
 
 - The second brain is recall/debug infrastructure only.
 - It may propose evidence to inspect later, but it cannot create findings.
+
+## checkpoint-2026-05-25-expanded-examples
+
+Purpose:
+
+- add more real-life and near-real fixture coverage,
+- catch reference-as-equipment false positives,
+- document extractable vs weak-example classes.
+
+Changed:
+
+- references no longer become graph subjects for missing-equipment findings,
+- `eval/synth_reference_smoke.yaml`,
+- `eval/real_xfmr_smoke.yaml`,
+- `make eval-examples`,
+- `examples/REAL_LIFE_EXAMPLES.md`,
+- eval supports `max_findings`.
+
+Validation result:
+
+```text
+make test
+  13 passed
+
+make eval-fast
+  version gold: 5 findings, 5 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 5 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make eval-examples
+  synth equipment spec v2/v3: 0 findings, eval passed
+  real IEEE vs SEL: 17 findings, 1 review_required, eval passed under smoke cap
+```
+
+Accuracy finding:
+
+- The real cross-doc example is now less noisy than before the reference fix, but still has repeated possible impedance findings.
+- PID/HVAC/relay examples expose weak table/subject extraction and should drive the next table/VLM extraction phase.
+- Gold cross-doc got cleaner after the reference fix: 7 findings / 4 review_required became 5 findings / 2 review_required while expected findings still pass.

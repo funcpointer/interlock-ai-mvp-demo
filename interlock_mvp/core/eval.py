@@ -45,6 +45,11 @@ def run_eval(run_dir: Path, eval_path: Path) -> tuple[bool, list[str]]:
         if count > int(spec["max_review_required"]):
             issues.append(f"review_required count {count} exceeds max_review_required {spec['max_review_required']}")
 
+    if "max_findings" in spec:
+        count = len(findings)
+        if count > int(spec["max_findings"]):
+            issues.append(f"finding count {count} exceeds max_findings {spec['max_findings']}")
+
     return not issues, issues
 
 

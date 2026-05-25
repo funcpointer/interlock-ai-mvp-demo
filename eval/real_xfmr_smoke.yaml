@@ -1,0 +1,5 @@
+schema_version: interlock_mvp.eval.v1
+expected_findings: []
+forbidden_findings: []
+expected_coverage_warnings: []
+max_review_required: 5

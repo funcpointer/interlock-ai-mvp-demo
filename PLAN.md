@@ -44,6 +44,8 @@ Current validated fixture classes:
 - negative pair: `doc_a_60pct.pdf` vs itself
 - cross-doc gold: `spec_xfmr_001.pdf` vs `doc_a_60pct.pdf`
 - scanned/low-text stress: `doc_a_scanned.pdf` vs itself
+- synthetic reference smoke: `synth_equipment_spec_v2.pdf` vs `synth_equipment_spec_v3.pdf`
+- real cross-doc smoke: `real_ieee_xfmr_spec_guide.pdf` vs `real_sel_xfmr_protection.pdf`
 
 ## Invariants
 
@@ -172,6 +174,7 @@ Accuracy checkpoint suite:
 Full checkpoint suite:
 
 - accuracy checkpoint suite
+- expanded example suite
 - one Kuzu-enabled run
 - optional cloud/VLM run only when document export is explicitly allowed
 
@@ -184,6 +187,8 @@ Acceptance now means:
 - every non-coverage finding has page/quote/crop,
 - no banned verifier-authored language,
 - metrics/logs show plausible stage counts.
+
+Smoke examples are allowed to have loose caps instead of exact expected findings. They exist to catch regressions and expose gaps, not to claim gold precision/recall.
 
 ## Accuracy Roadmap
 
@@ -323,4 +328,5 @@ The second-brain SQLite index is also derived, but cheap enough to build every r
 7. Re-run accuracy checkpoint suite.
 8. Improve search ranking so diff/finding hits beat generic evidence when the query names a discrepancy.
 9. Add candidate-proposal mode from search results, still `proposal_only`.
-10. Only then consider LanceDB/local SLM integration.
+10. Add table-aware extraction for currently weak examples: PID, HVAC schedules, relay settings.
+11. Only then consider LanceDB/local SLM integration.
