@@ -99,9 +99,19 @@ Immediate next action:
 
 Next demo action:
 
-- polish `report.md` / README walkthrough around
+- done: added `docs/DEMO_WALKTHROUGH_2026-05-25.md` around
   `runs/public-demo/public_transformer_spec_synthetic_revision` so a 2-5 minute
   screen recording can show the exact workflow and citations.
+- done: added `docs/CROSS_DOC_STATUS_2026-05-25.md` to keep the demo claim
+  honest: version-review is demo-ready; cross-doc passes controlled fixtures but
+  still needs a paired public cross-doc demo case before broad claims.
+
+Next cross-doc demo action:
+
+- create a watermarked synthetic cross-document pair from the same public AES
+  transformer spec, expressed as a different document type such as a protection
+  study excerpt or equipment-settings table.
+- add eval gold for 2-3 planted cross-document findings and forbidden noise.
 
 ### P2: Extraction Upgrade Based on Failures
 

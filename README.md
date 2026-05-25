@@ -70,6 +70,11 @@ Somerset main power transformer specification sheet, runs the version review,
 checks `eval/public_transformer_spec_synth.yaml`, and writes triage diagnostics.
 The planted changes are `140 MVA -> 120 MVA` and `10% impedance -> 8%`.
 
+Demo and cross-document status notes:
+
+- `docs/DEMO_WALKTHROUGH_2026-05-25.md`
+- `docs/CROSS_DOC_STATUS_2026-05-25.md`
+
 Corpus runs write one child run directory per pair and a summary artifact at
 `runs/<corpus>/corpus_results.json`.
 

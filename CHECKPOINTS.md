@@ -1027,3 +1027,51 @@ Demo note:
 - This is not claimed as a real AES revision. It is a real public AES source PDF
   plus a generated, watermarked synthetic revision that creates controlled,
   auditable mismatches for the funding demo.
+
+## checkpoint-2026-05-25-demo-walkthrough
+
+Purpose:
+
+- turn the public AES synthetic revision into a repeatable 2-5 minute demo path,
+- document exactly which artifacts to open during the recording,
+- state the cross-document maturity boundary honestly.
+
+Changed:
+
+- added `docs/DEMO_WALKTHROUGH_2026-05-25.md`,
+- added `docs/CROSS_DOC_STATUS_2026-05-25.md`,
+- linked both from `README.md`,
+- updated `docs/NEXT_STEPS_2026-05-25.md`.
+
+Validation target:
+
+```text
+make eval-public-demo
+```
+
+Validation result:
+
+```text
+make eval-public-demo
+  public_transformer_spec_synthetic_revision: eval_passed
+  findings: 2
+  review_required: 2
+  coverage warnings: 0
+  triage: generic-subject extraction issue remains, no demo-finding blocker
+
+make eval-cross
+  eval passed
+  findings: 6
+  review_required: 4
+  coverage warnings: 0
+
+interlock_mvp triage runs/checkpoint-cross --json
+  issues: generic subjects, absence-only findings, downgraded decisions
+```
+
+Cross-document status:
+
+- controlled cross-doc fixture passes and remains useful as a contract,
+- public real-doc cross-doc runs are still mostly absence-search/coverage-triage,
+- next cross-doc demo should be a watermarked synthetic public cross-doc pair
+  with explicit gold, not unrelated public standards forced into comparison.
