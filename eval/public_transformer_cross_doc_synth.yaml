@@ -1,0 +1,51 @@
+schema_version: interlock_mvp.eval.v1
+expected_findings:
+  - finding_type: value_mismatch
+    severity: review_required
+    subject_contains: XFMR
+    parameter: rating
+    alignment:
+      subject_method: exact
+      context_method: cross_doc_bridge
+    comparison:
+      comparison_type: value_mismatch
+      unit_method: pint
+    evidence_a:
+      page: 4
+      value: "140"
+      unit: MVA
+      quote_contains: Primary to Secondary Winding
+    evidence_b:
+      page: 1
+      value: "120"
+      unit: MVA
+      quote_contains: Main Power Transformer Rating
+  - finding_type: value_mismatch
+    severity: review_required
+    subject_contains: XFMR
+    parameter: impedance
+    alignment:
+      subject_method: exact
+      context_method: cross_doc_bridge
+    comparison:
+      comparison_type: value_mismatch
+      unit_method: custom_percent_impedance
+    evidence_a:
+      page: 5
+      value: "10"
+      unit: "%"
+      quote_contains: Primary - Secondary
+    evidence_b:
+      page: 1
+      value: "8"
+      unit: "%"
+      quote_contains: Main Power Transformer Impedance
+forbidden_findings:
+  - parameter: voltage
+  - parameter: primary_voltage
+  - parameter: secondary_voltage
+  - finding_type: missing_item
+  - finding_type: coverage_warning
+expected_coverage_warnings: []
+max_review_required: 2
+max_findings: 2

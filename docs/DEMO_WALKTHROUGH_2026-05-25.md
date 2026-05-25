@@ -121,3 +121,43 @@ runs/public-demo/public_transformer_spec_synthetic_revision/wiki/findings/find_0
 
 The honest product message: version-review is demo-ready on the public synthetic revision; cross-document review exists and passes a controlled fixture, but real cross-document value comparison still needs paired project data and stronger table/subject extraction.
 
+## Cross-Doc Demo Add-On
+
+Run:
+
+```bash
+make eval-public-cross-doc-demo
+```
+
+This compares the same real public AES transformer specification sheet against a watermarked synthetic protection-study excerpt.
+
+Primary run folder:
+
+```text
+runs/public-cross-doc-demo/public_transformer_spec_vs_synthetic_protection_excerpt/
+```
+
+Show:
+
+- `report.md`
+- `findings.json`
+- `reasoning_graph.json`
+- `decision_traces.json`
+- `triage.json`
+
+Expected result:
+
+- 2 findings,
+- 2 review-required,
+- 0 coverage warnings,
+- 2 alignment decisions,
+- 2 comparison decisions,
+- 0 absence searches,
+- 0 downgraded traces.
+
+The key difference from the version-review demo is the reasoning method:
+
+- `alignment_decisions_by_context_method`: `{'cross_doc_bridge': 2}`
+- authority: `B`, because `protection_study` ranks above `specification` in the AES authority config.
+
+Use this as the cross-doc proof point. Keep the caveat: it is still a controlled synthetic cross-doc pair, not a claim that unrelated standards/manuals can be compared as if they were paired project documents.

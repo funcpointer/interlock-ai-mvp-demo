@@ -63,15 +63,14 @@ If the subject/context layer is weak, every downstream graph or search layer fai
 
 Build one controlled public cross-doc demo pair before trying to generalize:
 
-1. Start from the public AES transformer specification sheet.
-2. Generate a second document in a different form, such as a short protection-study excerpt or equipment-setting table.
-3. Keep it watermarked as synthetic.
-4. Plant 2-3 known cross-document mismatches:
+1. Done: start from the public AES transformer specification sheet.
+2. Done: generate a second document in a different form: a short protection-study excerpt.
+3. Done: keep it watermarked as synthetic.
+4. Done: plant 2 known cross-document mismatches:
    - transformer rating,
-   - impedance,
-   - one missing required item or reference conflict.
-5. Add `eval/public_transformer_cross_doc_synth.yaml`.
-6. Require:
+   - impedance.
+5. Done: add `eval/public_transformer_cross_doc_synth.yaml`.
+6. Required:
    - at least two aligned comparison decisions,
    - no forbidden voltage mismatch,
    - no missing-item flood,
@@ -80,6 +79,29 @@ Build one controlled public cross-doc demo pair before trying to generalize:
 
 This creates a real cross-doc demo wedge without pretending that unrelated public standards are paired project documents.
 
+Run it with:
+
+```bash
+make eval-public-cross-doc-demo
+```
+
+Current result:
+
+```text
+public_transformer_spec_vs_synthetic_protection_excerpt: eval_passed
+findings: 2
+review_required: 2
+coverage warnings: 0
+alignment_decisions: 2
+comparison_decisions: 2
+absence_searches: 0
+decision_traces_with_downgrades: 0
+```
+
+Triage still reports generic evidence on non-finding rows from the source spec.
+That is a real extraction cleanup issue, but not a blocker for the two cross-doc
+demo findings because both target findings are comparison-sourced and cited.
+
 ## Demo Guidance
 
 For the next funding demo:
@@ -87,4 +109,3 @@ For the next funding demo:
 - lead with version-review over the public AES synthetic revision,
 - mention cross-doc as the same engine path with a passing controlled fixture,
 - do not claim broad real-AES cross-doc readiness until the controlled public cross-doc pair exists and passes triage.
-

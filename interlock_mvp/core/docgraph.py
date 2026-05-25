@@ -362,7 +362,13 @@ def _is_generic_subject_id(subject_id: str) -> bool:
 
 
 def _is_spec_context(context_label: str) -> bool:
-    return context_label in {"equipment_data_sheet", "nameplate_parameters"}
+    return context_label in {
+        "equipment_data_sheet",
+        "nameplate_parameters",
+        "transformer_electrical_ratings",
+        "capacity_ratings",
+        "impedance_information",
+    }
 
 
 def _is_transformer_claim(claim: ClaimNode) -> bool:

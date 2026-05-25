@@ -1,0 +1,25 @@
+schema_version: interlock_mvp.corpus.v1
+name: aes_public_demo_synthetic_cross_doc
+description: >
+  Public AES transformer specification sheet compared against a clearly
+  watermarked synthetic protection-study excerpt generated locally by
+  scripts/make_synthetic_transformer_cross_doc.py. This is demo/eval data, not
+  a real AES project study.
+source_root: docs/public_aes
+
+pairs:
+  - id: public_transformer_spec_vs_synthetic_protection_excerpt
+    mode: cross_doc
+    doc_a: somerset_main_power_transformer_spec_sheet.pdf
+    doc_b: somerset_transformer_protection_study_excerpt_synth.pdf
+    authority_config: ../../examples/aes_authority.yaml
+    domain_glossary: ../../examples/aes_glossary.yaml
+    eval: ../../eval/public_transformer_cross_doc_synth.yaml
+    doc_a_type: specification
+    doc_b_type: protection_study
+    no_cloud: true
+    no_kuzu: true
+    notes: >
+      Demo-quality synthetic cross-document review over a real public AES
+      transformer spec and a generated protection-study excerpt. Planted
+      cross-document discrepancies: 140 MVA -> 120 MVA and 10% -> 8% impedance.

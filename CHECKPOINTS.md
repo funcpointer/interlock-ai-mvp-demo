@@ -1075,3 +1075,73 @@ Cross-document status:
 - public real-doc cross-doc runs are still mostly absence-search/coverage-triage,
 - next cross-doc demo should be a watermarked synthetic public cross-doc pair
   with explicit gold, not unrelated public standards forced into comparison.
+
+## checkpoint-2026-05-25-public-cross-doc-demo
+
+Purpose:
+
+- make cross-document review demoable without overclaiming arbitrary real-doc
+  robustness,
+- create a paired public cross-doc case over a real AES transformer spec and a
+  watermarked synthetic protection-study excerpt,
+- ensure the target cross-doc findings are aligned comparison decisions, not
+  absence-search artifacts.
+
+Changed:
+
+- added `scripts/make_synthetic_transformer_cross_doc.py`,
+- added `corpora/aes/public_cross_doc_manifest.yaml`,
+- added `eval/public_transformer_cross_doc_synth.yaml`,
+- added `make eval-public-cross-doc-demo`,
+- widened cross-doc bridge eligibility from only `equipment_data_sheet` /
+  `nameplate_parameters` to transformer spec table contexts:
+  `transformer_electrical_ratings`, `capacity_ratings`, and
+  `impedance_information`,
+- added docgraph regression tests for public-spec capacity and impedance
+  contexts bridging to a protection-study context,
+- package version bumped to `0.20.0`.
+
+Validation result:
+
+```text
+tests/test_docgraph.py
+  14 passed
+
+make eval-public-cross-doc-demo
+  public_transformer_spec_vs_synthetic_protection_excerpt: eval_passed
+  findings: 2
+  review_required: 2
+  coverage warnings: 0
+  alignment_decisions: 2
+  comparison_decisions: 2
+  absence_searches: 0
+  decision_traces_with_downgrades: 0
+
+make eval-fast
+  56 tests passed
+  version eval passed
+  negative eval passed
+  cross-doc fixture eval passed
+  scanned eval passed
+
+make eval-public-demo
+  public_transformer_spec_synthetic_revision: eval_passed
+
+make coverage
+  56 passed
+  source coverage: 83%
+```
+
+Cross-doc result:
+
+- rating mismatch: A spec cites `84/112/140 MVA`; B synthetic protection
+  excerpt cites `120 MVA`.
+- impedance mismatch: A spec cites `10%`; B synthetic protection excerpt cites
+  `8%`.
+- both findings use `cross_doc_bridge` context alignment and exact subject
+  alignment to `XFMR`.
+
+Known limit:
+
+- this is a controlled public cross-doc demo pair, not proof of arbitrary
+  cross-document robustness over unrelated standards/manuals/drawings.

@@ -215,6 +215,44 @@ def test_impedance_context_admits_percent_diff_without_repeating_impedance_in_ro
     assert any(edge.diff_type == "value_mismatch" and edge.parameter == "impedance" for edge in diff.edges)
 
 
+def test_cross_doc_bridge_accepts_transformer_spec_capacity_context() -> None:
+    regions = [
+        _region("A", 4, "ra1", "Main Power Transformer Specification Sheet"),
+        _region("A", 4, "ra2", "Capacity Ratings"),
+        _region("A", 4, "ra3", "Primary to Secondary Winding: 84/112/140 MVA"),
+        _region("B", 1, "rb1", "Selective Coordination Studies"),
+        _region("B", 1, "rb2", "Main Power Transformer Rating: 120 MVA"),
+    ]
+    evidence = [
+        _claim("A", 4, "ra3", "ev1", "GENERAL", "rating", "140", "MVA", "Primary to Secondary Winding: 84/112/140 MVA"),
+        _claim("B", 1, "rb2", "ev2", "XFMR", "rating", "120", "MVA", "Main Power Transformer Rating: 120 MVA"),
+    ]
+
+    graph_a, graph_b, _updated = build_document_graphs(regions=regions, evidence=evidence)
+    diff = build_diff_graph(graph_a, graph_b)
+
+    assert any(edge.diff_type == "value_mismatch" and edge.parameter == "rating" for edge in diff.edges)
+
+
+def test_cross_doc_bridge_accepts_transformer_spec_impedance_context() -> None:
+    regions = [
+        _region("A", 4, "ra1", "Main Power Transformer Specification Sheet"),
+        _region("A", 5, "ra2", "Impedance Information"),
+        _region("A", 5, "ra3", "Primary - Secondary (ONAF): 10% (+/- allowed tolerance)"),
+        _region("B", 1, "rb1", "Selective Coordination Studies"),
+        _region("B", 1, "rb2", "Main Power Transformer Impedance: 8%"),
+    ]
+    evidence = [
+        _claim("A", 5, "ra3", "ev1", "GENERAL", "percent", "10", "%", "Primary - Secondary (ONAF): 10% (+/- allowed tolerance)"),
+        _claim("B", 1, "rb2", "ev2", "XFMR", "impedance", "8", "%", "Main Power Transformer Impedance: 8%"),
+    ]
+
+    graph_a, graph_b, _updated = build_document_graphs(regions=regions, evidence=evidence)
+    diff = build_diff_graph(graph_a, graph_b)
+
+    assert any(edge.diff_type == "value_mismatch" and edge.parameter == "impedance" for edge in diff.edges)
+
+
 def _region(doc_id: str, page: int, region_id: str, text: str) -> RegionRecord:
     return RegionRecord(
         region_id=region_id,

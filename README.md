@@ -10,6 +10,7 @@ Fresh CLI-only evidence review engine for comparing two engineering PDFs.
 /Users/kc/venv-12/bin/python -m interlock_mvp search runs/demo "transformer rating"
 /Users/kc/venv-12/bin/python -m interlock_mvp corpus corpora/aes/local_manifest.yaml --out-root runs/aes-corpus --no-cloud --no-kuzu
 make eval-public-demo
+make eval-public-cross-doc-demo
 ```
 
 The CLI is only an adapter. The reusable entrypoint is:
@@ -69,6 +70,17 @@ That target regenerates a watermarked synthetic revision of the public AES
 Somerset main power transformer specification sheet, runs the version review,
 checks `eval/public_transformer_spec_synth.yaml`, and writes triage diagnostics.
 The planted changes are `140 MVA -> 120 MVA` and `10% impedance -> 8%`.
+
+For the funding-demo-oriented public AES synthetic cross-document pair, run:
+
+```bash
+make eval-public-cross-doc-demo
+```
+
+That target compares the same real public AES transformer specification sheet
+against a watermarked synthetic protection-study excerpt. The planted
+cross-document discrepancies are the same rating and impedance changes, but
+expressed in a different document type.
 
 Demo and cross-document status notes:
 

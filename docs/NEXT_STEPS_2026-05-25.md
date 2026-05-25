@@ -108,10 +108,17 @@ Next demo action:
 
 Next cross-doc demo action:
 
-- create a watermarked synthetic cross-document pair from the same public AES
+- done: create a watermarked synthetic cross-document pair from the same public AES
   transformer spec, expressed as a different document type such as a protection
   study excerpt or equipment-settings table.
-- add eval gold for 2-3 planted cross-document findings and forbidden noise.
+- done: add eval gold for 2 planted cross-document findings and forbidden noise.
+- current cross-doc demo target: `make eval-public-cross-doc-demo`.
+
+Next cross-doc accuracy action:
+
+- build a second cross-doc case with a missing required item or reference
+  conflict, then keep triage strict: no missing-item flood, no voltage false
+  positives, no downgraded review-required finding.
 
 ### P2: Extraction Upgrade Based on Failures
 

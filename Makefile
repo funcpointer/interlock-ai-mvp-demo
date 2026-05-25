@@ -4,8 +4,9 @@ AUTH := examples/aes_authority.yaml
 AES_MANIFEST ?= corpora/aes/local_manifest.yaml
 AES_SEED_MANIFEST ?= corpora/aes/near_real_seed.yaml
 PUBLIC_DEMO_MANIFEST ?= corpora/aes/public_demo_manifest.yaml
+PUBLIC_CROSS_DOC_MANIFEST ?= corpora/aes/public_cross_doc_manifest.yaml
 
-.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-triage eval-kuzu eval-search eval-examples eval-public-demo eval-aes-corpus eval-aes-seed eval-full doctor
+.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-triage eval-kuzu eval-search eval-examples eval-public-demo eval-public-cross-doc-demo eval-aes-corpus eval-aes-seed eval-full doctor
 
 test:
 	$(PY) -m pytest -q
@@ -56,6 +57,11 @@ eval-public-demo:
 	$(PY) scripts/make_synthetic_transformer_revision.py
 	$(PY) -m interlock_mvp corpus $(PUBLIC_DEMO_MANIFEST) --out-root runs/public-demo --authority-config $(AUTH) --no-cloud --no-kuzu
 	$(PY) -m interlock_mvp triage runs/public-demo/public_transformer_spec_synthetic_revision
+
+eval-public-cross-doc-demo:
+	$(PY) scripts/make_synthetic_transformer_cross_doc.py
+	$(PY) -m interlock_mvp corpus $(PUBLIC_CROSS_DOC_MANIFEST) --out-root runs/public-cross-doc-demo --authority-config $(AUTH) --no-cloud --no-kuzu
+	$(PY) -m interlock_mvp triage runs/public-cross-doc-demo/public_transformer_spec_vs_synthetic_protection_excerpt
 
 eval-aes-corpus:
 	@if [ -f "$(AES_MANIFEST)" ]; then \
