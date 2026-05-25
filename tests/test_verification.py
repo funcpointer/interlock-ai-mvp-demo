@@ -406,7 +406,7 @@ def test_value_mismatch_summary_uses_reviewer_facing_authority_language() -> Non
         max_cost_usd=0,
     )
 
-    assert findings[0].summary == "Doc B is authoritative for this review; the cited Doc B value differs from the baseline Doc A value."
+    assert findings[0].summary == "Doc B is treated as controlling, and its cited value does not match Doc A."
 
 
 def test_external_model_review_rejects_banned_authored_language(monkeypatch) -> None:

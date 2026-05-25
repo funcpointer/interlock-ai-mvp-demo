@@ -239,11 +239,9 @@ def _render_wiki_page(run_dir: Path, name: str, *, key_prefix: str) -> None:
 def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
     with st.container(border=True):
         st.markdown(f"### {_finding_title(finding)}")
-        st.write(finding.get("summary", ""))
-        st.caption(
-            f"Finding {finding.get('finding_id')} | Type: {finding.get('finding_type')} | Severity: {finding.get('severity')} | "
-            f"Authority: {finding.get('authoritative_side')} ({finding.get('authority_basis')})"
-        )
+        st.markdown(f"**Why it is flagged:** {_why_flagged(finding)}")
+        st.caption(_finding_caption(finding))
+        _render_micro_evidence(finding)
         if finding.get("context_support_summary"):
             _render_context_support(finding)
         if finding.get("model_review_status") == "used":
@@ -260,12 +258,11 @@ def _render_context_support(finding: dict[str, Any]) -> None:
     confidence = finding.get("context_support_confidence") or "unknown"
     signals = [str(signal) for signal in (finding.get("context_support_signal_types") or [])]
     labels = [_context_signal_label(signal) for signal in signals]
-    with st.expander(f"Context check: {confidence} confidence", expanded=False):
+    with st.expander(f"Audit trail: context check ({confidence})", expanded=False):
         if supports:
-            st.success("The citations sit in aligned document context.")
+            st.success("Aligned context around both citations.")
         else:
-            st.warning("The surrounding context is weak or generic.")
-        st.caption("Supporting signal only. The finding comes from the cited values.")
+            st.warning("Weak or generic context around at least one citation.")
         if labels:
             st.markdown("**Checked:** " + "; ".join(labels))
 
@@ -299,7 +296,7 @@ def _render_citation(run_dir: Path, label: str, citation: dict[str, Any]) -> Non
     if not citation:
         st.caption("No citation.")
         return
-    st.caption(f"Page {citation.get('page')} | Evidence {citation.get('evidence_id')}")
+    st.caption(f"Page {citation.get('page')}")
     st.markdown(f"> {citation.get('quote')}")
     with st.expander(f"View source crop - {label}", expanded=False):
         _render_crop(run_dir, citation)
@@ -327,6 +324,40 @@ def _finding_title(finding: dict[str, Any]) -> str:
     if finding.get("finding_type") == "missing_item":
         return f"{finding.get('subject')}: missing aligned evidence"
     return f"{finding.get('subject')} {finding.get('parameter')}"
+
+
+def _why_flagged(finding: dict[str, Any]) -> str:
+    if finding.get("finding_type") == "value_mismatch" and finding.get("evidence_a") and finding.get("evidence_b"):
+        authority = finding.get("authoritative_side")
+        if authority == "B":
+            return "Doc B is treated as controlling, and its cited value does not match Doc A."
+        if authority == "A":
+            return "Doc A is treated as controlling, and its cited value does not match Doc B."
+        return "Both documents cite different values for the same subject and parameter."
+    return str(finding.get("summary") or "")
+
+
+def _finding_caption(finding: dict[str, Any]) -> str:
+    kind = str(finding.get("finding_type") or "").replace("_", " ")
+    severity = str(finding.get("severity") or "").replace("_", " ")
+    authority = str(finding.get("authoritative_side") or "unknown")
+    basis = str(finding.get("authority_basis") or "").strip()
+    basis_text = f" - {basis}" if basis else ""
+    return f"{severity} | {kind} | authority {authority}{basis_text}"
+
+
+def _render_micro_evidence(finding: dict[str, Any]) -> None:
+    evidence_a = finding.get("evidence_a") or {}
+    evidence_b = finding.get("evidence_b") or {}
+    if not evidence_a and not evidence_b:
+        return
+    cols = st.columns(2)
+    with cols[0]:
+        if evidence_a:
+            st.metric(_citation_label(finding, "A"), _citation_value(evidence_a))
+    with cols[1]:
+        if evidence_b:
+            st.metric(_citation_label(finding, "B"), _citation_value(evidence_b))
 
 
 def _citation_value(citation: dict[str, Any]) -> str:

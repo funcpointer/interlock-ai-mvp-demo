@@ -349,10 +349,10 @@ def _diff_summary(edge: DiffEdge, a: EvidenceItem | None, b: EvidenceItem | None
 
 def _value_mismatch_summary(edge: DiffEdge, a: EvidenceItem, b: EvidenceItem, authority: AuthorityDecision) -> str:
     if authority.authoritative_side == "B":
-        return f"Doc B is authoritative for this review; the cited Doc B value differs from the baseline Doc A value."
+        return "Doc B is treated as controlling, and its cited value does not match Doc A."
     if authority.authoritative_side == "A":
-        return f"Doc A is authoritative for this review; the cited Doc A value differs from the Doc B value."
-    return "The cited documents disagree, but authority is unresolved."
+        return "Doc A is treated as controlling, and its cited value does not match Doc B."
+    return "Both documents cite different values; authority is unresolved."
 
 
 def _citation(evidence: EvidenceItem) -> EvidenceCitation:

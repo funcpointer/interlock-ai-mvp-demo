@@ -224,7 +224,7 @@ def _finding_lines(finding: Finding) -> list[str]:
         f"- Severity: `{finding.severity}`",
         f"- Confidence: `{finding.confidence}`",
         f"- Authority: `{finding.authoritative_side}` ({finding.authority_basis}, confidence {finding.authority_confidence:.2f})",
-        f"- Summary: {finding.summary}",
+        f"- Why flagged: {finding.summary}",
         f"- Verifier notes: {finding.verifier_notes}",
         f"- Alignment decision: `{finding.alignment_id or ''}`",
         f"- Comparison decision: `{finding.comparison_id or ''}`",

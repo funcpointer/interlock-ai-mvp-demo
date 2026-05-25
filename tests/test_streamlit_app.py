@@ -8,6 +8,8 @@ from interlock_mvp.streamlit_app import (
     _context_signal_label,
     _download_name,
     _finding_title,
+    _finding_caption,
+    _why_flagged,
     _input_options,
     _mime_for,
     _new_run_dir,
@@ -132,3 +134,17 @@ def test_version_citation_labels_are_reviewer_facing() -> None:
 
     assert _citation_label(finding, "A") == "Baseline (Doc A)"
     assert _citation_label(finding, "B") == "Revised (Doc B)"
+
+
+def test_finding_card_copy_is_reviewer_native() -> None:
+    finding = {
+        "finding_type": "value_mismatch",
+        "severity": "review_required",
+        "authoritative_side": "B",
+        "authority_basis": "protection_study ranks higher in configured AES precedence",
+        "evidence_a": {"value": "1100", "unit": "kVA"},
+        "evidence_b": {"value": "1000", "unit": "KVA"},
+    }
+
+    assert _why_flagged(finding) == "Doc B is treated as controlling, and its cited value does not match Doc A."
+    assert _finding_caption(finding) == "review required | value mismatch | authority B - protection_study ranks higher in configured AES precedence"

@@ -106,12 +106,12 @@ def _finding_lines(finding: Finding) -> list[str]:
     lines = [
         f"### {_finding_title(finding)}",
         "",
-        f"- Finding ID: `{finding.finding_id}`",
-        f"- Type: `{finding.finding_type}`",
+        f"- Why flagged: {finding.summary}",
         f"- Severity: `{finding.severity}`",
+        f"- Type: `{finding.finding_type}`",
         f"- Confidence: `{finding.confidence}`",
         f"- Authority: `{finding.authoritative_side}` ({finding.authority_basis}, confidence {finding.authority_confidence:.2f})",
-        f"- Summary: {finding.summary}",
+        f"- Finding ID: `{finding.finding_id}`",
     ]
     if finding.plausibility_notes:
         lines.append(f"- Plausibility notes: {'; '.join(finding.plausibility_notes)}")
@@ -131,8 +131,8 @@ def _context_support_lines(finding: Finding) -> list[str]:
     verdict = "aligned context" if finding.context_support_supports else "context caution"
     signals = "; ".join(_context_signal_label(signal) for signal in finding.context_support_signal_types)
     return [
-        f"- Context check: {verdict}; {finding.context_support_confidence or 'unknown'} confidence.",
-        f"- Context signals checked: {signals or 'none'}",
+        f"- Audit trail context: {verdict}; {finding.context_support_confidence or 'unknown'} confidence.",
+        f"- Context checked: {signals or 'none'}",
     ]
 
 
