@@ -243,6 +243,16 @@ def doctor() -> None:
         raise typer.Exit(1)
 
 
+@app.command()
+def ui(
+    host: Annotated[str, typer.Option(help="Bind host")] = "127.0.0.1",
+    port: Annotated[int, typer.Option(help="Bind port")] = 8765,
+) -> None:
+    from .ui import serve
+
+    serve(host=host, port=port)
+
+
 def _normalize_mode(mode: str):
     normalized = mode.replace("-", "_")
     if normalized not in {"version", "cross_doc"}:

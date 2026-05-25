@@ -1145,3 +1145,54 @@ Known limit:
 
 - this is a controlled public cross-doc demo pair, not proof of arbitrary
   cross-document robustness over unrelated standards/manuals/drawings.
+
+## checkpoint-2026-05-25-local-ui
+
+Purpose:
+
+- add a simple local FE/UX without creating a second review engine,
+- keep CLI and UI as adapters over `run_review(ReviewRequest)`,
+- make the funding-demo path easier to record: one page, two preset buttons,
+  cited findings, crop images, triage, and artifact links.
+
+Changed:
+
+- added `interlock_mvp/ui.py`,
+- added `interlock_mvp ui`,
+- added `make ui`,
+- added UI tests for finding rendering and artifact path safety,
+- README now documents `http://127.0.0.1:8765`,
+- package version bumped to `0.21.0`.
+
+UI scope:
+
+- local-only browser UI,
+- local file-path inputs,
+- public version demo preset,
+- public cross-doc demo preset,
+- no file upload, auth, deployment, database, or separate backend state.
+
+Validation result:
+
+```text
+tests/test_ui.py tests/test_review_integration.py
+  3 passed
+
+interlock_mvp --help
+  ui command present
+
+make eval-public-cross-doc-demo
+  eval_passed, 2 findings, 2 review_required, 0 coverage warnings
+
+make eval-public-demo
+  eval_passed, 2 findings, 2 review_required, 0 coverage warnings
+
+Browser smoke:
+  http://127.0.0.1:8765
+  public cross-doc preset rendered 2 findings with crop images
+```
+
+Design decision:
+
+- no Streamlit or JS stack yet. The UI is deliberately small and dependency-free
+  because the MVP risk is accuracy, not frontend framework capability.

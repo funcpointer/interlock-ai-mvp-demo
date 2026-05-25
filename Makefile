@@ -6,7 +6,7 @@ AES_SEED_MANIFEST ?= corpora/aes/near_real_seed.yaml
 PUBLIC_DEMO_MANIFEST ?= corpora/aes/public_demo_manifest.yaml
 PUBLIC_CROSS_DOC_MANIFEST ?= corpora/aes/public_cross_doc_manifest.yaml
 
-.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-triage eval-kuzu eval-search eval-examples eval-public-demo eval-public-cross-doc-demo eval-aes-corpus eval-aes-seed eval-full doctor
+.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-triage eval-kuzu eval-search eval-examples eval-public-demo eval-public-cross-doc-demo eval-aes-corpus eval-aes-seed eval-full doctor ui
 
 test:
 	$(PY) -m pytest -q
@@ -17,6 +17,9 @@ coverage:
 
 doctor:
 	$(PY) -m interlock_mvp doctor
+
+ui:
+	$(PY) -m interlock_mvp ui
 
 eval-version:
 	$(PY) -m interlock_mvp review $(FIXTURES)/doc_a_60pct.pdf $(FIXTURES)/doc_b_90pct.pdf --mode version --out runs/checkpoint-version --authority-config $(AUTH) --no-cloud --no-kuzu

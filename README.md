@@ -11,6 +11,7 @@ Fresh CLI-only evidence review engine for comparing two engineering PDFs.
 /Users/kc/venv-12/bin/python -m interlock_mvp corpus corpora/aes/local_manifest.yaml --out-root runs/aes-corpus --no-cloud --no-kuzu
 make eval-public-demo
 make eval-public-cross-doc-demo
+make ui
 ```
 
 The CLI is only an adapter. The reusable entrypoint is:
@@ -23,6 +24,15 @@ result = run_review(ReviewRequest(...))
 ```
 
 Canonical outputs are JSON artifacts. `report.md`, `graph.kuzu/`, and search indexes are derived.
+
+The local browser UI is also only an adapter over the same core:
+
+```bash
+make ui
+```
+
+Open `http://127.0.0.1:8765` and run either the public version demo, the public
+cross-doc demo, or a custom two-PDF review by local file path.
 
 The AES/domain glossary is loaded from `examples/aes_glossary.yaml` by default.
 It now feeds extraction, parameter naming, context labeling, corpus runs, and

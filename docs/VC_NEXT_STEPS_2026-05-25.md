@@ -162,12 +162,13 @@ Pitch the system as an expert-assist reviewer that makes human review faster, mo
 
 ## Immediate Build Queue
 
-1. Add `make eval-demo-package`.
-2. Add `runs/demo-package/summary.md`.
-3. Fix cross-doc fixture noise from document/revision IDs.
-4. Add a third public cross-doc demo finding class: missing-item or reference conflict.
-5. Re-run coverage and evals.
-6. Record demo video.
+1. Done: add a simple local UI adapter over `run_review`.
+2. Add `make eval-demo-package`.
+3. Add `runs/demo-package/summary.md`.
+4. Fix cross-doc fixture noise from document/revision IDs.
+5. Add a third public cross-doc demo finding class: missing-item or reference conflict.
+6. Re-run coverage and evals.
+7. Record demo video.
 
 ## Funding Readiness Bar
 
@@ -180,4 +181,3 @@ Ready for VC demo when:
 - old fixture cross-doc value findings remain,
 - old fixture cross-doc noisy missing-item count drops,
 - all headline artifacts can be shown in under 5 minutes.
-
