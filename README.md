@@ -1,6 +1,16 @@
 # InterLock MVP
 
-Fresh CLI-only evidence review engine for comparing two engineering PDFs.
+CLI-first evidence review engine for comparing two engineering PDFs.
+
+## Submission Materials
+
+- Submission packet: `docs/SUBMISSION_PACKET.md`
+- PRD: `docs/SUBMISSION_PRD.md`
+- TDD: `docs/SUBMISSION_TDD.md`
+- Authorship/build note: `docs/SUBMISSION_AUTHORSHIP.md`
+- Demo video script: `docs/DEMO_VIDEO_SCRIPT.md`
+- Live Streamlit app: `https://interlock-ai-mvp-demo-ddptwdsnkhnf84zqf6nd3q.streamlit.app/`
+- Static read-only demo: `https://interlock-ai-mvp-demo.vercel.app`
 
 ```bash
 python -m interlock_mvp doctor
