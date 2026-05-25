@@ -1,0 +1,19 @@
+schema_version: interlock_mvp.eval.v1
+expected_findings:
+  - finding_type: missing_item
+    subject_contains: LPN-RK-500SP
+    parameter: equipment_presence
+  - finding_type: value_mismatch
+    subject_contains: KRP-C-1600SP
+    parameter: fault_current
+  - finding_type: value_mismatch
+    subject_contains: XFMR
+    parameter: impedance
+  - finding_type: value_mismatch
+    subject_contains: XFMR
+    parameter: rating
+forbidden_findings:
+  - subject: XFMR
+    parameter: rating
+    summary_contains: "150 KVA; B cites 0.15 MVA"
+expected_coverage_warnings: []

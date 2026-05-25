@@ -1,0 +1,111 @@
+from __future__ import annotations
+
+from collections import defaultdict
+from pathlib import Path
+
+from .models import AuthorityDecision, Finding
+
+
+def render_report(
+    *,
+    path: Path,
+    findings: list[Finding],
+    authority: AuthorityDecision,
+    metrics: dict,
+    warnings: list[str],
+) -> None:
+    sections = _route_findings(findings)
+    lines: list[str] = [
+        "# InterLock MVP Review Report",
+        "",
+        "This report is a reviewer-assist artifact. It does not certify engineering correctness.",
+        "",
+        "## Executive Summary",
+        "",
+        f"- Findings: {len(findings)}",
+        f"- Review required: {sum(1 for f in findings if f.severity == 'review_required')}",
+        f"- Coverage warnings: {sum(1 for f in findings if f.finding_type == 'coverage_warning')}",
+        f"- Authority: {authority.authoritative_side} ({authority.basis}, confidence {authority.confidence:.2f})",
+        "",
+    ]
+    if warnings:
+        lines.extend(["### Run Warnings", ""])
+        lines.extend(f"- {warning}" for warning in warnings)
+        lines.append("")
+
+    for title, key in [
+        ("Directional High-Confidence Findings", "directional"),
+        ("Possible Discrepancies", "possible"),
+        ("Missing / Removed Items", "missing"),
+        ("Reference Conflicts", "reference"),
+        ("Needs Engineer Review", "engineer"),
+        ("Coverage Warnings", "coverage"),
+    ]:
+        lines.extend([f"## {title}", ""])
+        routed = sections.get(key, [])
+        if not routed:
+            lines.extend(["No findings in this section.", ""])
+            continue
+        for finding in routed:
+            lines.extend(_finding_lines(finding))
+            lines.append("")
+
+    lines.extend(["## Run Metrics", ""])
+    for key, value in sorted(metrics.items()):
+        lines.append(f"- `{key}`: {value}")
+    lines.append("")
+    path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _route_findings(findings: list[Finding]) -> dict[str, list[Finding]]:
+    routed: dict[str, list[Finding]] = defaultdict(list)
+    for finding in findings:
+        known_authority = finding.authoritative_side in {"A", "B"}
+        if finding.finding_type == "coverage_warning":
+            routed["coverage"].append(finding)
+        elif finding.finding_type == "missing_item":
+            routed["missing"].append(finding)
+        elif finding.finding_type == "reference_conflict":
+            routed["reference"].append(finding)
+        elif finding.finding_type == "needs_engineer_review" or (
+            finding.severity == "review_required" and not known_authority
+        ):
+            routed["engineer"].append(finding)
+        elif finding.severity == "review_required" and known_authority:
+            routed["directional"].append(finding)
+        else:
+            routed["possible"].append(finding)
+    return routed
+
+
+def _finding_lines(finding: Finding) -> list[str]:
+    lines = [
+        f"### {finding.finding_id}: {finding.subject} / {finding.parameter}",
+        "",
+        f"- Type: `{finding.finding_type}`",
+        f"- Severity: `{finding.severity}`",
+        f"- Confidence: `{finding.confidence}`",
+        f"- Authority: `{finding.authoritative_side}` ({finding.authority_basis}, confidence {finding.authority_confidence:.2f})",
+        f"- Summary: {finding.summary}",
+    ]
+    if finding.plausibility_notes:
+        lines.append(f"- Plausibility notes: {'; '.join(finding.plausibility_notes)}")
+    lines.append(f"- Verifier notes: {finding.verifier_notes}")
+    if finding.evidence_a:
+        lines.extend(_citation_lines("Doc A", finding.evidence_a))
+    if finding.evidence_b:
+        lines.extend(_citation_lines("Doc B", finding.evidence_b))
+    return lines
+
+
+def _citation_lines(label: str, citation) -> list[str]:
+    return [
+        f"- {label} citation: page {citation.page}, evidence `{citation.evidence_id}`",
+        f"  - Quote: `{_clip(citation.quote)}`",
+        f"  - Crop: `{citation.crop_path}`",
+    ]
+
+
+def _clip(text: str, limit: int = 280) -> str:
+    clean = " ".join((text or "").split())
+    return clean if len(clean) <= limit else clean[: limit - 3] + "..."

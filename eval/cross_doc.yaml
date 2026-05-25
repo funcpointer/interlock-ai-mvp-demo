@@ -1,0 +1,15 @@
+schema_version: interlock_mvp.eval.v1
+expected_findings:
+  - finding_type: value_mismatch
+    subject_contains: XFMR
+    parameter: rating
+  - finding_type: value_mismatch
+    subject_contains: XFMR
+    parameter: primary_voltage
+  - finding_type: value_mismatch
+    subject_contains: XFMR
+    parameter: impedance
+forbidden_findings:
+  - parameter: secondary_voltage
+  - parameter: bil
+expected_coverage_warnings: []

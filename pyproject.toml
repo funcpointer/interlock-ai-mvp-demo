@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "interlock-mvp"
+version = "0.2.0"
+description = "CLI-first cited directional PDF discrepancy review MVP"
+requires-python = ">=3.12"
+dependencies = [
+  "pymupdf",
+  "pydantic>=2",
+  "typer",
+  "rich",
+  "rapidfuzz",
+  "pint",
+  "kuzu",
+  "jinja2",
+  "pillow",
+  "structlog",
+  "pyyaml",
+  "anthropic",
+]
+
+[project.scripts]
+interlock-mvp = "interlock_mvp.cli:app"
+
+[tool.setuptools.packages.find]
+include = ["interlock_mvp*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

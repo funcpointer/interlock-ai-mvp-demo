@@ -1,0 +1,11 @@
+version:
+  authoritative_side: B
+  basis: "revised document supersedes baseline"
+
+cross_doc:
+  precedence:
+    - protection_study
+    - drawing
+    - specification
+    - checklist
+  fallback: unknown_direction

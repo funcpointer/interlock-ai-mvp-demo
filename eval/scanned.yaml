@@ -1,0 +1,8 @@
+schema_version: interlock_mvp.eval.v1
+expected_findings: []
+forbidden_findings: []
+expected_coverage_warnings:
+  - finding_type: coverage_warning
+    severity: informational
+    parameter: coverage
+max_review_required: 0
