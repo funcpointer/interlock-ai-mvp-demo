@@ -35,7 +35,6 @@ def review(
     dry_run: Annotated[bool, typer.Option(help="No cloud calls; deterministic only")] = False,
     no_cloud: Annotated[bool, typer.Option(help="Disable cloud verifier/proposer")] = False,
     no_kuzu: Annotated[bool, typer.Option(help="Skip derived Kuzu graph build for fast eval/debug runs")] = False,
-    max_candidates: Annotated[int, typer.Option()] = 50,
     max_vlm_pages: Annotated[int, typer.Option()] = 10,
     max_cost_usd: Annotated[float, typer.Option()] = 5.0,
 ) -> None:
@@ -53,7 +52,6 @@ def review(
         dry_run=dry_run,
         no_cloud=no_cloud,
         no_kuzu=no_kuzu,
-        max_candidates=max_candidates,
         max_vlm_pages=max_vlm_pages,
         max_cost_usd=max_cost_usd,
     )
@@ -150,7 +148,6 @@ def corpus(
     glossary: Annotated[Path | None, typer.Option(help="Default AES/domain glossary YAML path")] = Path("examples/aes_glossary.yaml"),
     no_cloud: Annotated[bool, typer.Option("--no-cloud/--cloud", help="Default cloud policy for pairs that do not override it")] = True,
     no_kuzu: Annotated[bool, typer.Option("--no-kuzu/--kuzu", help="Default Kuzu policy for pairs that do not override it")] = True,
-    max_candidates: Annotated[int, typer.Option()] = 80,
     max_vlm_pages: Annotated[int, typer.Option()] = 10,
     max_cost_usd: Annotated[float, typer.Option()] = 5.0,
 ) -> None:
@@ -161,7 +158,6 @@ def corpus(
         default_domain_glossary=glossary,
         no_cloud=no_cloud,
         no_kuzu=no_kuzu,
-        max_candidates=max_candidates,
         max_vlm_pages=max_vlm_pages,
         max_cost_usd=max_cost_usd,
     )
@@ -198,7 +194,7 @@ def doctor() -> None:
     load_env_file(DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None)
     load_key_files()
     checks = []
-    for module in ["fitz", "pydantic", "typer", "rich", "rapidfuzz", "pint", "kuzu", "lancedb", "jinja2", "PIL", "structlog", "yaml", "anthropic"]:
+    for module in ["fitz", "pydantic", "typer", "rich", "rapidfuzz", "pint", "kuzu", "lancedb", "jinja2", "PIL", "structlog", "yaml"]:
         checks.append((module, _import_ok(module)))
     checks.append(("cloud_key", bool(__import__("os").environ.get("OPENAI_API_KEY") or __import__("os").environ.get("ANTHROPIC_API_KEY"))))
     checks.append(("kuzu_temp_write", _kuzu_temp_ok()))

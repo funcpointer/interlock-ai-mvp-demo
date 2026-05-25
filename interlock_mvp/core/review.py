@@ -8,8 +8,8 @@ from typing import Any
 
 from .artifacts import ensure_run_dirs, write_json, write_object
 from .authority import classify_doc_type, load_authority_config, resolve_authority, version_order_warning
-from .candidates import evidence_lookup, generate_candidates
 from .context_memory import build_context_memory
+from .decision_traces import build_decision_traces
 from .domain import DomainDictionary
 from .docgraph import build_diff_graph, build_document_graphs
 from .evidence import mine_evidence
@@ -36,7 +36,6 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         "dry_run": request.dry_run,
         "no_cloud": request.no_cloud,
         "no_kuzu": request.no_kuzu,
-        "max_candidates": request.max_candidates,
         "max_vlm_pages": request.max_vlm_pages,
         "max_cost_usd": request.max_cost_usd,
     }
@@ -147,15 +146,10 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     _finish_stage(logger, stage_timings, "build_review_graph", stage_started, **graph_metrics, **reasoning_metrics)
 
     stage_started = time.time()
-    candidates = generate_candidates(evidence, max_candidates=request.max_candidates, mode=request.mode)
-    candidate_metrics = _candidate_metrics(candidates)
-    _finish_stage(logger, stage_timings, "generate_candidates", stage_started, **candidate_metrics)
-
-    stage_started = time.time()
     findings, verifier_warnings, verifier_metrics = findings_from_reasoning_graph(
         reasoning_graph=reasoning_graph,
         diff_edges=diff_graph.edges,
-        evidence_by_id=evidence_lookup(evidence),
+        evidence_by_id={item.evidence_id: item for item in evidence},
         authority=authority,
         mode=request.mode,
         no_cloud=request.no_cloud,
@@ -172,6 +166,23 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         stage_started,
         **finding_metrics,
         warning_count=len(verifier_warnings),
+    )
+
+    stage_started = time.time()
+    decision_traces = build_decision_traces(
+        findings=findings,
+        reasoning_graph=reasoning_graph,
+        diff_edges=diff_graph.edges,
+        evidence_by_id={item.evidence_id: item for item in evidence},
+        authority=authority,
+    )
+    _finish_stage(
+        logger,
+        stage_timings,
+        "build_decision_traces",
+        stage_started,
+        decision_traces=len(decision_traces),
+        decision_traces_with_downgrades=sum(1 for trace in decision_traces if trace.downgrade_reasons),
     )
 
     stage_started = time.time()
@@ -224,9 +235,10 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     metrics.update(graph_metrics)
     metrics.update(reasoning_metrics)
     metrics.update(context_memory_metrics)
-    metrics.update(candidate_metrics)
     metrics.update(finding_metrics)
     metrics["domain_dictionary"] = domain.metrics()
+    metrics["decision_traces"] = len(decision_traces)
+    metrics["decision_traces_with_downgrades"] = sum(1 for trace in decision_traces if trace.downgrade_reasons)
     metrics["stage_seconds"] = stage_timings
     metrics["elapsed_seconds"] = round(time.time() - started, 3)
 
@@ -258,8 +270,8 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     write_object(request.out_dir / "doc_graph_b.json", graph_b.model_dump(mode="json"))
     write_object(request.out_dir / "diff_graph.json", diff_graph.model_dump(mode="json"))
     write_object(request.out_dir / "reasoning_graph.json", reasoning_graph.model_dump(mode="json"))
+    write_json(request.out_dir / "decision_traces.json", records=decision_traces)
     write_object(request.out_dir / "context_memory.json", context_memory.model_dump(mode="json"))
-    write_json(request.out_dir / "candidates.json", records=candidates)
     write_json(request.out_dir / "findings.json", records=findings)
     write_object(request.out_dir / "metrics.json", {"metrics": metrics, "warnings": warnings})
     render_report(
@@ -373,15 +385,6 @@ def _reasoning_metrics(reasoning_graph) -> dict[str, object]:
         "comparison_decisions_by_type": _counter(reasoning_graph.comparisons, "comparison_type"),
         "comparison_decisions_by_unit_method": _counter(reasoning_graph.comparisons, "unit_method"),
         "absence_searches_by_coverage_status": _counter(reasoning_graph.absence_searches, "coverage_status"),
-    }
-
-
-def _candidate_metrics(candidates) -> dict[str, object]:
-    return {
-        "candidates": len(candidates),
-        "candidates_by_type": _counter(candidates, "finding_type"),
-        "candidates_by_status": _counter(candidates, "status"),
-        "candidates_by_identity_strength": _counter(candidates, "identity_strength"),
     }
 
 

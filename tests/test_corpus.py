@@ -43,7 +43,6 @@ pairs:
     eval: eval.yaml
     no_cloud: true
     no_kuzu: true
-    max_candidates: 10
 """,
         encoding="utf-8",
     )

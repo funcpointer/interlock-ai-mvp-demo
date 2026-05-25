@@ -43,7 +43,6 @@ class ReviewRequest(BaseModel):
     dry_run: bool = False
     no_cloud: bool = False
     no_kuzu: bool = False
-    max_candidates: int = 50
     max_vlm_pages: int = 10
     max_cost_usd: float = 5.0
 
@@ -128,22 +127,6 @@ class EvidenceItem(BaseModel):
     crop_path: str
     context_id: str = ""
     context_confidence: Confidence = "low"
-
-
-class CandidateFinding(BaseModel):
-    candidate_id: str
-    candidate_key: str
-    finding_type: FindingType
-    subject: str
-    parameter: str
-    evidence_a_id: str | None = None
-    evidence_b_id: str | None = None
-    generation_method: str
-    deterministic_reason: str
-    status: str = "pending"
-    identity_strength: IdentityStrength = "weak"
-    deterministic_discrepancy: bool = False
-    plausibility_notes: list[str] = Field(default_factory=list)
 
 
 class EvidenceCitation(BaseModel):
@@ -317,6 +300,29 @@ class ContextTrail(BaseModel):
 class ContextMemory(BaseModel):
     rooms: list[ContextRoom] = Field(default_factory=list)
     trails: list[ContextTrail] = Field(default_factory=list)
+
+
+class DecisionSignal(BaseModel):
+    signal_id: str
+    source: str
+    signal_type: str
+    supports: bool
+    summary: str
+    confidence: Confidence
+    evidence_ids: list[str] = Field(default_factory=list)
+    reasoning_id: str | None = None
+
+
+class DecisionTrace(BaseModel):
+    finding_id: str
+    decision: Severity
+    finding_type: FindingType
+    confidence: Confidence
+    why: list[str] = Field(default_factory=list)
+    supporting_signals: list[DecisionSignal] = Field(default_factory=list)
+    contradicting_signals: list[DecisionSignal] = Field(default_factory=list)
+    downgrade_reasons: list[str] = Field(default_factory=list)
+    rejected_alternatives: list[str] = Field(default_factory=list)
 
 
 class AuthorityDecision(BaseModel):

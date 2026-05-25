@@ -22,7 +22,6 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
             out_dir=out_dir,
             no_cloud=True,
             no_kuzu=True,
-            max_candidates=10,
         )
     )
 
@@ -39,8 +38,8 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
         "doc_graph_b.json",
         "diff_graph.json",
         "reasoning_graph.json",
+        "decision_traces.json",
         "context_memory.json",
-        "candidates.json",
         "findings.json",
         "metrics.json",
         "logs.jsonl",
@@ -71,6 +70,11 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
     reasoning = json.loads((out_dir / "reasoning_graph.json").read_text(encoding="utf-8"))
     assert reasoning["comparisons"][0]["comparison_id"] == finding["comparison_id"]
     assert reasoning["alignments"][0]["alignment_id"] == finding["alignment_id"]
+    traces = json.loads((out_dir / "decision_traces.json").read_text(encoding="utf-8"))["records"]
+    assert traces[0]["finding_id"] == finding["finding_id"]
+    assert traces[0]["supporting_signals"]
+    assert any(signal["signal_type"] == "alignment" for signal in traces[0]["supporting_signals"])
+    assert any(signal["signal_type"] == "comparison" for signal in traces[0]["supporting_signals"])
 
     metrics = json.loads((out_dir / "metrics.json").read_text(encoding="utf-8"))["metrics"]
     assert metrics["alignment_decisions"] == 1
@@ -80,6 +84,7 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
     assert metrics["context_rooms"] >= 2
     assert metrics["context_trails"] == 1
     assert metrics["context_rooms_with_findings"] >= 1
+    assert metrics["decision_traces"] == 1
     assert "Review Reasoning Health" in (out_dir / "report.md").read_text(encoding="utf-8")
     context_memory = json.loads((out_dir / "context_memory.json").read_text(encoding="utf-8"))
     assert context_memory["rooms"]

@@ -14,11 +14,11 @@ PDF -> extraction -> evidence -> document graph -> diff graph -> reasoning graph
 
 This is the right spine for the MVP. Anything else must be explicitly derived or debug-only.
 
-Do next:
+Done in checkpoint `checkpoint-2026-05-25-singular-spine`:
 
-- demote or remove the old candidate/verifier path,
-- stop presenting `max_candidates` as a primary accuracy knob,
-- keep `candidates.json` only if it is clearly labeled auxiliary/debug.
+- removed the old candidate-generation module,
+- stopped writing `candidates.json`,
+- removed `max_candidates` / `--max-candidates` from the active CLI and request model.
 
 Why:
 
@@ -41,7 +41,7 @@ Guardrail:
 
 ### P1: Decision Trace / Signal Ledger
 
-Add `decision_traces.json`.
+Done in checkpoint `checkpoint-2026-05-25-singular-spine`: add `decision_traces.json`.
 
 Each finding should show:
 

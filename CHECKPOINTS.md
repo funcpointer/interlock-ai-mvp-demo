@@ -743,3 +743,85 @@ Priority queue after this checkpoint:
 3. run real AES corpus manifests and add eval YAML for each pair,
 4. add OCR/VLM/table extraction only where telemetry proves deterministic extraction failed,
 5. replace LanceDB hash vectors with local Ollama/SLM embeddings only after real corpus recall demands it.
+
+## checkpoint-2026-05-25-singular-spine
+
+Purpose:
+
+- remove the stale candidate-generation path,
+- make the reasoning graph the single authoritative source for findings,
+- add finding-level signal corroboration and explainability,
+- reduce misleading cloud/LLM surface until a real reasoning-level verifier exists.
+
+Changed:
+
+- deleted `interlock_mvp/core/candidates.py`,
+- removed `CandidateFinding`,
+- stopped generating `candidates.json`,
+- removed `max_candidates` / `--max-candidates` from active commands and Makefile targets,
+- removed unused candidate-verifier and diff-graph-verifier paths from `verification.py`,
+- added `DecisionSignal` and `DecisionTrace` models,
+- added `interlock_mvp/core/decision_traces.py`,
+- every review now writes `decision_traces.json`,
+- metrics now include:
+  - `decision_traces`,
+  - `decision_traces_with_downgrades`,
+- `cloud reasoning verifier not implemented; deterministic verifier used` is now explicit when a key exists but no cloud reasoning verifier is wired,
+- removed `anthropic` from required dependencies/doctor checks until cloud verification is implemented,
+- package version bumped to `0.16.0`.
+
+Current authoritative spine:
+
+```text
+PDF
+  -> extraction
+  -> evidence
+  -> document graph
+  -> diff graph
+  -> reasoning graph
+  -> findings
+  -> decision traces
+```
+
+Decision trace contents:
+
+- citation signal,
+- authority signal,
+- diff-edge signal,
+- alignment signal,
+- comparison or absence-search signal,
+- rejected alternatives,
+- downgrade reasons.
+
+Validation result:
+
+```text
+tests/test_review_integration.py tests/test_verification.py tests/test_corpus.py
+  9 passed
+
+make eval-fast
+  46 tests passed
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 6 findings, 4 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make coverage
+  46 passed
+  source coverage: 82%
+
+make eval-aes-seed
+  4/4 corpus pairs eval_passed
+```
+
+Known limits:
+
+- decision traces are deterministic ledger records, not independent model verification,
+- `contradicting_signals` is present but currently empty until OCR/VLM/table channels create real cross-system contradictions,
+- Kuzu/wiki/search do not yet mirror `decision_traces.json`; JSON remains canonical.
+
+Next:
+
+1. run real AES corpus manifests and inspect decision traces on misses/noise,
+2. add OCR/VLM/table extraction where telemetry proves recall gaps,
+3. add real local embeddings only after search recall needs it.

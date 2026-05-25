@@ -30,6 +30,7 @@ Important review-map artifacts:
 - `doc_graph_a.json` / `doc_graph_b.json`: contexts, subjects, claims.
 - `diff_graph.json`: compatibility/debug view of mismatches and missing items.
 - `reasoning_graph.json`: alignment, comparison, and absence-search decisions explaining why findings were created.
+- `decision_traces.json`: finding-level signal ledger: citations, authority, alignment, comparison/absence logic, rejected alternatives, and downgrade reasons.
 - `context_memory.json`: memory-palace rooms/trails derived from contexts, claims, evidence, and findings.
 - `findings.json`: reviewer-facing cited findings emitted from reasoning decisions, with decision IDs back into the reasoning graph.
 - `wiki/`: derived Markdown review wiki with index, log, memory palace, document pages, context-room pages, subject pages, finding pages, and reasoning-decision pages.

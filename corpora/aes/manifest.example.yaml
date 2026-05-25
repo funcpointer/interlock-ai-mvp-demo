@@ -20,7 +20,6 @@ pairs:
     doc_b_type: auto
     no_cloud: true
     no_kuzu: true
-    max_candidates: 120
     notes: Version-review pair. B is expected to supersede A.
 
   - id: aes_cross_doc_review_001
@@ -33,5 +32,4 @@ pairs:
     doc_b_type: protection_study
     no_cloud: true
     no_kuzu: true
-    max_candidates: 120
     notes: Cross-document pair. Authority follows AES precedence config.

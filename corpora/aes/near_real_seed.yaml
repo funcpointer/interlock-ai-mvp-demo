@@ -16,7 +16,6 @@ pairs:
     eval: ../../eval/demo.yaml
     no_cloud: true
     no_kuzu: true
-    max_candidates: 80
     notes: Known AES-anecdote-style revision pair.
 
   - id: seeded_negative_same_study
@@ -28,7 +27,6 @@ pairs:
     eval: ../../eval/negative.yaml
     no_cloud: true
     no_kuzu: true
-    max_candidates: 80
     notes: Same-document negative control.
 
   - id: seeded_cross_spec_vs_study
@@ -42,7 +40,6 @@ pairs:
     doc_b_type: protection_study
     no_cloud: true
     no_kuzu: true
-    max_candidates: 80
     notes: Cross-document transformer spec versus coordination study.
 
   - id: seeded_real_xfmr_vendor_cross
@@ -56,5 +53,4 @@ pairs:
     doc_b_type: protection_study
     no_cloud: true
     no_kuzu: true
-    max_candidates: 100
     notes: Public/vendor cross-document smoke pair.

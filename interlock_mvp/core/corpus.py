@@ -28,7 +28,6 @@ class CorpusPair(BaseModel):
     doc_b_type: str | None = "auto"
     no_cloud: bool | None = None
     no_kuzu: bool | None = None
-    max_candidates: int | None = None
     max_vlm_pages: int | None = None
     max_cost_usd: float | None = None
     notes: str = ""
@@ -73,7 +72,6 @@ def run_corpus_manifest(
     default_domain_glossary: Path | None = None,
     no_cloud: bool = True,
     no_kuzu: bool = True,
-    max_candidates: int = 80,
     max_vlm_pages: int = 10,
     max_cost_usd: float = 5.0,
 ) -> list[CorpusRunSummary]:
@@ -124,7 +122,6 @@ def run_corpus_manifest(
                     doc_b_type=pair.doc_b_type,
                     no_cloud=pair.no_cloud if pair.no_cloud is not None else no_cloud,
                     no_kuzu=pair.no_kuzu if pair.no_kuzu is not None else no_kuzu,
-                    max_candidates=pair.max_candidates or max_candidates,
                     max_vlm_pages=pair.max_vlm_pages or max_vlm_pages,
                     max_cost_usd=pair.max_cost_usd or max_cost_usd,
                 )

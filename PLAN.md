@@ -71,7 +71,7 @@ Current accuracy caution:
 - Authority direction must appear on every finding.
 - Unknown authority routes to review, not overclaim.
 - Page number is not identity. Context, subject, claim, and citation form identity.
-- Cloud LLM/VLM may propose or verify candidates, but cannot silently publish findings.
+- Cloud LLM/VLM may propose evidence or verify reasoning decisions later, but cannot silently publish findings.
 - Local SLM/search tools may improve recall, but deterministic/verifier gates still decide findings.
 - Logs and metrics are first-class artifacts, not afterthoughts.
 - Slow is acceptable when it buys accuracy, precision, recall, citations, or reviewer trust.
@@ -139,8 +139,8 @@ doc_graph_a.json
 doc_graph_b.json
 diff_graph.json
 reasoning_graph.json
+decision_traces.json
 context_memory.json
-candidates.json
 findings.json
 metrics.json
 logs.jsonl
@@ -203,7 +203,7 @@ Required metrics:
 - context/subject/claim counts per graph
 - context-memory rooms/trails/rooms-with-findings
 - diff edges by type/alignment/identity strength
-- candidates by type/status/identity strength
+- decision traces and traces with downgrade reasons
 - findings by type/severity/confidence
 - cloud cost estimate
 - Kuzu status
@@ -282,8 +282,7 @@ Agentic behavior is limited to:
 - multiple `rg` and SQLite FTS searches,
 - ranking by context/subject/claim proximity,
 - fusing exact and full-text results,
-- returning cited evidence hits,
-- proposing candidates marked `proposal_only`.
+- returning cited evidence hits.
 
 Search never publishes findings.
 
@@ -570,9 +569,9 @@ Accept slow paths for:
 - OCR,
 - VLM extraction,
 - table reconstruction,
-- model-proposed candidates,
+- model-proposed evidence/claim suggestions,
 - semantic/vector recall,
-- graph traversal that changes candidates or reviewer-visible evidence,
+- graph traversal that changes reviewer-visible evidence,
 - extra verification passes that reduce false positives.
 
 Do not accept slow paths for:
@@ -599,13 +598,14 @@ Completed:
 7. Tighten eval contracts around cited evidence.
 8. Add reasoning decision models, `reasoning_graph.json`, finding decision IDs, reasoning metrics, report reasoning health, search records, Kuzu decision nodes, and eval assertions over reasoning decisions.
 9. Generate non-coverage findings by iterating `ComparisonDecision` and `AbsenceSearch`; keep `DiffEdge` as lookup/debug context.
+10. Remove the stale candidate-generation path and add `decision_traces.json` as the finding-level signal ledger.
 
 Next:
 
-1. Add Kuzu smoke queries for finding-to-decision traceability.
+1. Add Kuzu smoke queries for finding-to-decision-trace traceability.
 2. Improve rejected-alternative capture inside alignment/missing search instead of deriving it after the fact.
 3. Add table-aware extraction for weak examples: PID, HVAC schedules, relay settings.
-4. Add candidate-proposal mode from search results, still `proposal_only`.
+4. Add model-proposed evidence/claim suggestions behind explicit proposal-only artifacts.
 5. Only then consider LanceDB/local SLM integration.
 
 Validation after each step:
