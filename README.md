@@ -26,12 +26,13 @@ Important review-map artifacts:
 - `doc_graph_a.json` / `doc_graph_b.json`: contexts, subjects, claims.
 - `diff_graph.json`: compatibility/debug view of mismatches and missing items.
 - `reasoning_graph.json`: alignment, comparison, and absence-search decisions explaining why findings were created.
+- `context_memory.json`: memory-palace rooms/trails derived from contexts, claims, evidence, and findings.
 - `findings.json`: reviewer-facing cited findings emitted from reasoning decisions, with decision IDs back into the reasoning graph.
-- `wiki/`: derived Markdown review wiki with index, log, document pages, subject pages, finding pages, and reasoning-decision pages.
+- `wiki/`: derived Markdown review wiki with index, log, memory palace, document pages, context-room pages, subject pages, finding pages, and reasoning-decision pages.
 
 Use `--no-kuzu` when Kuzu is not part of the question being tested. Kuzu is derived from JSON today; skipping it does not skip finding logic.
 
-Search runs against persisted `search/review_map.jsonl`, `search/second_brain.sqlite`, and `search/lancedb/` artifacts, not against PDFs directly. LanceDB is currently fed by deterministic local hash embeddings so it is a retrieval/debug aid, not finding authority.
+Search runs against persisted `search/review_map.jsonl`, `search/second_brain.sqlite`, and `search/lancedb/` artifacts, not against PDFs directly. Context rooms and trails are indexed there too. LanceDB is currently fed by deterministic local hash embeddings so it is a retrieval/debug aid, not finding authority.
 
 ## AES Corpus Intake
 

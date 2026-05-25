@@ -9,6 +9,7 @@ from typing import Any
 from .artifacts import ensure_run_dirs, write_json, write_object
 from .authority import classify_doc_type, load_authority_config, resolve_authority, version_order_warning
 from .candidates import evidence_lookup, generate_candidates
+from .context_memory import build_context_memory
 from .docgraph import build_diff_graph, build_document_graphs
 from .evidence import mine_evidence
 from .env import load_env_file, load_key_files
@@ -169,6 +170,11 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     )
 
     stage_started = time.time()
+    context_memory = build_context_memory(doc_graph_a=graph_a, doc_graph_b=graph_b, evidence=evidence, findings=findings)
+    context_memory_metrics = _context_memory_metrics(context_memory)
+    _finish_stage(logger, stage_timings, "build_context_memory", stage_started, **context_memory_metrics)
+
+    stage_started = time.time()
     search_records = write_search_index(
         request.out_dir,
         evidence=evidence,
@@ -176,6 +182,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         doc_graph_b=graph_b,
         diff_graph=diff_graph,
         reasoning_graph=reasoning_graph,
+        context_memory=context_memory,
         findings=findings,
     )
     _finish_stage(logger, stage_timings, "write_search_index", stage_started, search_records=search_records)
@@ -211,6 +218,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     metrics.update(evidence_metrics)
     metrics.update(graph_metrics)
     metrics.update(reasoning_metrics)
+    metrics.update(context_memory_metrics)
     metrics.update(candidate_metrics)
     metrics.update(finding_metrics)
     metrics["stage_seconds"] = stage_timings
@@ -223,7 +231,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         {
             "run_id": run_id,
             "started_at": datetime.now(UTC).isoformat(),
-        "request": request.model_dump(mode="json"),
+            "request": request.model_dump(mode="json"),
         },
     )
     write_object(
@@ -243,6 +251,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     write_object(request.out_dir / "doc_graph_b.json", graph_b.model_dump(mode="json"))
     write_object(request.out_dir / "diff_graph.json", diff_graph.model_dump(mode="json"))
     write_object(request.out_dir / "reasoning_graph.json", reasoning_graph.model_dump(mode="json"))
+    write_object(request.out_dir / "context_memory.json", context_memory.model_dump(mode="json"))
     write_json(request.out_dir / "candidates.json", records=candidates)
     write_json(request.out_dir / "findings.json", records=findings)
     write_object(request.out_dir / "metrics.json", {"metrics": metrics, "warnings": warnings})
@@ -260,6 +269,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         doc_graph_b=graph_b,
         diff_graph=diff_graph,
         reasoning_graph=reasoning_graph,
+        context_memory=context_memory,
         findings=findings,
         metrics=metrics,
         warnings=warnings,
@@ -365,6 +375,15 @@ def _candidate_metrics(candidates) -> dict[str, object]:
         "candidates_by_type": _counter(candidates, "finding_type"),
         "candidates_by_status": _counter(candidates, "status"),
         "candidates_by_identity_strength": _counter(candidates, "identity_strength"),
+    }
+
+
+def _context_memory_metrics(context_memory) -> dict[str, object]:
+    return {
+        "context_rooms": len(context_memory.rooms),
+        "context_trails": len(context_memory.trails),
+        "context_rooms_with_findings": sum(1 for room in context_memory.rooms if room.finding_ids),
+        "context_memory_highest_salience": max((room.salience_score for room in context_memory.rooms), default=0),
     }
 
 

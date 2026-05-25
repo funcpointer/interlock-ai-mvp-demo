@@ -12,8 +12,9 @@ from typing import Any
 
 import yaml
 
+from .context_memory import context_memory_search_records
 from .models import SCHEMA_VERSION
-from .models import DiffGraph, DocumentGraph, EvidenceItem, Finding, ReasoningGraph
+from .models import ContextMemory, DiffGraph, DocumentGraph, EvidenceItem, Finding, ReasoningGraph
 
 LANCEDB_VECTOR_DIM = 128
 LANCEDB_TABLE = "review_records"
@@ -30,6 +31,7 @@ def write_search_index(
     diff_graph: DiffGraph,
     findings: list[Finding],
     reasoning_graph: ReasoningGraph | None = None,
+    context_memory: ContextMemory | None = None,
 ) -> int:
     search_dir = run_dir / "search"
     search_dir.mkdir(parents=True, exist_ok=True)
@@ -40,6 +42,8 @@ def write_search_index(
     records.extend(_diff_records(diff_graph))
     if reasoning_graph:
         records.extend(_reasoning_records(reasoning_graph))
+    if context_memory:
+        records.extend(context_memory_search_records(context_memory))
     records.extend(_finding_records(findings))
     _write_jsonl(search_dir / "review_map.jsonl", records)
     _write_second_brain(search_dir / "second_brain.sqlite", records)
@@ -565,6 +569,10 @@ def _source_boost(record: dict[str, Any]) -> int:
         return 10
     if source == "diff":
         return 8
+    if source == "context_trail":
+        return 6
+    if source == "context_room":
+        return 5
     if source == "claim":
         return 3
     return 0

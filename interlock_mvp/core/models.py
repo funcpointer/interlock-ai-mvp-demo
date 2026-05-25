@@ -286,6 +286,38 @@ class ReasoningGraph(BaseModel):
     absence_searches: list[AbsenceSearch] = Field(default_factory=list)
 
 
+class ContextRoom(BaseModel):
+    room_id: str
+    doc_id: str
+    context_id: str
+    canonical_label: str
+    kind: str
+    page_span: list[int] = Field(default_factory=list)
+    region_ids: list[str] = Field(default_factory=list)
+    subject_ids: list[str] = Field(default_factory=list)
+    claim_ids: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    finding_ids: list[str] = Field(default_factory=list)
+    neighboring_room_ids: list[str] = Field(default_factory=list)
+    memory_path: str
+    summary: str
+    salience_score: int
+
+
+class ContextTrail(BaseModel):
+    trail_id: str
+    name: str
+    room_ids: list[str] = Field(default_factory=list)
+    finding_ids: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    rationale: str
+
+
+class ContextMemory(BaseModel):
+    rooms: list[ContextRoom] = Field(default_factory=list)
+    trails: list[ContextTrail] = Field(default_factory=list)
+
+
 class AuthorityDecision(BaseModel):
     authoritative_side: str
     basis: str

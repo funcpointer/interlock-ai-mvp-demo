@@ -552,3 +552,74 @@ make eval-fast
 Known limit:
 
 - the wiki is deterministic and derived today. It does not yet perform LLM-maintained synthesis across multiple runs or update persistent AES domain pages. That should come after real AES corpus intake, because the wiki schema should be shaped by partner documents, not by synthetic fixtures.
+
+## checkpoint-2026-05-25-context-memory
+
+Purpose:
+
+- move memory-palace and second-brain concepts into the context layer itself,
+- stop treating context as only a pairing label,
+- make review locations navigable as rooms and finding paths navigable as trails,
+- feed context rooms/trails into the existing second-brain search stack.
+
+Changed:
+
+- added `ContextRoom`, `ContextTrail`, and `ContextMemory` models,
+- added `interlock_mvp/core/context_memory.py`,
+- every review now writes `context_memory.json`,
+- every review now emits wiki context-room pages under `wiki/context-rooms/`,
+- every review now emits `wiki/memory-palace.md`,
+- `write_search_index` now indexes `context_room` and `context_trail` records into:
+  - `search/review_map.jsonl`,
+  - `search/second_brain.sqlite`,
+  - `search/lancedb/`,
+  - `rg`-searchable JSONL,
+- metrics now include context rooms/trails/salience counters,
+- package version bumped to `0.13.0`.
+
+Current shape:
+
+- **Room:** one document context such as TCC, table row, spec section, or page-level fallback.
+- **Neighbor:** previous/next room in document order.
+- **Trail:** a finding-centered path connecting cited evidence through rooms.
+- **Second-brain record:** searchable room/trail record fused with existing evidence/claim/finding records.
+
+Validation result:
+
+```text
+tests/test_context_memory.py tests/test_review_integration.py tests/test_search.py
+  5 passed
+
+make coverage
+  41 passed
+  source coverage: 76%
+
+make eval-fast
+  unit tests: 41 passed during target run
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 4 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make eval-search
+  passed; context_room records are searchable through sqlite_fts + lancedb + rg
+
+make eval-aes-seed
+  4/4 corpus pairs eval_passed
+```
+
+Checkpoint-version context-memory signal:
+
+```text
+rooms: 85
+trails: 4
+rooms with findings: 6
+top rooms:
+  room_a_selective_coordination_studies salience=73
+  room_b_selective_coordination_studies salience=63
+  room_b_tcc3 salience=47
+```
+
+Known limit:
+
+- rooms are currently derived from existing context segmentation. If context segmentation is weak, the memory palace mirrors that weakness. Next accuracy step is better context extraction from real AES documents, not more retrieval infrastructure.

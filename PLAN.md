@@ -42,6 +42,7 @@ Implemented:
 - LanceDB index over review-map artifacts with deterministic local embeddings.
 - Corpus manifest runner for AES/private partner document batches.
 - Derived Markdown review wiki over each run: index, log, documents, subjects, findings, reasoning decisions.
+- Context memory layer: memory-palace rooms/trails derived from contexts and fed into second-brain search.
 
 Current validated fixture classes:
 
@@ -130,6 +131,7 @@ doc_graph_a.json
 doc_graph_b.json
 diff_graph.json
 reasoning_graph.json
+context_memory.json
 candidates.json
 findings.json
 metrics.json
@@ -160,6 +162,17 @@ The Markdown wiki is the LLM-readable synthesis layer. It is intentionally
 derived from JSON, not authoritative. It gives the next reviewer or model a
 stable starting map before falling back to search, JSON, crops, or source PDFs.
 
+The context memory layer turns context from a flat label into navigation:
+
+- **rooms**: tables, curves, spec sections, document-page fallback contexts,
+- **neighbors**: adjacent rooms in document order,
+- **trails**: finding-centered paths through rooms and cited evidence,
+- **second-brain records**: room/trail records indexed in JSONL, SQLite FTS,
+  LanceDB, and `rg`.
+
+Rooms and trails help recall and reviewer navigation. They do not create
+findings.
+
 ## Telemetry Policy
 
 Every run must answer:
@@ -179,6 +192,7 @@ Required metrics:
 - evidence counts by kind/source/confidence/doc
 - generic-subject and document-context evidence counts
 - context/subject/claim counts per graph
+- context-memory rooms/trails/rooms-with-findings
 - diff edges by type/alignment/identity strength
 - candidates by type/status/identity strength
 - findings by type/severity/confidence
