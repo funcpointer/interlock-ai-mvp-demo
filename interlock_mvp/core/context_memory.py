@@ -69,6 +69,39 @@ def build_context_memory(
                     salience_score=salience,
                 )
             )
+    existing_context_ids = {room.context_id for room in rooms}
+    for item in sorted(evidence, key=lambda evidence_item: (evidence_item.doc_id, evidence_item.page, evidence_item.evidence_id)):
+        if item.kind != "coverage_warning":
+            continue
+        context_id = f"{item.doc_id}:coverage_p{item.page}"
+        if context_id in existing_context_ids:
+            continue
+        room_id = _room_id(context_id)
+        finding_ids = sorted(findings_by_context.get(context_id, set()))
+        if not finding_ids:
+            finding_ids = sorted(
+                finding.finding_id
+                for finding in findings
+                for citation in [finding.evidence_a, finding.evidence_b]
+                if citation and citation.evidence_id == item.evidence_id
+            )
+        rooms.append(
+            ContextRoom(
+                room_id=room_id,
+                doc_id=item.doc_id,
+                context_id=context_id,
+                canonical_label=f"coverage_p{item.page}",
+                kind="coverage_warning",
+                page_span=[item.page],
+                region_ids=[item.region_id],
+                evidence_ids=[item.evidence_id],
+                finding_ids=finding_ids,
+                memory_path=f"wiki/context-rooms/{room_id}.md",
+                summary=f"coverage_p{item.page} is a coverage-warning room for page {item.page}; extraction status `{item.value}`.",
+                salience_score=10 + len(finding_ids) * 10,
+            )
+        )
+        existing_context_ids.add(context_id)
 
     return ContextMemory(rooms=rooms, trails=_build_trails(rooms, findings))
 

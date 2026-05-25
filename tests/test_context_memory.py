@@ -87,6 +87,54 @@ def test_context_memory_builds_rooms_trails_and_search_records(tmp_path: Path) -
     assert any(hit["source"] == "context_room" for hit in hits)
 
 
+def test_context_memory_creates_rooms_for_coverage_warnings() -> None:
+    coverage = EvidenceItem(
+        evidence_id="ev_scan",
+        doc_id="A",
+        page=3,
+        bbox=[0, 0, 100, 100],
+        region_id="A_p3",
+        kind="coverage_warning",
+        subject="A page 3",
+        parameter="coverage",
+        value="empty",
+        unit="",
+        raw_text="Page text extraction status: empty",
+        normalized_text="empty",
+        normalized_value="empty",
+        confidence="high",
+        source_method="pymupdf_page_text_count",
+        crop_path="crops/A_p3_full.png",
+    )
+    finding = Finding(
+        finding_id="find_00001",
+        mode="version",
+        finding_type="coverage_warning",
+        severity="informational",
+        confidence="high",
+        subject="A page 3",
+        parameter="coverage",
+        summary="Coverage warning for A page 3.",
+        authoritative_side="B",
+        authority_basis="revised document supersedes baseline",
+        authority_confidence=1.0,
+        evidence_a=EvidenceCitation(evidence_id="ev_scan", doc_id="A", page=3, bbox=[0, 0, 100, 100], quote="Page text extraction status: empty", crop_path="crops/A_p3_full.png", value="empty"),
+        verifier_notes="Deterministic graph verifier confirmed cited evidence.",
+    )
+
+    memory = build_context_memory(
+        doc_graph_a=DocumentGraph(doc_id="A"),
+        doc_graph_b=DocumentGraph(doc_id="B"),
+        evidence=[coverage],
+        findings=[finding],
+    )
+
+    assert len(memory.rooms) == 1
+    assert memory.rooms[0].kind == "coverage_warning"
+    assert memory.rooms[0].finding_ids == ["find_00001"]
+    assert memory.trails[0].room_ids == ["room_a_coverage_p3"]
+
+
 def _context(context_id: str, doc_id: str) -> ContextNode:
     return ContextNode(
         context_id=context_id,

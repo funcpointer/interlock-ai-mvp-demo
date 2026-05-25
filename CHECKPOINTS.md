@@ -623,3 +623,54 @@ top rooms:
 Known limit:
 
 - rooms are currently derived from existing context segmentation. If context segmentation is weak, the memory palace mirrors that weakness. Next accuracy step is better context extraction from real AES documents, not more retrieval infrastructure.
+
+## checkpoint-2026-05-25-mvp-audit
+
+Purpose:
+
+- iterate through every source file, top-level function family, CLI path, and runtime artifact from a funding-demo MVP perspective,
+- run the near-real validation suite again after the context-memory/search/wiki/LanceDB additions,
+- document what is right for the MVP, what is merely derived infrastructure, and what still limits accuracy,
+- patch any correctness issue found during the audit before checkpointing.
+
+Changed:
+
+- added `docs/MVP_AUDIT_2026-05-25.md`,
+- patched `build_context_memory` so scanned/low-text coverage warnings get page-specific rooms instead of collapsing into one document room,
+- added a regression test proving coverage-warning rooms link back to their findings and trails,
+- package version bumped to `0.14.0`.
+
+Validation result:
+
+```text
+make eval-full
+  unit tests passed
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 4 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+  search/examples/Kuzu paths passed
+
+make coverage
+  42 passed
+  source coverage: 76%
+
+make eval-fast
+  version / negative / cross-doc / scanned evals passed
+
+make eval-aes-seed
+  4/4 corpus pairs eval_passed
+```
+
+Audit verdict:
+
+- the architecture is coherent enough to keep building,
+- `run_review(ReviewRequest) -> ReviewResult`, JSON-as-truth, directional authority, cited findings, deterministic verification, eval YAML, and derived search/wiki/graph/memory are the correct MVP boundaries,
+- the main accuracy risk is extraction and context segmentation, not graph/search/storage,
+- no P0 issues remain in the current MVP contracts.
+
+P1 next work:
+
+- add OCR/VLM/table extraction against real AES documents where PyMuPDF text extraction fails,
+- improve context segmentation from real page/table/section structure,
+- keep candidate generation auxiliary until decision-sourced matching is fully primary.
