@@ -7,6 +7,7 @@ from interlock_mvp.streamlit_app import (
     _citation_label,
     _context_support_details,
     _download_name,
+    _finding_graph_dot,
     _pairing_alternatives,
     _pairing_details,
     _comparison_details,
@@ -200,6 +201,43 @@ def test_audit_trail_explains_pairing_without_repeating_citations() -> None:
         'Doc B / other table: rating 900 kVA - "XFMR spare 900 kVA"',
         "1 more candidate(s) omitted from this card; see reasoning_graph.json.",
     ]
+
+
+def test_finding_graph_dot_shows_local_explainability_chain() -> None:
+    finding = {
+        "finding_type": "value_mismatch",
+        "severity": "review_required",
+        "subject": "XFMR",
+        "parameter": "rating",
+        "authoritative_side": "B",
+        "authority_basis": "revised document supersedes baseline",
+        "evidence_a": {"page": 4, "value": "140", "unit": "MVA"},
+        "evidence_b": {"page": 4, "value": "120", "unit": "MVA"},
+        "pairing_subject_method": "exact",
+        "pairing_parameter_method": "exact",
+        "pairing_context_method": "canonicalized",
+        "pairing_candidate_pool_count": 43,
+        "pairing_same_parameter_candidate_count": 1,
+        "pairing_rejected_candidate_count": 0,
+        "comparison_unit_method": "pint",
+        "comparison_deterministic": True,
+        "context_support_context_refs": [
+            {"doc_id": "A", "label": "capacity ratings", "pages": [4]},
+            {"doc_id": "B", "label": "capacity ratings", "pages": [4]},
+        ],
+    }
+
+    dot = _finding_graph_dot(finding)
+
+    assert "digraph FindingExplainability" in dot
+    assert "Cited evidence" in dot
+    assert "Context support" in dot
+    assert "Pairing" in dot
+    assert "Candidate screening" in dot
+    assert "Value check" in dot
+    assert "Authority" in dot
+    assert "Finding" in dot
+    assert "authority -> finding" in dot
 
 
 def test_pairing_alternatives_states_when_pool_had_no_rejections() -> None:

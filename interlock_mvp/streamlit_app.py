@@ -264,6 +264,8 @@ def _has_explainability(finding: dict[str, Any]) -> bool:
 def _render_explainability(finding: dict[str, Any]) -> None:
     confidence = finding.get("pairing_confidence") or finding.get("context_support_confidence") or "unknown"
     with st.expander(f"Explainability: why this finding was made ({confidence})", expanded=False):
+        st.graphviz_chart(_finding_graph_dot(finding), use_container_width=False)
+
         st.markdown("**Why these two citations were compared**")
         for line in _pairing_details(finding):
             st.markdown(f"- {line}")
@@ -285,6 +287,130 @@ def _render_explainability(finding: dict[str, Any]) -> None:
                 st.markdown(f"- {alternative}")
         else:
             st.markdown("- No same-parameter Doc B alternatives were found outside the accepted pair.")
+
+
+def _finding_graph_dot(finding: dict[str, Any]) -> str:
+    evidence_a = finding.get("evidence_a") or {}
+    evidence_b = finding.get("evidence_b") or {}
+    context_refs = [item for item in (finding.get("context_support_context_refs") or []) if isinstance(item, dict)]
+    context_a = next((item for item in context_refs if item.get("doc_id") == "A"), {})
+    context_b = next((item for item in context_refs if item.get("doc_id") == "B"), {})
+    subject = str(finding.get("subject") or "subject")
+    parameter = str(finding.get("parameter") or "parameter")
+    severity = str(finding.get("severity") or "")
+    finding_type = str(finding.get("finding_type") or "")
+    authority = str(finding.get("authoritative_side") or "unknown")
+    pool = int(finding.get("pairing_candidate_pool_count") or 0)
+    same_parameter = int(finding.get("pairing_same_parameter_candidate_count") or 0)
+    rejected = int(finding.get("pairing_rejected_candidate_count") or 0)
+
+    nodes = [
+        _dot_node(
+            "evidence",
+            _dot_multiline(
+                "Cited evidence",
+                f"A: {_graph_citation_label(evidence_a)}",
+                f"B: {_graph_citation_label(evidence_b)}",
+            ),
+            fill="#EFF6FF",
+        ),
+        _dot_node(
+            "context",
+            _dot_multiline(
+                "Context support",
+                f"A: {_graph_context_label(context_a)}",
+                f"B: {_graph_context_label(context_b)}",
+                f"{len(finding.get('context_support_search_ids') or [])} related search hit(s)",
+            ),
+            fill="#F8FAFC",
+            shape="note",
+        ),
+        _dot_node(
+            "pool",
+            _dot_multiline(
+                "Candidate screening",
+                f"{pool} Doc B claim(s)",
+                f"{same_parameter} same parameter",
+                f"{rejected} rejected alternative(s)",
+            ),
+            fill="#F1F5F9",
+            shape="folder",
+        ),
+        _dot_node(
+            "pair",
+            _dot_multiline(
+                "Pairing",
+                f"subject: {finding.get('pairing_subject_method') or 'n/a'}",
+                f"parameter: {finding.get('pairing_parameter_method') or 'n/a'}",
+                f"context: {finding.get('pairing_context_method') or 'n/a'}",
+            ),
+            fill="#FEF3C7",
+        ),
+        _dot_node(
+            "compare",
+            _dot_multiline(
+                "Value check",
+                str(finding.get("comparison_unit_method") or "n/a"),
+                "deterministic" if finding.get("comparison_deterministic") else "not deterministic",
+            ),
+            fill="#ECFDF5",
+        ),
+        _dot_node(
+            "authority",
+            _dot_multiline("Authority", authority),
+            fill="#F5F3FF",
+            shape="component",
+        ),
+        _dot_node("finding", _dot_multiline("Finding", f"{subject} / {parameter}", finding_type, severity), fill="#FEE2E2"),
+    ]
+    edges = [
+        'evidence -> context [label="located in"]',
+        'context -> pool [label="supports search"]',
+        'pool -> pair [label="screened"]',
+        'pair -> compare [label="paired claims"]',
+        'compare -> authority [label="apply direction"]',
+        'authority -> finding [label="finding"]',
+    ]
+    return "\n".join(
+        [
+            "digraph FindingExplainability {",
+            '  graph [rankdir=TB, bgcolor="transparent", pad="0.08", nodesep="0.22", ranksep="0.30"];',
+            '  node [shape=box, style="rounded,filled", fontname="Helvetica", fontsize=10, color="#CBD5E1", fontcolor="#0F172A", margin="0.07,0.05"];',
+            '  edge [fontname="Helvetica", fontsize=8, color="#64748B", fontcolor="#475569", arrowsize=0.55];',
+            *[f"  {node}" for node in nodes],
+            *[f"  {edge};" for edge in edges],
+            "}",
+        ]
+    )
+
+
+def _dot_node(node_id: str, label: str, *, fill: str, shape: str = "box") -> str:
+    return f'{node_id} [label="{_dot_escape(label)}", fillcolor="{fill}", shape="{shape}"];'
+
+
+def _dot_multiline(*parts: str) -> str:
+    return "\n".join(str(part) for part in parts if str(part).strip())
+
+
+def _dot_escape(value: str) -> str:
+    return str(value).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+
+def _graph_context_label(ref: dict[str, Any]) -> str:
+    if not ref:
+        return "not recorded"
+    label = str(ref.get("label") or ref.get("context_id") or "").replace("_", " ")
+    pages = [int(page) for page in (ref.get("pages") or []) if isinstance(page, int)]
+    return f"{_clip_text(label, 28)}{_page_span_text(pages)}".strip()
+
+
+def _graph_citation_label(citation: dict[str, Any]) -> str:
+    if not citation:
+        return "not cited"
+    page = citation.get("page")
+    page_text = f"p{page}" if page else "page unknown"
+    value = _citation_value(citation)
+    return f"{page_text} | {value}" if value else page_text
 
 
 def _pairing_details(finding: dict[str, Any]) -> list[str]:
