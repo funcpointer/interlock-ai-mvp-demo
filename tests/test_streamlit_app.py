@@ -1,7 +1,16 @@
 from pathlib import Path
 
 import interlock_mvp.streamlit_app as app
-from interlock_mvp.streamlit_app import _input_options, _mime_for, _new_run_dir, _safe_upload_name, _upload_errors
+from interlock_mvp.streamlit_app import (
+    ARTIFACT_DOWNLOADS,
+    WIKI_PREVIEW_FILES,
+    _download_name,
+    _input_options,
+    _mime_for,
+    _new_run_dir,
+    _safe_upload_name,
+    _upload_errors,
+)
 
 
 class FakeUpload:
@@ -56,3 +65,11 @@ def test_download_mime_types_are_specific() -> None:
     assert _mime_for("findings.json") == "application/json"
     assert _mime_for("report.md") == "text/markdown"
     assert _mime_for("crop.png") == "application/octet-stream"
+
+
+def test_streamlit_exposes_context_layer_wiki_artifacts() -> None:
+    assert "wiki/index.md" in ARTIFACT_DOWNLOADS
+    assert "wiki/review-map.md" in ARTIFACT_DOWNLOADS
+    assert "wiki/memory-palace.md" in ARTIFACT_DOWNLOADS
+    assert WIKI_PREVIEW_FILES == ["wiki/index.md", "wiki/review-map.md", "wiki/memory-palace.md"]
+    assert _download_name("wiki/index.md") == "wiki_index.md"

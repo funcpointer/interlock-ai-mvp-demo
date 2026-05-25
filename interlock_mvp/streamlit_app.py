@@ -24,6 +24,18 @@ PUBLIC_SPEC = DEMO_ASSETS / "somerset_main_power_transformer_spec_sheet.pdf"
 PUBLIC_VERSION_REV = DEMO_ASSETS / "somerset_main_power_transformer_spec_sheet_synth_rev.pdf"
 PUBLIC_CROSS_DOC = DEMO_ASSETS / "somerset_transformer_protection_study_excerpt_synth.pdf"
 MAX_UPLOAD_BYTES = int(os.environ.get("INTERLOCK_MAX_UPLOAD_BYTES", str(25 * 1024 * 1024)))
+ARTIFACT_DOWNLOADS = [
+    "report.md",
+    "findings.json",
+    "metrics.json",
+    "triage.json",
+    "reasoning_graph.json",
+    "decision_traces.json",
+    "wiki/index.md",
+    "wiki/review-map.md",
+    "wiki/memory-palace.md",
+]
+WIKI_PREVIEW_FILES = ["wiki/index.md", "wiki/review-map.md", "wiki/memory-palace.md"]
 
 
 def main() -> None:
@@ -164,11 +176,33 @@ def _render_run(run_dir: Path) -> None:
             st.write(f"**{issue.get('severity')}** - {issue.get('title')}")
             st.caption(issue.get("summary", ""))
 
+    _render_context_layer(run_dir)
+
     with st.expander("Artifacts"):
-        for name in ["report.md", "findings.json", "metrics.json", "triage.json", "reasoning_graph.json", "decision_traces.json"]:
+        for name in ARTIFACT_DOWNLOADS:
             path = run_dir / name
             if path.exists():
-                st.download_button(name, data=path.read_bytes(), file_name=name, mime=_mime_for(name))
+                st.download_button(name, data=path.read_bytes(), file_name=_download_name(name), mime=_mime_for(name))
+
+
+def _render_context_layer(run_dir: Path) -> None:
+    available = [name for name in WIKI_PREVIEW_FILES if (run_dir / name).exists()]
+    if not available:
+        return
+    with st.expander("Context layer: graph, search, wiki"):
+        st.caption(
+            "Derived second-brain layer for navigation. JSON findings remain the source of truth; the wiki helps inspect surrounding context and reasoning trails."
+        )
+        tabs = st.tabs([Path(name).stem for name in available])
+        for tab, name in zip(tabs, available, strict=True):
+            with tab:
+                st.markdown((run_dir / name).read_text(encoding="utf-8"))
+                st.download_button(
+                    f"Download {name}",
+                    data=(run_dir / name).read_bytes(),
+                    file_name=_download_name(name),
+                    mime="text/markdown",
+                )
 
 
 def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
@@ -250,6 +284,10 @@ def _mime_for(name: str) -> str:
     if name.endswith(".md"):
         return "text/markdown"
     return "application/octet-stream"
+
+
+def _download_name(name: str) -> str:
+    return name.replace("/", "_")
 
 
 def _input_options() -> list[str]:
