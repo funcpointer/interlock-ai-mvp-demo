@@ -7,7 +7,17 @@ from typing import Any
 from pydantic import BaseModel
 
 from .models import SCHEMA_VERSION
-from .models import AuthorityDecision, ContextSupport, DiffEdge, EvidenceCitation, EvidenceItem, Finding, ReasoningGraph
+from .models import (
+    AlignmentDecision,
+    AuthorityDecision,
+    ComparisonDecision,
+    ContextSupport,
+    DiffEdge,
+    EvidenceCitation,
+    EvidenceItem,
+    Finding,
+    ReasoningGraph,
+)
 
 BANNED_AUTHORED_WORDS = {
     "wrong",
@@ -57,6 +67,7 @@ def findings_from_reasoning_graph(
         warnings.append("OpenAI key missing; deterministic verifier used")
 
     diff_by_id = {edge.diff_id: edge for edge in diff_edges}
+    alignment_by_id = {alignment.alignment_id: alignment for alignment in reasoning_graph.alignments}
     support_by_diff_id = {support.diff_id: support for support in reasoning_graph.context_supports}
     findings: list[Finding] = []
 
@@ -67,7 +78,16 @@ def findings_from_reasoning_graph(
         reasoning_ids = {"comparison_id": comparison.comparison_id}
         if comparison.alignment_id:
             reasoning_ids["alignment_id"] = comparison.alignment_id
-        finding = _diff_edge_to_finding(edge, evidence_by_id, authority, mode, reasoning_ids, support_by_diff_id.get(edge.diff_id))
+        finding = _diff_edge_to_finding(
+            edge,
+            evidence_by_id,
+            authority,
+            mode,
+            reasoning_ids,
+            support_by_diff_id.get(edge.diff_id),
+            alignment_by_id.get(comparison.alignment_id or ""),
+            comparison,
+        )
         if finding:
             findings.append(finding)
             metrics["comparison_sourced_findings"] += 1.0
@@ -76,7 +96,16 @@ def findings_from_reasoning_graph(
         edge = diff_by_id.get(absence.diff_id)
         if not edge:
             continue
-        finding = _diff_edge_to_finding(edge, evidence_by_id, authority, mode, {"absence_id": absence.absence_id}, support_by_diff_id.get(edge.diff_id))
+        finding = _diff_edge_to_finding(
+            edge,
+            evidence_by_id,
+            authority,
+            mode,
+            {"absence_id": absence.absence_id},
+            support_by_diff_id.get(edge.diff_id),
+            None,
+            None,
+        )
         if finding:
             findings.append(finding)
             metrics["absence_sourced_findings"] += 1.0
@@ -84,7 +113,16 @@ def findings_from_reasoning_graph(
     for edge in diff_edges:
         if edge.diff_type != "coverage_warning":
             continue
-        finding = _diff_edge_to_finding(edge, evidence_by_id, authority, mode, {}, support_by_diff_id.get(edge.diff_id))
+        finding = _diff_edge_to_finding(
+            edge,
+            evidence_by_id,
+            authority,
+            mode,
+            {},
+            support_by_diff_id.get(edge.diff_id),
+            None,
+            None,
+        )
         if finding:
             findings.append(finding)
             metrics["coverage_edge_sourced_findings"] += 1.0
@@ -216,6 +254,18 @@ def _external_review_payload(finding: Finding) -> str:
                 "evidence_a",
                 "evidence_b",
                 "plausibility_notes",
+                "pairing_subject_method",
+                "pairing_parameter_method",
+                "pairing_context_method",
+                "pairing_confidence",
+                "pairing_rationale",
+                "pairing_candidate_pool_count",
+                "pairing_same_parameter_candidate_count",
+                "pairing_rejected_candidate_count",
+                "pairing_rejected_candidate_summaries",
+                "comparison_unit_method",
+                "comparison_deterministic",
+                "comparison_rationale",
                 "context_support_supports",
                 "context_support_confidence",
                 "context_support_summary",
@@ -239,6 +289,8 @@ def _diff_edge_to_finding(
     mode: str,
     reasoning_ids: dict[str, str] | None = None,
     context_support: ContextSupport | None = None,
+    alignment: AlignmentDecision | None = None,
+    comparison: ComparisonDecision | None = None,
 ) -> Finding | None:
     cited_evidence = [evidence_by_id[eid] for eid in edge.evidence_ids if eid in evidence_by_id]
     if not cited_evidence:
@@ -292,6 +344,18 @@ def _diff_edge_to_finding(
         alignment_id=(reasoning_ids or {}).get("alignment_id"),
         comparison_id=(reasoning_ids or {}).get("comparison_id"),
         absence_id=(reasoning_ids or {}).get("absence_id"),
+        pairing_subject_method=alignment.subject_method if alignment else "",
+        pairing_parameter_method=alignment.parameter_method if alignment else "",
+        pairing_context_method=alignment.context_method if alignment else "",
+        pairing_confidence=alignment.confidence if alignment else None,
+        pairing_rationale=alignment.rationale if alignment else "",
+        pairing_candidate_pool_count=alignment.candidate_b_claim_count if alignment else 0,
+        pairing_same_parameter_candidate_count=alignment.same_parameter_b_claim_count if alignment else 0,
+        pairing_rejected_candidate_count=len(alignment.rejected_b_claim_ids) if alignment else 0,
+        pairing_rejected_candidate_summaries=alignment.rejected_b_claim_summaries if alignment else [],
+        comparison_unit_method=comparison.unit_method if comparison else "",
+        comparison_deterministic=comparison.deterministic if comparison else None,
+        comparison_rationale=comparison.rationale if comparison else "",
         context_support_id=context_support.support_id if context_support else None,
         context_support_supports=context_support.supports if context_support else None,
         context_support_confidence=context_support.confidence if context_support else None,

@@ -242,8 +242,8 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
         st.markdown(f"**Why it is flagged:** {_why_flagged(finding)}")
         st.caption(_finding_caption(finding))
         _render_micro_evidence(finding)
-        if finding.get("context_support_summary"):
-            _render_context_support(finding)
+        if _has_audit_trail(finding):
+            _render_audit_trail(finding)
         if finding.get("model_review_status") == "used":
             _render_model_review(finding)
         col_a, col_b = st.columns(2)
@@ -253,23 +253,130 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
             _render_citation(run_dir, _citation_label(finding, "B"), finding.get("evidence_b") or {})
 
 
-def _render_context_support(finding: dict[str, Any]) -> None:
-    supports = finding.get("context_support_supports")
-    confidence = finding.get("context_support_confidence") or "unknown"
-    with st.expander(f"Audit trail: context check ({confidence})", expanded=False):
-        if supports:
-            st.success("Aligned context around both citations.")
-        else:
-            st.warning("Weak or generic context around at least one citation.")
-        details = _context_support_details(finding)
-        if details:
-            for detail in details:
+def _has_audit_trail(finding: dict[str, Any]) -> bool:
+    return bool(
+        finding.get("pairing_subject_method")
+        or finding.get("comparison_unit_method")
+        or finding.get("context_support_summary")
+    )
+
+
+def _render_audit_trail(finding: dict[str, Any]) -> None:
+    confidence = finding.get("pairing_confidence") or finding.get("context_support_confidence") or "unknown"
+    with st.expander(f"Audit trail: pairing and comparison ({confidence})", expanded=False):
+        st.markdown("**Pairing decision**")
+        for line in _pairing_details(finding):
+            st.markdown(f"- {line}")
+
+        st.markdown("**Comparison rule**")
+        for line in _comparison_details(finding):
+            st.markdown(f"- {line}")
+
+        context_details = _context_support_details(finding)
+        if context_details:
+            st.markdown("**Context/search support**")
+            for detail in context_details:
                 st.markdown(f"- {detail}")
-        witnesses = _context_support_witnesses(finding)
-        if witnesses:
-            st.markdown("**Representative context evidence**")
-            for witness in witnesses:
-                st.markdown(f"- {witness}")
+
+        alternatives = _pairing_alternatives(finding)
+        st.markdown("**Other candidates considered**")
+        if alternatives:
+            for alternative in alternatives:
+                st.markdown(f"- {alternative}")
+        else:
+            st.markdown("- No same-parameter Doc B alternatives were found outside the accepted pair.")
+
+
+def _pairing_details(finding: dict[str, Any]) -> list[str]:
+    details: list[str] = []
+    pool = int(finding.get("pairing_candidate_pool_count") or 0)
+    same_parameter = int(finding.get("pairing_same_parameter_candidate_count") or 0)
+    if pool:
+        details.append(f"Candidate pool: {pool} Doc B claim(s); {same_parameter} matched the parameter before value comparison")
+    subject = _pairing_method_label("subject", str(finding.get("pairing_subject_method") or ""))
+    parameter = _pairing_method_label("parameter", str(finding.get("pairing_parameter_method") or ""))
+    context = _pairing_method_label("context", str(finding.get("pairing_context_method") or ""))
+    if subject:
+        details.append(f"Subject identity: {subject}")
+    if parameter:
+        details.append(f"Parameter identity: {parameter}")
+    if context:
+        details.append(f"Context bridge: {context}")
+    rationale = str(finding.get("pairing_rationale") or "").strip()
+    if rationale:
+        details.append(f"Accepted pair rationale: {rationale}")
+    return details or ["No pairing decision was recorded for this finding."]
+
+
+def _comparison_details(finding: dict[str, Any]) -> list[str]:
+    details: list[str] = []
+    unit_method = _unit_method_label(str(finding.get("comparison_unit_method") or ""))
+    if unit_method:
+        details.append(f"Unit/value check: {unit_method}")
+    deterministic = finding.get("comparison_deterministic")
+    if deterministic is not None:
+        details.append("Deterministic discrepancy: yes" if deterministic else "Deterministic discrepancy: no")
+    for note in finding.get("plausibility_notes") or []:
+        details.append(f"Check note: {_plausibility_note_label(str(note))}")
+    rationale = str(finding.get("comparison_rationale") or "").strip()
+    if rationale:
+        details.append(f"Comparison rationale: {rationale}")
+    return details or ["No comparison decision was recorded for this finding."]
+
+
+def _pairing_alternatives(finding: dict[str, Any]) -> list[str]:
+    count = int(finding.get("pairing_rejected_candidate_count") or 0)
+    same_parameter = int(finding.get("pairing_same_parameter_candidate_count") or 0)
+    summaries = [str(item) for item in (finding.get("pairing_rejected_candidate_summaries") or []) if str(item).strip()]
+    if not count:
+        if same_parameter:
+            return [f"Only one Doc B claim matched this parameter; no same-parameter alternatives were rejected."]
+        return []
+    lines = [f"Rejected {count} same-parameter Doc B candidate(s) after subject/context checks."]
+    lines.extend(summaries[:3])
+    if count > len(summaries[:3]):
+        lines.append(f"{count - len(summaries[:3])} more candidate(s) omitted from this card; see reasoning_graph.json.")
+    return lines
+
+
+def _pairing_method_label(axis: str, method: str) -> str:
+    labels = {
+        "subject": {
+            "exact": "exact subject/tag match",
+            "alias": "known equipment alias match",
+            "context_bridge": "same equipment inferred from nearby context",
+            "semantic": "weak semantic candidate only",
+        },
+        "parameter": {
+            "exact": "exact normalized parameter match",
+            "normalized": "normalized parameter alias match",
+        },
+        "context": {
+            "exact": "same context id",
+            "canonicalized": "same normalized section/table label",
+            "cross_doc_bridge": "different labels, but compatible review contexts",
+            "missing": "generic or missing context",
+        },
+    }
+    return labels.get(axis, {}).get(method, method.replace("_", " ") if method else "")
+
+
+def _unit_method_label(method: str) -> str:
+    return {
+        "pint": "Pint unit equivalence first, then mismatch if values remain different",
+        "custom_percent_impedance": "custom percent-impedance check; base/context matters",
+        "dimension_mismatch": "unit dimensions are incompatible",
+        "exact": "exact normalized value/unit comparison",
+    }.get(method, method.replace("_", " ") if method else "")
+
+
+def _plausibility_note_label(note: str) -> str:
+    return {
+        "pint_equivalence": "unit-normalized numeric comparison was available",
+        "quantity_parse_failed": "unit parser could not normalize the value",
+        "custom_quantity_required": "custom engineering quantity logic was required",
+        "dimension_mismatch": "units have incompatible dimensions",
+    }.get(note, note.replace("_", " "))
 
 
 def _context_support_details(finding: dict[str, Any]) -> list[str]:
@@ -287,16 +394,6 @@ def _context_support_details(finding: dict[str, Any]) -> list[str]:
     return details
 
 
-def _context_support_witnesses(finding: dict[str, Any]) -> list[str]:
-    refs = [item for item in (finding.get("context_support_search_refs") or []) if isinstance(item, dict)]
-    witnesses: list[str] = []
-    for ref in refs[:3]:
-        rendered = _human_search_ref(ref)
-        if rendered:
-            witnesses.append(rendered)
-    return witnesses
-
-
 def _human_context_ref(ref: dict[str, Any]) -> str:
     doc_id = str(ref.get("doc_id") or "")
     label = str(ref.get("label") or ref.get("context_id") or "").replace("_", " ")
@@ -304,19 +401,6 @@ def _human_context_ref(ref: dict[str, Any]) -> str:
     page_text = _page_span_text(pages)
     prefix = f"Doc {doc_id} - " if doc_id in {"A", "B"} else ""
     return f"{prefix}{label}{page_text}"
-
-
-def _human_search_ref(ref: dict[str, Any]) -> str:
-    doc_id = str(ref.get("doc_id") or "")
-    page = ref.get("page")
-    source = str(ref.get("source") or "record").replace("_", " ")
-    value = _citation_value(ref)
-    quote = " ".join(str(ref.get("quote") or "").split())
-    quote_text = f' - "{_clip_text(quote, 120)}"' if quote else ""
-    where = f"Doc {doc_id}" if doc_id in {"A", "B"} else "Packet"
-    page_text = f" p{page}" if page else ""
-    value_text = f": {value}" if value else ""
-    return f"{source.title()} {where}{page_text}{value_text}{quote_text}"
 
 
 def _page_span_text(pages: list[int]) -> str:
@@ -330,16 +414,6 @@ def _page_span_text(pages: list[int]) -> str:
 
 def _clip_text(text: str, limit: int) -> str:
     return text if len(text) <= limit else text[: limit - 3] + "..."
-
-
-def _context_signal_label(signal: str) -> str:
-    return {
-        "context_room": "same section/table type",
-        "graph_alignment": "document graph aligned the claims",
-        "search_hit": "related packet evidence found",
-        "missing_context": "generic or missing context",
-        "possible_equivalent_elsewhere": "possible equivalent evidence elsewhere",
-    }.get(signal, signal.replace("_", " "))
 
 
 def _render_model_review(finding: dict[str, Any]) -> None:

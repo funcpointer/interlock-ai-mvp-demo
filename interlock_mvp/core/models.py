@@ -181,6 +181,18 @@ class Finding(BaseModel):
     alignment_id: str | None = None
     comparison_id: str | None = None
     absence_id: str | None = None
+    pairing_subject_method: str = ""
+    pairing_parameter_method: str = ""
+    pairing_context_method: str = ""
+    pairing_confidence: Confidence | None = None
+    pairing_rationale: str = ""
+    pairing_candidate_pool_count: int = 0
+    pairing_same_parameter_candidate_count: int = 0
+    pairing_rejected_candidate_count: int = 0
+    pairing_rejected_candidate_summaries: list[str] = Field(default_factory=list)
+    comparison_unit_method: str = ""
+    comparison_deterministic: bool | None = None
+    comparison_rationale: str = ""
     context_support_id: str | None = None
     context_support_supports: bool | None = None
     context_support_confidence: Confidence | None = None
@@ -269,7 +281,10 @@ class AlignmentDecision(BaseModel):
     confidence: Confidence
     accepted: bool
     rationale: str
+    candidate_b_claim_count: int = 0
+    same_parameter_b_claim_count: int = 0
     rejected_b_claim_ids: list[str] = Field(default_factory=list)
+    rejected_b_claim_summaries: list[str] = Field(default_factory=list)
 
 
 class ComparisonDecision(BaseModel):

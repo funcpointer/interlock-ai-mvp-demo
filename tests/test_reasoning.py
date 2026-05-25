@@ -1,5 +1,5 @@
 from interlock_mvp.core.docgraph import build_diff_graph, build_document_graphs
-from interlock_mvp.core.models import EvidenceItem, RegionRecord
+from interlock_mvp.core.models import ClaimNode, ContextNode, DiffEdge, DiffGraph, DocumentGraph, EvidenceItem, RegionRecord
 from interlock_mvp.core.reasoning import build_reasoning_graph, reasoning_lookup
 
 
@@ -75,6 +75,52 @@ def test_reasoning_lookup_maps_diff_to_decision_ids() -> None:
     assert lookup[edge.diff_id]["comparison_id"] == reasoning.comparisons[0].comparison_id
 
 
+def test_alignment_records_rejected_same_parameter_candidate_summaries() -> None:
+    graph_a = DocumentGraph(
+        doc_id="A",
+        contexts=[_context("A:context:capacity", "capacity ratings")],
+        claims=[_claim_node("A:claim:rating", "A", "A:context:capacity", "A:subject:xfmr", "rating", "140", "MVA", "84/112/140 MVA")],
+    )
+    graph_b = DocumentGraph(
+        doc_id="B",
+        contexts=[
+            _context("B:context:capacity", "capacity ratings"),
+            _context("B:context:spares", "spare equipment"),
+        ],
+        claims=[
+            _claim_node("B:claim:accepted", "B", "B:context:capacity", "B:subject:xfmr", "rating", "120", "MVA", "84/112/120 MVA"),
+            _claim_node("B:claim:rejected", "B", "B:context:spares", "B:subject:spare", "rating", "75", "MVA", "Spare transformer 75 MVA"),
+        ],
+    )
+    diff = DiffGraph(
+        edges=[
+            DiffEdge(
+                diff_id="diff00001",
+                diff_type="value_mismatch",
+                a_node_id="A:claim:rating",
+                b_node_id="B:claim:accepted",
+                alignment_status="conflict",
+                subject="XFMR",
+                parameter="rating",
+                rationale="accepted claim differs",
+                evidence_ids=[],
+                identity_strength="strong",
+                deterministic_discrepancy=True,
+            )
+        ]
+    )
+
+    reasoning = build_reasoning_graph(diff, graph_a, graph_b)
+
+    alignment = reasoning.alignments[0]
+    assert alignment.candidate_b_claim_count == 2
+    assert alignment.same_parameter_b_claim_count == 2
+    assert alignment.rejected_b_claim_ids == ["B:claim:rejected"]
+    assert alignment.rejected_b_claim_summaries == [
+        'Doc B / spare equipment: rating 75 MVA - "Spare transformer 75 MVA"'
+    ]
+
+
 def _region(doc_id: str, page: int, region_id: str, text: str) -> RegionRecord:
     return RegionRecord(
         region_id=region_id,
@@ -84,6 +130,42 @@ def _region(doc_id: str, page: int, region_id: str, text: str) -> RegionRecord:
         text=text,
         kind="text_block",
         crop_path=f"crops/{region_id}.png",
+    )
+
+
+def _context(context_id: str, label: str) -> ContextNode:
+    return ContextNode(
+        context_id=context_id,
+        doc_id=context_id.split(":", 1)[0],
+        canonical_label=label,
+        raw_labels=[label],
+        kind="section",
+        page_span=[1],
+        confidence="high",
+    )
+
+
+def _claim_node(
+    claim_id: str,
+    doc_id: str,
+    context_id: str,
+    subject_id: str,
+    parameter: str,
+    value: str,
+    unit: str,
+    raw_text: str,
+) -> ClaimNode:
+    return ClaimNode(
+        claim_id=claim_id,
+        doc_id=doc_id,
+        context_id=context_id,
+        subject_id=subject_id,
+        parameter=parameter,
+        value=value,
+        unit=unit,
+        raw_text=raw_text,
+        evidence_ids=[],
+        confidence="high",
     )
 
 

@@ -115,6 +115,8 @@ def _finding_lines(finding: Finding) -> list[str]:
     ]
     if finding.plausibility_notes:
         lines.append(f"- Plausibility notes: {'; '.join(finding.plausibility_notes)}")
+    if finding.alignment_id or finding.comparison_id:
+        lines.extend(_audit_trail_lines(finding))
     if finding.context_support_summary:
         lines.extend(_context_support_lines(finding))
     if finding.model_review_status == "used":
@@ -137,34 +139,31 @@ def _context_support_lines(finding: Finding) -> list[str]:
         lines.append(f"- Compared sections: {sections}")
     if finding.context_support_search_ids:
         lines.append(f"- Related packet evidence: {len(finding.context_support_search_ids)} supporting search hit(s)")
-    for ref in finding.context_support_search_refs[:3]:
-        lines.append(f"- Context witness: {_human_search_ref(ref)}")
     return lines
 
 
-def _context_signal_label(signal: str) -> str:
-    return {
-        "context_room": "same section/table type",
-        "graph_alignment": "document graph aligned the claims",
-        "search_hit": "related evidence found in packet search",
-        "missing_context": "generic or missing context",
-        "possible_equivalent_elsewhere": "possible equivalent evidence elsewhere",
-    }.get(signal, signal.replace("_", " "))
+def _audit_trail_lines(finding: Finding) -> list[str]:
+    lines = [
+        f"- Candidate pool: {finding.pairing_candidate_pool_count} Doc B claim(s); "
+        f"{finding.pairing_same_parameter_candidate_count} same-parameter candidate(s).",
+        f"- Pairing: subject `{finding.pairing_subject_method or 'n/a'}`, "
+        f"parameter `{finding.pairing_parameter_method or 'n/a'}`, "
+        f"context `{finding.pairing_context_method or 'n/a'}`.",
+    ]
+    if finding.pairing_rejected_candidate_count:
+        lines.append(f"- Other candidates considered: {finding.pairing_rejected_candidate_count} same-parameter Doc B candidate(s).")
+        for summary in finding.pairing_rejected_candidate_summaries[:3]:
+            lines.append(f"- Rejected candidate: {summary}")
+    if finding.comparison_unit_method:
+        deterministic = "deterministic" if finding.comparison_deterministic else "not deterministic"
+        lines.append(f"- Comparison rule: `{finding.comparison_unit_method}` ({deterministic}).")
+    return lines
 
 
 def _human_context_ref(ref) -> str:
     page_text = _page_span_text(ref.pages)
     prefix = f"Doc {ref.doc_id} - " if ref.doc_id in {"A", "B"} else ""
     return f"{prefix}{ref.label}{page_text}"
-
-
-def _human_search_ref(ref) -> str:
-    where = f"Doc {ref.doc_id}" if ref.doc_id in {"A", "B"} else "Packet"
-    page_text = f" p{ref.page}" if ref.page else ""
-    value = " ".join(part for part in [ref.value, ref.unit] if part).strip()
-    value_text = f": {value}" if value else ""
-    quote_text = f' - "{_clip(ref.quote, 120)}"' if ref.quote else ""
-    return f"{ref.source.title()} {where}{page_text}{value_text}{quote_text}"
 
 
 def _page_span_text(pages: list[int]) -> str:

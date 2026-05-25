@@ -115,6 +115,14 @@ def test_known_authority_strong_deterministic_diff_is_review_required() -> None:
     assert findings[0].evidence_b is not None
     assert findings[0].alignment_id == "align00001"
     assert findings[0].comparison_id == "comp00001"
+    assert findings[0].pairing_subject_method == "exact"
+    assert findings[0].pairing_parameter_method == "exact"
+    assert findings[0].pairing_context_method == "canonicalized"
+    assert findings[0].pairing_confidence == "high"
+    assert findings[0].pairing_candidate_pool_count == 0
+    assert findings[0].pairing_same_parameter_candidate_count == 0
+    assert findings[0].comparison_unit_method == "pint"
+    assert findings[0].comparison_deterministic is True
 
 
 def test_unknown_authority_downgrades_strong_deterministic_diff() -> None:

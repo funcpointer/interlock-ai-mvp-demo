@@ -231,6 +231,9 @@ def _finding_lines(finding: Finding) -> list[str]:
         f"- Absence search: `{finding.absence_id or ''}`",
         "",
     ]
+    if finding.alignment_id or finding.comparison_id:
+        lines.extend(_finding_pairing_lines(finding))
+        lines.append("")
     if finding.context_support_summary:
         lines.extend(_finding_context_support_lines(finding))
         lines.append("")
@@ -264,10 +267,35 @@ def _finding_context_support_lines(finding: Finding) -> list[str]:
         lines.append(f"- Compared sections: {sections}")
     if finding.context_support_search_ids:
         lines.append(f"- Related packet evidence: {len(finding.context_support_search_ids)} supporting search hit(s)")
-    for ref in finding.context_support_search_refs[:3]:
-        lines.append(f"- Context witness: {_human_search_ref(ref)}")
     if signals:
         lines.append(f"- Debug signals: {signals}")
+    return lines
+
+
+def _finding_pairing_lines(finding: Finding) -> list[str]:
+    lines = [
+        "## Pairing and Comparison",
+        "",
+        f"- Alignment decision: `{finding.alignment_id or ''}`",
+        f"- Candidate pool: {finding.pairing_candidate_pool_count} Doc B claim(s); {finding.pairing_same_parameter_candidate_count} same-parameter candidate(s)",
+        f"- Subject match: `{finding.pairing_subject_method or 'n/a'}`",
+        f"- Parameter match: `{finding.pairing_parameter_method or 'n/a'}`",
+        f"- Context bridge: `{finding.pairing_context_method or 'n/a'}`",
+    ]
+    if finding.pairing_rationale:
+        lines.append(f"- Pairing rationale: {finding.pairing_rationale}")
+    if finding.pairing_rejected_candidate_count:
+        lines.append(f"- Other candidates considered: {finding.pairing_rejected_candidate_count} same-parameter Doc B candidate(s)")
+        lines.extend(f"- Rejected candidate: {summary}" for summary in finding.pairing_rejected_candidate_summaries[:5])
+    if finding.comparison_id:
+        deterministic = "yes" if finding.comparison_deterministic else "no"
+        lines.extend(
+            [
+                f"- Comparison decision: `{finding.comparison_id}`",
+                f"- Unit/value method: `{finding.comparison_unit_method or 'n/a'}`",
+                f"- Deterministic discrepancy: {deterministic}",
+            ]
+        )
     return lines
 
 
@@ -285,15 +313,6 @@ def _human_context_ref(ref) -> str:
     page_text = _page_span_text(ref.pages)
     prefix = f"Doc {ref.doc_id} - " if ref.doc_id in {"A", "B"} else ""
     return f"{prefix}{ref.label}{page_text}"
-
-
-def _human_search_ref(ref) -> str:
-    where = f"Doc {ref.doc_id}" if ref.doc_id in {"A", "B"} else "Packet"
-    page_text = f" p{ref.page}" if ref.page else ""
-    value = " ".join(part for part in [ref.value, ref.unit] if part).strip()
-    value_text = f": {value}" if value else ""
-    quote_text = f' - "{_clip(ref.quote, 120)}"' if ref.quote else ""
-    return f"{ref.source.title()} {where}{page_text}{value_text}{quote_text}"
 
 
 def _page_span_text(pages: list[int]) -> str:

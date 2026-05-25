@@ -66,6 +66,11 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
     assert finding["alignment_id"]
     assert finding["comparison_id"]
     assert finding["absence_id"] is None
+    assert finding["pairing_subject_method"]
+    assert finding["pairing_parameter_method"]
+    assert finding["pairing_context_method"]
+    assert finding["comparison_unit_method"]
+    assert finding["comparison_deterministic"] is True
 
     reasoning = json.loads((out_dir / "reasoning_graph.json").read_text(encoding="utf-8"))
     assert reasoning["comparisons"][0]["comparison_id"] == finding["comparison_id"]

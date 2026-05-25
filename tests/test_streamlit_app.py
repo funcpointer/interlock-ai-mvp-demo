@@ -6,9 +6,10 @@ from interlock_mvp.streamlit_app import (
     WIKI_PREVIEW_FILES,
     _citation_label,
     _context_support_details,
-    _context_support_witnesses,
-    _context_signal_label,
     _download_name,
+    _pairing_alternatives,
+    _pairing_details,
+    _comparison_details,
     _finding_title,
     _finding_caption,
     _why_flagged,
@@ -111,13 +112,6 @@ def test_wiki_labels_are_human_readable() -> None:
     assert _wiki_page_label("wiki/context-rooms/room_a.md") == "context-rooms/room_a"
 
 
-def test_context_signal_labels_are_reviewer_facing() -> None:
-    assert _context_signal_label("context_room") == "same section/table type"
-    assert _context_signal_label("graph_alignment") == "document graph aligned the claims"
-    assert _context_signal_label("possible_equivalent_elsewhere") == "possible equivalent evidence elsewhere"
-    assert _context_signal_label("custom_signal") == "custom signal"
-
-
 def test_finding_title_uses_review_values_not_internal_ids() -> None:
     finding = {
         "finding_id": "find_00001",
@@ -170,21 +164,51 @@ def test_context_support_details_show_concrete_trace_without_signal_dump() -> No
     ]
 
 
-def test_context_support_witnesses_show_representative_records() -> None:
+def test_audit_trail_explains_pairing_without_repeating_citations() -> None:
     finding = {
-        "context_support_search_refs": [
-            {
-                "search_id": "evidence:ev1",
-                "source": "evidence",
-                "doc_id": "A",
-                "page": 4,
-                "value": "140",
-                "unit": "MVA",
-                "quote": "Primary to Secondary Winding: 84/112/140 MVA",
-            }
-        ]
+        "pairing_subject_method": "exact",
+        "pairing_parameter_method": "exact",
+        "pairing_context_method": "cross_doc_bridge",
+        "pairing_rationale": "A differs from B.",
+        "pairing_candidate_pool_count": 4,
+        "pairing_same_parameter_candidate_count": 3,
+        "comparison_unit_method": "pint",
+        "comparison_deterministic": True,
+        "comparison_rationale": "A differs from B.",
+        "plausibility_notes": ["decimal shift candidate"],
+        "pairing_rejected_candidate_count": 2,
+        "pairing_rejected_candidate_summaries": [
+            'Doc B / other table: rating 900 kVA - "XFMR spare 900 kVA"',
+        ],
     }
 
-    assert _context_support_witnesses(finding) == [
-        'Evidence Doc A p4: 140 MVA - "Primary to Secondary Winding: 84/112/140 MVA"'
+    assert _pairing_details(finding) == [
+        "Candidate pool: 4 Doc B claim(s); 3 matched the parameter before value comparison",
+        "Subject identity: exact subject/tag match",
+        "Parameter identity: exact normalized parameter match",
+        "Context bridge: different labels, but compatible review contexts",
+        "Accepted pair rationale: A differs from B.",
+    ]
+    assert _comparison_details(finding) == [
+        "Unit/value check: Pint unit equivalence first, then mismatch if values remain different",
+        "Deterministic discrepancy: yes",
+        "Check note: decimal shift candidate",
+        "Comparison rationale: A differs from B.",
+    ]
+    assert _pairing_alternatives(finding) == [
+        "Rejected 2 same-parameter Doc B candidate(s) after subject/context checks.",
+        'Doc B / other table: rating 900 kVA - "XFMR spare 900 kVA"',
+        "1 more candidate(s) omitted from this card; see reasoning_graph.json.",
+    ]
+
+
+def test_pairing_alternatives_states_when_pool_had_no_rejections() -> None:
+    finding = {
+        "pairing_same_parameter_candidate_count": 1,
+        "pairing_rejected_candidate_count": 0,
+        "pairing_rejected_candidate_summaries": [],
+    }
+
+    assert _pairing_alternatives(finding) == [
+        "Only one Doc B claim matched this parameter; no same-parameter alternatives were rejected."
     ]

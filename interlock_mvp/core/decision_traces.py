@@ -105,7 +105,7 @@ def build_decision_traces(
                 why.append(
                     f"alignment used subject={alignment.subject_method}, parameter={alignment.parameter_method}, context={alignment.context_method}"
                 )
-                rejected_alternatives.extend(alignment.rejected_b_claim_ids)
+                rejected_alternatives.extend(alignment.rejected_b_claim_summaries or alignment.rejected_b_claim_ids)
 
         if finding.comparison_id:
             comparison = comparison_by_id.get(finding.comparison_id)
@@ -190,6 +190,11 @@ def _finding_evidence_ids(finding: Finding) -> list[str]:
 
 
 def _alignment_signal(index: int, alignment: AlignmentDecision) -> DecisionSignal:
+    rejected_text = (
+        f" Rejected {len(alignment.rejected_b_claim_ids)} same-parameter B alternative(s)."
+        if alignment.rejected_b_claim_ids
+        else ""
+    )
     return DecisionSignal(
         signal_id=f"sig{index:05d}_alignment",
         source="reasoning_graph",
@@ -198,6 +203,7 @@ def _alignment_signal(index: int, alignment: AlignmentDecision) -> DecisionSigna
         summary=(
             f"Aligned {alignment.a_claim_id} to {alignment.b_claim_id} "
             f"using subject={alignment.subject_method}, parameter={alignment.parameter_method}, context={alignment.context_method}."
+            f"{rejected_text}"
         ),
         confidence=alignment.confidence,
         reasoning_id=alignment.alignment_id,

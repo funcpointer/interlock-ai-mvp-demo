@@ -65,11 +65,12 @@ def _alignment_decision(
     context_by_id: dict[str, object],
     index: int,
 ) -> AlignmentDecision:
-    rejected = [
-        claim.claim_id
+    rejected_claims = [
+        claim
         for claim in graph_b.claims
         if claim.claim_id != claim_b.claim_id and claim.parameter == claim_a.parameter
     ]
+    same_parameter_claims = [claim for claim in graph_b.claims if claim.parameter == claim_a.parameter]
     return AlignmentDecision(
         alignment_id=f"align{index:05d}",
         diff_id=edge.diff_id,
@@ -81,7 +82,13 @@ def _alignment_decision(
         confidence=_confidence(edge.identity_strength),
         accepted=True,
         rationale=edge.rationale,
-        rejected_b_claim_ids=rejected,
+        candidate_b_claim_count=len(graph_b.claims),
+        same_parameter_b_claim_count=len(same_parameter_claims),
+        rejected_b_claim_ids=[claim.claim_id for claim in rejected_claims],
+        rejected_b_claim_summaries=[
+            _claim_summary(claim, context_by_id)
+            for claim in rejected_claims[:5]
+        ],
     )
 
 
@@ -186,6 +193,16 @@ def _context_label(context_id: str, context_by_id: dict[str, object]) -> str:
     if not context:
         return "document"
     return str(getattr(context, "canonical_label", "document"))
+
+
+def _claim_summary(claim: ClaimNode, context_by_id: dict[str, object]) -> str:
+    context = _context_label(claim.context_id, context_by_id).replace("_", " ")
+    value = " ".join(part for part in [claim.value, claim.unit] if part).strip()
+    value_text = f"{value} " if value else ""
+    quote = " ".join(claim.raw_text.split())
+    if len(quote) > 140:
+        quote = quote[:137] + "..."
+    return f"Doc {claim.doc_id} / {context}: {claim.parameter} {value_text}- \"{quote}\""
 
 
 def _unit_method(edge: DiffEdge) -> str:
