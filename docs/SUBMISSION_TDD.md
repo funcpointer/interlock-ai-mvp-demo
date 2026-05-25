@@ -2,7 +2,7 @@
 
 ## Architecture
 
-The CLI and Streamlit app are adapters. The reusable business entrypoint is:
+CLI and Streamlit are adapters. Business logic lives in:
 
 ```python
 run_review(request: ReviewRequest) -> ReviewResult
@@ -10,109 +10,106 @@ run_review(request: ReviewRequest) -> ReviewResult
 
 Pipeline:
 
-1. resolve document types and authority,
+1. resolve document type and authority,
 2. extract PDF pages, text blocks, annotations, images, and crops,
-3. mine evidence items from regions,
+3. mine evidence from regions,
 4. build document graphs: contexts, subjects, claims,
 5. build diff and reasoning graphs,
-6. apply unit/plausibility comparison,
-7. produce cited findings,
-8. write JSON artifacts, report, logs, search index, wiki, and optional graph.
+6. compare units and engineering quantities,
+7. emit cited findings,
+8. write JSON artifacts, report, logs, search index, wiki, and optional Kuzu graph.
 
-JSON artifacts are canonical. Markdown, search, wiki, and Kuzu are derived.
+JSON is canonical. Markdown, search, wiki, graph, and UI views are derived.
 
-## Ingestion And Extraction
+## Extraction
 
 PyMuPDF provides:
 
 - page dimensions and text counts,
 - text blocks with bounding boxes,
 - page images and citation crops,
-- PDF annotations and highlighted text.
+- annotations, comments, and highlighted text.
 
-Low-text/scanned pages produce `coverage_warning` findings. The MVP does not pretend OCR/VLM coverage exists when text extraction fails.
+Low-text pages produce coverage warnings. The system does not claim review coverage where text extraction fails.
 
-## Comparison Logic
+## Reasoning And Comparison
 
 Evidence is normalized into claims:
 
 - subject,
 - parameter,
-- value,
-- unit,
+- value/unit,
 - context,
-- citation.
+- source citation.
 
 Comparison uses:
 
-- subject/context alignment,
-- graph/search/memory context support as non-authoritative quorum signals,
-- unit equivalence through Pint,
+- subject and context alignment,
+- AES glossary aliases,
+- graph/search/memory signals as non-authoritative support,
+- Pint for unit equivalence,
 - custom `%Z` impedance handling,
-- decimal/magnitude-slip notes,
-- deterministic mismatch gating.
+- decimal/magnitude-slip checks,
+- deterministic discrepancy gates.
 
 Examples:
 
-- `150 kVA` equals `0.15 MVA`, suppressed.
-- `140 MVA` vs `120 MVA`, flagged.
-- `%Z` with conflicting or missing base context routes to engineer review.
+- `150 kVA` vs `0.15 MVA` is suppressed.
+- `140 MVA` vs `120 MVA` is flagged.
+- `%Z` with incomplete base context routes to engineer review.
 
-When cloud review is enabled, an external model receives only the already-cited
-finding JSON, source quotes, authority direction, and context support summary.
-Its output is advisory metadata on the existing finding. It cannot create a
-finding, override deterministic gates, or replace reviewer judgment.
-
-## Authority And Confidence
+## Authority And Severity
 
 Authority is explicit:
 
-- version mode: B supersedes A by default,
-- cross-doc mode: configured AES precedence, e.g. protection study over specification,
-- unknown direction downgrades to review rather than overclaim.
+- version mode: B supersedes A,
+- cross-doc mode: configured AES precedence,
+- unknown authority downgrades rather than overclaims.
 
 `review_required` requires:
 
 - cited evidence,
 - deterministic discrepancy,
-- strong enough subject identity,
+- strong enough identity,
 - known authority direction.
 
-## Citation System
+## Explainability
 
-Every finding must have source evidence:
+Each Streamlit finding has a compact explainability graph:
 
-- page,
-- quote,
-- bbox,
-- crop image path,
-- evidence IDs,
-- reasoning decision IDs.
+```text
+cited evidence -> context support -> candidate screening -> pairing
+-> value check -> authority -> finding
+```
 
-No citation means no finding.
+The graph explains why evidence was paired and how the finding was decided. It is not a substitute for citations.
+
+## Optional Cloud Review
+
+When enabled, the external model receives only existing cited finding JSON, source quotes, authority, and context support. It can add advisory notes. It cannot create findings, bypass citations, or certify correctness.
 
 ## Evaluation
 
-Eval YAML checks:
+Eval checks:
 
 - expected findings present,
 - forbidden findings absent,
-- citation fields exist,
-- max finding counts,
+- every finding cited,
 - language guard,
-- reasoning/decision artifacts.
+- max finding counts,
+- decision artifacts present.
 
 Current validation:
 
 - public version demo passes,
 - public cross-doc demo passes,
 - negative/no-mismatch eval passes,
-- scanned eval routes to coverage warnings,
-- coverage gate: 68 tests, 79% line coverage.
+- scanned/low-text eval routes to coverage warnings,
+- test suite: `94 passed`.
 
 ## Known Limits
 
-- OCR/VLM extraction is not yet active in the public demo.
+- OCR/VLM extraction is not active in the public demo.
 - Complex multi-page tables and drawing-only labels remain weak.
-- Current public demo uses watermarked synthetic mutations over real public AES source material.
-- Broad AES production readiness requires private paired project packets and gold expectations.
+- Public demo uses watermarked synthetic mutations over real public AES source material.
+- Production readiness needs private AES project packets and gold expectations.

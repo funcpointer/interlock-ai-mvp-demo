@@ -3,33 +3,29 @@
 ## What I Personally Built
 
 - Fresh InterLock MVP repo and CLI-first review engine.
-- Reusable `run_review(ReviewRequest) -> ReviewResult` core.
-- PDF ingestion, text/block extraction, annotation extraction, crops, JSON artifacts, metrics, logs, report generation.
-- Directional authority model for version and cross-document review.
-- Evidence mining, document/reasoning graphs, unit/plausibility checks, cited findings.
-- Eval harness, negative/scanned/demo fixtures, triage diagnostics.
-- Static Vercel demo package and live Streamlit upload/review app.
+- Shared `run_review(ReviewRequest) -> ReviewResult` core used by CLI and Streamlit.
+- PDF ingestion, block extraction, annotations, crops, evidence mining, document graphs, reasoning graph, findings, metrics, logs, and reports.
+- Directional authority for version and cross-document review.
+- Unit/plausibility checks, citation-gated findings, explainability graph, eval harness, triage diagnostics, and live Streamlit demo.
 
 ## What I Reused
 
 - Public AES transformer specification PDF.
-- Existing fixture concepts and selected synthetic/gold expectations from prior InterLock work.
-- OSS libraries: PyMuPDF, Pydantic, Typer, Rich, RapidFuzz, Pint, Kuzu, Jinja2, Pillow, Structlog, PyYAML, LanceDB, Streamlit.
-- Public/synthetic demo PDFs bundled for repeatable review.
+- Watermarked synthetic demo revisions/excerpts so expected discrepancies are known.
+- Selected fixture concepts from prior InterLock work.
+- OSS libraries: PyMuPDF, Pydantic, Typer, Rich, RapidFuzz, Pint, Kuzu, Jinja2, Pillow, Structlog, PyYAML, LanceDB, Streamlit, OpenAI SDK.
 
 ## What Broke
 
-- Early cross-doc attempts over arbitrary public documents produced weak/noisy alignment.
-- Scanned/low-text PDFs produced empty-looking results until coverage warnings were surfaced clearly.
-- Fixed Streamlit run directories risked artifact reuse across sessions.
-- Public repo polish initially included local machine paths in docs/Makefile.
-- Broad scan/table/drawing support is not solved yet.
+- Early arbitrary cross-doc runs were noisy without paired project context.
+- Low-text/scanned PDFs looked empty until coverage warnings were made explicit.
+- Initial context/explainability UI repeated citation evidence instead of explaining the pairing.
+- Full OCR/VLM and robust drawing/table understanding remain out of MVP scope.
 
 ## How I Debugged It
 
-- Added first-class metrics and JSONL stage logs from the start.
-- Persisted every intermediate artifact: pages, regions, evidence, document graphs, diff graph, reasoning graph, decision traces, findings.
-- Added triage diagnostics for generic subjects, weak contexts, absence-only findings, coverage gaps, and downgrade reasons.
-- Added eval YAML for expected/forbidden findings and citation requirements.
-- Ran coverage, doctor, public version eval, public cross-doc eval, negative eval, and scanned eval.
-- Browser-smoked the live Streamlit deployment and static Vercel demo.
+- Persisted every intermediate artifact for inspection.
+- Added metrics and stage logs from the start.
+- Added eval YAML for expected and forbidden findings.
+- Added triage diagnostics for extraction, context, subject resolution, and reasoning risks.
+- Browser-tested the Streamlit demo and ran public version/cross-doc evals before checkpointing.

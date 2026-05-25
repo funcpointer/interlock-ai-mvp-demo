@@ -1,77 +1,61 @@
-# Demo Video Voice-Over Script
+# Demo Video Script
 
 Target length: 3 minutes.
 
-## 0:00-0:25 — Open
+## 0:00-0:20 - Open
 
-Action: Open `https://interlock-ai-mvp-demo-ddptwdsnkhnf84zqf6nd3q.streamlit.app/`.
-
-Voice-over:
-
-> InterLock AI is an engineering review assistant for comparing technical PDFs. The wedge is simple: find verifiable mismatches across documents, cite the source evidence, and help senior reviewers inspect the right issues faster.
->
-> This does not replace engineering judgment. It gives the reviewer an evidence-backed review map instead of another uncited AI summary.
-
-## 0:25-1:20 — Version Review
-
-Action: Select `Public version demo`, keep cloud calls off, and click `Run review`.
+Action: open `https://interlock-ai-mvp-demo-ddptwdsnkhnf84zqf6nd3q.streamlit.app/`.
 
 Voice-over:
 
-> First, I am running a version review. This compares a baseline PDF against a revised PDF. In version mode, the revised document is treated as authoritative, but the system still has to prove every finding with source citations.
->
-> This demo uses a real public AES transformer specification sheet and a watermarked synthetic revision. The synthetic revision gives us known expected discrepancies, so we can test precision instead of just showing a nice-looking output.
+> InterLock AI is an engineering review assistant for comparing technical PDFs. The goal is not to replace expert judgment. The goal is to find verifiable mismatches, cite the source evidence, and make senior review faster and more systematic.
 
-Action: Open the two review-required findings. Point to subject, parameter, values, authority, quotes, and crop images.
+## 0:20-1:15 - Version Review
 
-Voice-over:
-
-> The system found two review-required findings: transformer rating changed from 140 MVA to 120 MVA, and impedance changed from 10 percent to 8 percent.
->
-> Each finding includes the subject, parameter, values from both documents, authority direction, page references, quotes, bounding boxes, and a crop from the PDF. The rule is: no citation, no finding.
-
-## 1:20-2:05 — Cross-Document Review
-
-Action: Select `Public cross-doc demo` and click `Run review`.
+Action: select `Public version demo`, leave cloud calls off, click `Run review`.
 
 Voice-over:
 
-> Now I am switching to cross-document review. This is the broader product direction: comparing different document types, not just two revisions of the same file.
+> This is a version review: baseline document versus revised document. The revised document is treated as authoritative, but every finding still has to be proven with source citations.
 >
-> Here the system compares the transformer specification against a synthetic protection-study excerpt. The same engineering assumptions appear in a different document shape, which is much closer to real review work.
+> The demo uses a real public AES transformer specification sheet and a watermarked synthetic revision so the expected discrepancies are known and eval-checked.
 
-Action: Open a cross-doc finding. Point to authority and evidence from both files.
+Action: open the two findings.
 
 Voice-over:
 
-> Authority matters here. A generic "A does not equal B" flag is not enough. The reviewer needs to know which document is treated as controlling and why. In this demo, the AES authority configuration ranks the protection study above the specification.
+> The system finds two review-required changes: transformer rating from 140 MVA to 120 MVA, and impedance from 10 percent to 8 percent.
 >
-> If authority is unknown, the system should not overclaim. It should route the item to engineer review.
+> Each finding shows the subject, parameter, values, authority direction, page quote, and source crop. The rule is simple: no citation, no finding.
 
-## 2:05-2:45 — Architecture
+## 1:15-2:00 - Explainability
 
-Action: Expand artifacts or debug/details. Show `findings.json`, `metrics.json`, `reasoning_graph.json`, and `decision_traces.json` if visible.
+Action: expand `Explainability: why this finding was made`.
 
 Voice-over:
 
-> The UI is only an adapter. The core product is a reusable review engine: the CLI, Streamlit app, and a future API can all call the same review function.
+> This is the explainability layer. The graph shows how the system moved from cited evidence to context support, candidate screening, pairing, value comparison, authority direction, and finally the finding.
 >
-> The engine persists intermediate artifacts: extracted pages, regions, evidence, document graphs, reasoning decisions, findings, metrics, and logs. That matters because accuracy work needs observability. When a flag is wrong, we can inspect whether the issue came from extraction, subject alignment, unit comparison, authority resolution, or rendering.
->
-> There is also a context layer: graph, search index, and review wiki. It gives the reviewer a second-brain view of the packet, so they can move from a finding to the surrounding document context, related evidence, and reasoning trail.
->
-> In the UI, this shows up as a compact context check: did the graph connect the cited claims, did search find related packet evidence, and did the memory layer place the evidence in the right document room. These signals explain why the cited evidence was compared. They are never enough by themselves. The published finding still needs direct citations and deterministic comparison logic.
->
-> If cloud review is enabled, an external model can add an advisory reviewer note to an already-cited finding. It is deliberately downstream of the evidence gate: it can support or caution, but it cannot create findings.
->
-> JSON is the source of truth. The report, graph, search layer, wiki, and UI are derived from it. That keeps the prototype easy to debug now and easy to port later.
+> This matters because a reviewer needs to know why two pieces of evidence were paired, what else was considered, and which comparison rule fired. The graph and text explain the reasoning, but they do not replace the source citations.
 
-## 2:45-3:10 — Close
+## 2:00-2:35 - Cross-Document Review
 
-Action: Return to the findings list.
+Action: select `Public cross-doc demo`, click `Run review`, open one finding.
 
 Voice-over:
 
-> The MVP is intentionally conservative. It handles cited parameter discrepancies first, and it surfaces low-text or scanned pages as coverage warnings instead of pretending it reviewed what it could not read.
+> This is the broader product wedge: cross-document review. The system compares a transformer specification against a protection-study excerpt. The same engineering assumptions appear in a different document shape.
 >
-> The next accuracy lift is OCR, VLM extraction, table structure, and evaluation on private AES document packets. But the product thesis is already visible: turn engineering PDFs into a cited review map, flag costly mismatches, and make expert review faster and more systematic.
+> Authority matters here. The AES configuration ranks the protection study above the specification. If authority is unknown, the system should downgrade instead of overclaiming.
+
+## 2:35-3:00 - Architecture And Close
+
+Action: show artifacts/downloads or context layer briefly.
+
+Voice-over:
+
+> The UI is only an adapter. The core engine writes structured artifacts: extracted regions, evidence, document graphs, reasoning graph, decision traces, findings, metrics, logs, search index, and wiki.
+>
+> That observability is critical for accuracy work. When a finding is weak, we can see whether the issue came from extraction, subject alignment, unit comparison, authority, or rendering.
+>
+> The current MVP is conservative: cited parameter discrepancies first, coverage warnings for low-text pages, and no fabricated confidence. The next lift is OCR/VLM, stronger table structure, and private AES packet evaluation.

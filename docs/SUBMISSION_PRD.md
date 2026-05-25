@@ -2,75 +2,73 @@
 
 ## Problem
 
-Energy infrastructure review teams compare studies, drawings, specifications, contracts, standards, and checklists by hand. Important mismatches can hide across files until late design or construction review, where they become expensive schedule and safety risks.
+Energy infrastructure teams compare studies, drawings, specifications, contracts, standards, and checklists by hand. Mismatches in ratings, assumptions, references, or missing items often surface late, when redesign and construction delays are expensive.
 
-The MVP wedge is cross-file discrepancy detection for engineering PDFs with source citations. The product does not replace engineering judgment. It helps reviewers find, inspect, and triage verifiable issues faster.
+InterLock AI is a reviewer-assist tool. It does not replace engineering judgment. It helps senior reviewers find cited discrepancies faster and inspect the evidence behind them.
 
 ## User
 
-Primary user: senior or staff electrical/protection engineer reviewing design packages.
+Primary user: senior electrical, protection, or design-review engineer working through a multi-document project packet.
 
-Workflow fit:
+The tool fits the existing workflow because reviewers already:
 
-- reviewer already receives multiple PDFs,
-- reviewer must compare assumptions, ratings, references, and missing items,
-- reviewer needs traceable evidence, not a chatbot answer,
-- reviewer must decide final engineering significance.
+- receive PDFs from multiple sources,
+- compare values and assumptions across files,
+- need directional authority, not just "A differs from B,"
+- require traceable evidence before acting.
 
-## MVP Scope
+## MVP
 
-The MVP reviews two PDFs in either:
+The MVP reviews two PDFs in:
 
 - `version` mode: revised document supersedes baseline,
 - `cross_doc` mode: authority follows configured document-type precedence.
 
-The system extracts page text, regions, annotations, source crops, evidence items, claims, reasoning decisions, and reviewer-facing findings.
+The system extracts page text, regions, annotations, crops, evidence items, claims, contexts, reasoning decisions, findings, logs, and metrics.
 
 Each finding includes:
 
-- finding type and severity,
 - subject and parameter,
-- authority direction,
-- page/quote/crop citations,
-- reasoning trace IDs,
-- metrics and triage artifacts.
+- finding type and severity,
+- authority direction and basis,
+- page/quote/bbox/crop citations,
+- explainability graph showing evidence -> context -> candidate screening -> pairing -> comparison -> authority -> finding.
 
-## Current Demo Cases
+## Demo Cases
 
-1. Public AES transformer specification sheet vs watermarked synthetic revision.
+1. Public AES transformer specification vs watermarked synthetic revision.
    - `140 MVA -> 120 MVA`
    - `10% impedance -> 8%`
 
-2. Public AES transformer specification sheet vs watermarked synthetic protection-study excerpt.
-   - same two discrepancies expressed across document types.
+2. Public AES transformer specification vs watermarked synthetic protection-study excerpt.
+   - same planted discrepancies, expressed across document types.
 
-Both cases are eval-backed and produce two review-required cited findings.
+Both are eval-backed and produce two review-required cited findings.
 
 ## Non-Goals
 
 - Replace final engineering review.
-- Claim broad arbitrary-document understanding.
-- Hide unreadable scans behind fabricated confidence.
-- Make graph/search/LLM output authoritative by itself.
+- Certify engineering correctness.
+- Overclaim coverage on unreadable scans.
+- Treat graph/search/LLM output as authoritative without citations.
 
-## Platform Path
+## Wedge To Platform
 
-Wedge: transformer specs and protection-study comparisons.
+Wedge: transformer specification and protection-study comparison.
 
-Next expansion:
+Expansion path:
 
-- OCR/VLM for scans and image-only drawings,
+- OCR/VLM for scans and image-heavy drawings,
 - stronger table extraction,
-- reviewer-authored glossaries and aliases,
+- AES-specific glossaries and aliases,
 - private AES packet evaluation,
-- additional finding classes: missing required item, conflicting reference, checklist gap,
-- API/FE surface over the same `run_review(ReviewRequest)` core.
+- more finding classes: missing required items, reference conflicts, checklist gaps,
+- API and richer UI over the same `run_review(ReviewRequest)` core.
 
 ## Success Criteria
 
-- two real engineering PDFs ingested,
-- cited mismatch findings produced,
-- negative pair produces no review-required findings,
-- scan/low-text pair routes to coverage warnings,
-- findings are reproducible through CLI and live demo,
-- reviewer can inspect source evidence in under one minute.
+- Two engineering PDFs ingested.
+- Expected cited findings present.
+- Negative pair produces no review-required findings.
+- Low-text pages produce coverage warnings.
+- Reviewer can inspect why a finding was made in under one minute.
