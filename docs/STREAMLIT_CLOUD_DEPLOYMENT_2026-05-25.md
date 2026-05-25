@@ -1,10 +1,11 @@
 # Streamlit Cloud Deployment
 
-Status: deploy-ready locally. Blocked only on GitHub/Streamlit account authentication.
+Status: pushed to GitHub and ready for Streamlit Cloud app creation.
 
 ## What Streamlit Cloud Needs
 
-- GitHub repository containing this project.
+- Public GitHub repository containing this project:
+  `https://github.com/funcpointer/interlock-ai-mvp-demo`
 - Branch: `main`.
 - Main file path: `streamlit_app.py`.
 - Python version: choose `3.12` in Streamlit Cloud advanced settings.
@@ -29,14 +30,16 @@ Private AES PDFs remain gitignored under `corpora/aes/docs/`.
 
 ## Deployment Steps
 
-1. Push this repo to GitHub.
-2. Open Streamlit Community Cloud.
-3. Create app from existing GitHub repo.
+1. Open Streamlit Community Cloud.
+2. Create app from existing GitHub repo.
+3. Select repository `funcpointer/interlock-ai-mvp-demo`.
 4. Select:
-   - repo: the pushed InterLock MVP repo,
    - branch: `main`,
    - main file path: `streamlit_app.py`.
-5. In advanced settings, choose Python `3.12`.
+5. In advanced settings:
+   - choose Python `3.12`,
+   - leave secrets empty,
+   - choose a public/custom app URL suitable for VC sharing.
 6. Leave secrets empty for the default no-cloud demo.
 7. Deploy.
 
@@ -49,4 +52,4 @@ Private AES PDFs remain gitignored under `corpora/aes/docs/`.
 
 ## Current Blocker
 
-The local `gh` auth tokens are invalid, and the repo has no GitHub remote. I cannot complete the Streamlit Cloud deployment until GitHub is authenticated or a target remote is provided.
+Streamlit Cloud app creation requires the account workspace UI. The source repo is ready and pushed; the remaining step is selecting repo `funcpointer/interlock-ai-mvp-demo`, branch `main`, and file `streamlit_app.py` in Streamlit Cloud.
