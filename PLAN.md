@@ -41,6 +41,7 @@ Implemented:
 - Local second-brain SQLite/FTS index over review-map artifacts.
 - LanceDB index over review-map artifacts with deterministic local embeddings.
 - Corpus manifest runner for AES/private partner document batches.
+- Derived Markdown review wiki over each run: index, log, documents, subjects, findings, reasoning decisions.
 
 Current validated fixture classes:
 
@@ -55,7 +56,7 @@ Current validated fixture classes:
 ## Invariants
 
 - JSON artifacts are source of truth.
-- `report.md`, Kuzu, search indexes, and future UI/API payloads are derived from JSON.
+- `report.md`, Kuzu, search indexes, wiki pages, and future UI/API payloads are derived from JSON.
 - Every finding needs source evidence: page, quote, bbox/crop.
 - No citation means no finding.
 - Authority direction must appear on every finding.
@@ -139,6 +140,7 @@ search/review_map.jsonl
 search/second_brain.sqlite
 search/lancedb/
 search/lancedb_meta.json
+wiki/
 graph.kuzu/        # optional, derived, skipped by --no-kuzu
 ```
 
@@ -153,6 +155,10 @@ Document
   -> citation / crop / bbox
   -> diff edge / finding
 ```
+
+The Markdown wiki is the LLM-readable synthesis layer. It is intentionally
+derived from JSON, not authoritative. It gives the next reviewer or model a
+stable starting map before falling back to search, JSON, crops, or source PDFs.
 
 ## Telemetry Policy
 

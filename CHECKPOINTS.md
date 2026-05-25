@@ -501,3 +501,54 @@ make eval-aes-seed
 Known limit:
 
 - `deterministic_hash_v1` is only a local lexical-vector bootstrap. It proves the LanceDB artifact path and fusion logic. It is not a substitute for real embeddings from a local SLM/Ollama model or cloud model.
+
+## checkpoint-2026-05-25-review-wiki
+
+Purpose:
+
+- align the MVP memory architecture with the Karpathy LLM Wiki pattern without making the wiki authoritative,
+- give future reviewers and model calls a stable Markdown synthesis layer before they search JSON, crops, or source PDFs,
+- keep raw PDFs and JSON artifacts as source of truth while adding a browsable compiled-memory layer.
+
+Research note:
+
+- Karpathy's LLM Wiki pattern separates immutable raw sources, an LLM-maintained interlinked Markdown wiki, and a schema/workflow file.
+- Our system already had raw PDFs, canonical JSON, Kuzu, SQLite FTS, LanceDB, and `rg`.
+- Missing piece: a Markdown wiki layer that compiles the review map into pages with links, summaries, and reasoning traces.
+
+Changed:
+
+- added `interlock_mvp/core/wiki.py`,
+- every review now writes:
+  - `wiki/index.md`
+  - `wiki/log.md`
+  - `wiki/review-map.md`
+  - `wiki/documents/*.md`
+  - `wiki/subjects/*.md`
+  - `wiki/findings/*.md`
+  - `wiki/reasoning/decisions.md`
+- `metrics.json` now includes `wiki_pages`,
+- integration test pins wiki artifact contract and finding decision links,
+- package version bumped to `0.12.0`.
+
+Validation result:
+
+```text
+tests/test_review_integration.py
+  1 passed
+
+make coverage
+  40 passed
+  source coverage: 75%
+
+make eval-fast
+  unit tests: 40 passed during target run
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 4 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+```
+
+Known limit:
+
+- the wiki is deterministic and derived today. It does not yet perform LLM-maintained synthesis across multiple runs or update persistent AES domain pages. That should come after real AES corpus intake, because the wiki schema should be shaped by partner documents, not by synthetic fixtures.

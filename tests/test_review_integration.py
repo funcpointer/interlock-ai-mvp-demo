@@ -48,6 +48,10 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
         "search/second_brain.sqlite",
         "search/lancedb",
         "search/lancedb_meta.json",
+        "wiki/index.md",
+        "wiki/log.md",
+        "wiki/review-map.md",
+        "wiki/reasoning/decisions.md",
     ]:
         assert (out_dir / name).exists(), name
 
@@ -72,6 +76,12 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
     assert metrics["comparison_sourced_findings"] == 1.0
     assert metrics["absence_sourced_findings"] == 0.0
     assert "Review Reasoning Health" in (out_dir / "report.md").read_text(encoding="utf-8")
+    wiki_index = (out_dir / "wiki" / "index.md").read_text(encoding="utf-8")
+    assert "compiled memory layer" in wiki_index
+    assert "[[findings/find_00001|find_00001]]" in wiki_index
+    wiki_finding = (out_dir / "wiki" / "findings" / "find_00001.md").read_text(encoding="utf-8")
+    assert "Alignment decision" in wiki_finding
+    assert "## Citations" in wiki_finding
 
     logs = (out_dir / "logs.jsonl").read_text(encoding="utf-8")
     assert "extract_doc_a" in logs

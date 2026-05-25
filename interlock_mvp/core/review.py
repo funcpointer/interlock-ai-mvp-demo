@@ -20,6 +20,7 @@ from .reasoning import build_reasoning_graph
 from .report import render_report
 from .search import write_search_index
 from .verification import findings_from_reasoning_graph
+from .wiki import write_review_wiki
 
 
 def run_review(request: ReviewRequest) -> ReviewResult:
@@ -252,7 +253,20 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         metrics=metrics,
         warnings=warnings,
     )
-    _finish_stage(logger, stage_timings, "write_artifacts", stage_started, artifact_count=16)
+    wiki_pages = write_review_wiki(
+        request.out_dir,
+        documents=documents,
+        doc_graph_a=graph_a,
+        doc_graph_b=graph_b,
+        diff_graph=diff_graph,
+        reasoning_graph=reasoning_graph,
+        findings=findings,
+        metrics=metrics,
+        warnings=warnings,
+    )
+    metrics["wiki_pages"] = wiki_pages
+    write_object(request.out_dir / "metrics.json", {"metrics": metrics, "warnings": warnings})
+    _finish_stage(logger, stage_timings, "write_artifacts", stage_started, artifact_count=17, wiki_pages=wiki_pages)
     logger.event("run_finished", findings=len(findings), elapsed_seconds=metrics["elapsed_seconds"])
 
     return ReviewResult(

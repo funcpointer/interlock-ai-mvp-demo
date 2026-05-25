@@ -27,6 +27,7 @@ Important review-map artifacts:
 - `diff_graph.json`: compatibility/debug view of mismatches and missing items.
 - `reasoning_graph.json`: alignment, comparison, and absence-search decisions explaining why findings were created.
 - `findings.json`: reviewer-facing cited findings emitted from reasoning decisions, with decision IDs back into the reasoning graph.
+- `wiki/`: derived Markdown review wiki with index, log, document pages, subject pages, finding pages, and reasoning-decision pages.
 
 Use `--no-kuzu` when Kuzu is not part of the question being tested. Kuzu is derived from JSON today; skipping it does not skip finding logic.
 
