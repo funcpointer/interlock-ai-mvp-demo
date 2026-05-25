@@ -18,6 +18,7 @@ FindingType = Literal[
 Severity = Literal["review_required", "possible_issue", "informational"]
 Confidence = Literal["high", "medium", "low"]
 IdentityStrength = Literal["strong", "medium", "weak"]
+TriageSeverity = Literal["high", "medium", "low", "info"]
 AlignmentStatus = Literal[
     "matched",
     "probable_match",
@@ -323,6 +324,27 @@ class DecisionTrace(BaseModel):
     contradicting_signals: list[DecisionSignal] = Field(default_factory=list)
     downgrade_reasons: list[str] = Field(default_factory=list)
     rejected_alternatives: list[str] = Field(default_factory=list)
+
+
+class TriageIssue(BaseModel):
+    issue_id: str
+    severity: TriageSeverity
+    category: str
+    title: str
+    summary: str
+    evidence: list[str] = Field(default_factory=list)
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    suggested_next_step: str
+
+
+class RunTriage(BaseModel):
+    run_dir: str
+    findings: int
+    review_required_findings: int
+    coverage_warning_findings: int
+    issue_count: int
+    issues: list[TriageIssue] = Field(default_factory=list)
+    next_actions: list[str] = Field(default_factory=list)
 
 
 class AuthorityDecision(BaseModel):

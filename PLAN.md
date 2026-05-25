@@ -44,6 +44,7 @@ Implemented:
 - Corpus manifest runner for AES/private partner document batches.
 - Derived Markdown review wiki over each run: index, log, documents, subjects, findings, reasoning decisions.
 - Context memory layer: memory-palace rooms/trails derived from contexts and fed into second-brain search.
+- Diagnostic triage command that reads persisted artifacts and writes `triage.json`.
 
 Current validated fixture classes:
 
@@ -54,6 +55,7 @@ Current validated fixture classes:
 - synthetic reference smoke: `synth_equipment_spec_v2.pdf` vs `synth_equipment_spec_v3.pdf`
 - real cross-doc smoke: `real_ieee_xfmr_spec_guide.pdf` vs `real_sel_xfmr_protection.pdf`
 - AES near-real corpus seed: `corpora/aes/near_real_seed.yaml`
+- public AES smoke corpus downloaded locally under gitignored `corpora/aes/docs/public_aes/`
 
 Current accuracy caution:
 
@@ -118,6 +120,12 @@ Corpus intake:
   --no-kuzu
 ```
 
+Run triage on any completed run:
+
+```bash
+/Users/kc/venv-12/bin/python -m interlock_mvp triage runs/demo
+```
+
 Private AES PDFs are not committed. They are referenced by
 `corpora/aes/local_manifest.yaml`, which is gitignored. The committed
 `corpora/aes/near_real_seed.yaml` is only a bridge over existing fixture and
@@ -153,6 +161,11 @@ search/lancedb_meta.json
 wiki/
 graph.kuzu/        # optional, derived, skipped by --no-kuzu
 ```
+
+`triage.json` is written by the explicit `interlock_mvp triage RUN_DIR` command.
+It is diagnostic, not authoritative. It reports extraction, context, subject
+resolution, reasoning, verification, and explainability risks found in the
+already-written artifacts.
 
 The JSON graph artifacts are the MVP's "review map." They are the boring, engineering-grade equivalent of a memory palace:
 
@@ -191,6 +204,8 @@ Every run must answer:
 - Did graph alignment create too many or too few diff edges?
 - Did verification downgrade anything?
 - Where did runtime go?
+- Does triage say the run is absence-only, document-context-heavy, or missing
+  decision traces?
 
 Required metrics:
 
@@ -204,6 +219,7 @@ Required metrics:
 - context-memory rooms/trails/rooms-with-findings
 - diff edges by type/alignment/identity strength
 - decision traces and traces with downgrade reasons
+- triage issue counts by category/severity when `triage` has been run
 - findings by type/severity/confidence
 - cloud cost estimate
 - Kuzu status
@@ -221,6 +237,7 @@ Accuracy checkpoint suite:
 - negative eval
 - cross-doc eval
 - scanned/low-text review sanity
+- triage over checkpoint runs
 - all with `--no-cloud --no-kuzu` only because cloud export is gated and Kuzu is derived
 
 Full checkpoint suite:
@@ -599,20 +616,25 @@ Completed:
 8. Add reasoning decision models, `reasoning_graph.json`, finding decision IDs, reasoning metrics, report reasoning health, search records, Kuzu decision nodes, and eval assertions over reasoning decisions.
 9. Generate non-coverage findings by iterating `ComparisonDecision` and `AbsenceSearch`; keep `DiffEdge` as lookup/debug context.
 10. Remove the stale candidate-generation path and add `decision_traces.json` as the finding-level signal ledger.
+11. Add `triage` command and use it on fixture/public-AES runs to expose extraction/context/reasoning failures.
 
 Next:
 
-1. Add Kuzu smoke queries for finding-to-decision-trace traceability.
-2. Improve rejected-alternative capture inside alignment/missing search instead of deriving it after the fact.
-3. Add table-aware extraction for weak examples: PID, HVAC schedules, relay settings.
-4. Add model-proposed evidence/claim suggestions behind explicit proposal-only artifacts.
-5. Only then consider LanceDB/local SLM integration.
+1. Build real AES eval YAML for public/private corpus pairs: expected, forbidden, max review-required, coverage expectations.
+2. Improve subject/context alignment for cross-document review; public-AES smoke currently produces absence-only findings with zero comparisons.
+3. Add OCR/VLM extraction for pages that triage marks weak/low-text.
+4. Add table-aware extraction for schedules, settings, and drawing/spec tables.
+5. Add real local embeddings for LanceDB after extraction/context failures are measured.
+6. Add Kuzu smoke queries for finding-to-decision-trace traceability.
 
 Validation after each step:
 
 ```bash
 make coverage
 make eval-fast
+$(PY) -m interlock_mvp triage runs/checkpoint-version
+$(PY) -m interlock_mvp triage runs/checkpoint-cross
+$(PY) -m interlock_mvp triage runs/checkpoint-scanned
 make eval-examples
 make eval-search
 make eval-kuzu

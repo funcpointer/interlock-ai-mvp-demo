@@ -6,6 +6,7 @@ Fresh CLI-only evidence review engine for comparing two engineering PDFs.
 /Users/kc/venv-12/bin/python -m interlock_mvp doctor
 /Users/kc/venv-12/bin/python -m interlock_mvp review A.pdf B.pdf --mode version --out runs/demo --no-cloud --no-kuzu
 /Users/kc/venv-12/bin/python -m interlock_mvp check runs/demo --eval eval/demo.yaml
+/Users/kc/venv-12/bin/python -m interlock_mvp triage runs/demo
 /Users/kc/venv-12/bin/python -m interlock_mvp search runs/demo "transformer rating"
 /Users/kc/venv-12/bin/python -m interlock_mvp corpus corpora/aes/local_manifest.yaml --out-root runs/aes-corpus --no-cloud --no-kuzu
 ```
@@ -31,6 +32,7 @@ Important review-map artifacts:
 - `diff_graph.json`: compatibility/debug view of mismatches and missing items.
 - `reasoning_graph.json`: alignment, comparison, and absence-search decisions explaining why findings were created.
 - `decision_traces.json`: finding-level signal ledger: citations, authority, alignment, comparison/absence logic, rejected alternatives, and downgrade reasons.
+- `triage.json`: optional diagnostic artifact written by `interlock_mvp triage`; flags extraction, context, subject-resolution, reasoning, and explainability risks.
 - `context_memory.json`: memory-palace rooms/trails derived from contexts, claims, evidence, and findings.
 - `findings.json`: reviewer-facing cited findings emitted from reasoning decisions, with decision IDs back into the reasoning graph.
 - `wiki/`: derived Markdown review wiki with index, log, memory palace, document pages, context-room pages, subject pages, finding pages, and reasoning-decision pages.
@@ -58,3 +60,9 @@ make eval-aes-seed
 
 Corpus runs write one child run directory per pair and a summary artifact at
 `runs/<corpus>/corpus_results.json`.
+
+Public AES smoke data can be placed under `corpora/aes/docs/public_aes/`. This
+folder is gitignored. The current local smoke set uses public AES Indiana DER /
+Goldbook documents and AES Clean Energy Somerset transformer/drawing documents
+only to stress extraction and triage. It is not a substitute for private AES
+project review packets with gold expectations.

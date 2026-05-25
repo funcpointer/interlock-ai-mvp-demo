@@ -4,7 +4,7 @@ AUTH := examples/aes_authority.yaml
 AES_MANIFEST ?= corpora/aes/local_manifest.yaml
 AES_SEED_MANIFEST ?= corpora/aes/near_real_seed.yaml
 
-.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-kuzu eval-search eval-examples eval-aes-corpus eval-aes-seed eval-full doctor
+.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-triage eval-kuzu eval-search eval-examples eval-aes-corpus eval-aes-seed eval-full doctor
 
 test:
 	$(PY) -m pytest -q
@@ -34,6 +34,11 @@ eval-scanned:
 
 eval-fast: test eval-version eval-negative eval-cross eval-scanned
 
+eval-triage: eval-fast
+	$(PY) -m interlock_mvp triage runs/checkpoint-version
+	$(PY) -m interlock_mvp triage runs/checkpoint-cross
+	$(PY) -m interlock_mvp triage runs/checkpoint-scanned
+
 eval-kuzu:
 	$(PY) -m interlock_mvp review $(FIXTURES)/doc_a_60pct.pdf $(FIXTURES)/doc_b_90pct.pdf --mode version --out runs/checkpoint-kuzu --authority-config $(AUTH) --no-cloud
 
@@ -56,4 +61,4 @@ eval-aes-corpus:
 eval-aes-seed:
 	$(PY) -m interlock_mvp corpus $(AES_SEED_MANIFEST) --out-root runs/aes-seed --authority-config $(AUTH) --no-cloud --no-kuzu
 
-eval-full: eval-fast eval-search eval-examples eval-kuzu
+eval-full: eval-triage eval-search eval-examples eval-kuzu

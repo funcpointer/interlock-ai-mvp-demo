@@ -16,6 +16,7 @@ from .core.env import DEFAULT_OLD_REPO_ENV, load_env_file, load_key_files
 from .core.models import ReviewRequest
 from .core.review import run_review
 from .core.search import search_run
+from .core.triage import triage_run
 
 app = typer.Typer(help="InterLock MVP cited directional PDF review CLI.")
 console = Console()
@@ -103,6 +104,38 @@ def inspect(
     if finding:
         records = [record for record in records if record.get("finding_id") == finding]
     console.print_json(data=records)
+
+
+@app.command()
+def triage(
+    run_dir: Annotated[Path, typer.Argument(exists=True, file_okay=False, readable=True)],
+    json_output: Annotated[bool, typer.Option("--json", help="Print triage JSON instead of a table")] = False,
+) -> None:
+    result = triage_run(run_dir, write=True)
+    if json_output:
+        console.print_json(data=result.model_dump(mode="json"))
+        return
+    table = Table(title=f"InterLock Triage: {run_dir}")
+    table.add_column("Severity")
+    table.add_column("Category")
+    table.add_column("Issue")
+    table.add_column("Summary")
+    for issue in result.issues:
+        style = {"high": "red", "medium": "yellow", "low": "cyan", "info": "white"}.get(issue.severity, "white")
+        table.add_row(
+            f"[{style}]{issue.severity}[/{style}]",
+            issue.category,
+            issue.title,
+            _clip(issue.summary, 120),
+        )
+    if not result.issues:
+        table.add_row("[green]info[/green]", "run", "No structural triage issues", "Artifacts look internally coherent.")
+    console.print(table)
+    if result.next_actions:
+        console.print("[bold]Next actions:[/bold]")
+        for action in result.next_actions:
+            console.print(f"- {action}")
+    console.print(f"[dim]Wrote {run_dir / 'triage.json'}[/dim]")
 
 
 @app.command()

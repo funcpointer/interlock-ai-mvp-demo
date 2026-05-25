@@ -72,6 +72,24 @@ Every pair needs eval YAML with:
 - max review-required count,
 - coverage warning expectations.
 
+Done as a first public-data pass:
+
+- downloaded public AES/AES Indiana PDFs into gitignored `corpora/aes/docs/public_aes/`,
+- ran bounded public-AES smoke pairs,
+- added `interlock_mvp triage` so each run produces a concrete diagnostic artifact.
+
+Finding:
+
+- public AES smoke pairs complete, but they are absence-search heavy and have zero
+  value comparisons. The system is extracting many values but not attaching them
+  to strong cross-document subjects/contexts.
+
+Immediate next action:
+
+- build eval YAML for one public-AES pair only after manually selecting a small,
+  meaningful expected/forbidden subset; do not treat all public smoke findings as
+  product-quality findings yet.
+
 ### P2: Extraction Upgrade Based on Failures
 
 Do not add broad OCR/VLM/table parsing blindly.
@@ -90,6 +108,14 @@ Then add targeted extraction lanes:
 - VLM crop verification for rotated/image-only labels,
 - table extraction for schedules/settings,
 - annotation/highlight regression fixtures.
+
+Current triage priority:
+
+1. table/section context extraction for standards/spec sheets,
+2. subject attachment from nearby labels and table headings,
+3. OCR/VLM only on pages triage marks low-text/weak,
+4. bounded page-range support before large drawing packages become a regular
+   corpus target.
 
 ### P2: Real Embeddings for LanceDB
 

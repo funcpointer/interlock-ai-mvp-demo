@@ -825,3 +825,70 @@ Next:
 1. run real AES corpus manifests and inspect decision traces on misses/noise,
 2. add OCR/VLM/table extraction where telemetry proves recall gaps,
 3. add real local embeddings only after search recall needs it.
+
+## checkpoint-2026-05-25-triage-public-aes
+
+Purpose:
+
+- turn run metrics and decision traces into an executable diagnostic surface,
+- use public AES/AES Indiana PDFs as a local, non-private stress corpus,
+- make the next accuracy work evidence-driven instead of infrastructure-driven.
+
+Changed:
+
+- added `TriageIssue` and `RunTriage` models,
+- added `interlock_mvp/core/triage.py`,
+- added `interlock_mvp triage RUN_DIR`,
+- `triage` writes `triage.json` into the run directory,
+- added tests for:
+  - weak/empty text-layer pages,
+  - document-level context fallback,
+  - generic subjects,
+  - absence-only reviews,
+  - zero comparison decisions,
+  - missing decision traces,
+- added `make eval-triage`,
+- documented public AES smoke PDFs in `corpora/aes/README.md`,
+- package version bumped to `0.17.0`.
+
+Public AES files downloaded locally under gitignored `corpora/aes/docs/public_aes/`:
+
+- AES Indiana DER interconnection standard,
+- AES Indiana Goldbook complete service and meter manual,
+- AES Clean Energy Somerset main power transformer specification sheet,
+- AES Clean Energy Somerset electrical design drawings part 1.
+
+Validation result:
+
+```text
+tests/test_triage.py
+  3 passed
+
+make test
+  49 passed
+
+checkpoint triage:
+  checkpoint-version: generic subjects + one absence-only finding
+  checkpoint-cross: generic subjects + absence-only findings + downgraded decisions
+  checkpoint-scanned: weak extraction pages + document context + downgraded coverage warnings
+  example-real-xfmr-cross: absence-only review, zero comparisons
+
+make eval-aes-corpus
+  public_aes_der_standard_vs_goldbook: completed, 33 findings, 0 review_required, 30 coverage warnings
+  public_aes_der_standard_vs_transformer_spec_sheet: completed, 19 findings, 0 review_required, 16 coverage warnings
+```
+
+Accuracy finding:
+
+- Public AES runs confirm the same wall as the public/vendor cross-doc smoke:
+  extraction finds many values, but subject/context attachment is weak enough
+  that the reasoning graph creates absence-search findings rather than accepted
+  alignments and value comparisons.
+- The next accuracy work is not another storage/search layer. It is table/section
+  context extraction, subject attachment, and targeted OCR/VLM for weak pages.
+
+Operational finding:
+
+- The full Somerset drawing package can dominate runtime. Keep it available for
+  targeted extraction tests, but do not put it in the default local smoke
+  manifest until a bounded page-range/intake mode exists.
