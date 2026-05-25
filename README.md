@@ -79,6 +79,11 @@ The Streamlit app supports preset demos and two-PDF uploads. It is the right
 surface for a live interactive demo. The static Vercel site remains the
 lowest-risk read-only VC URL.
 
+Cloud calls are optional. With cloud enabled and `OPENAI_API_KEY` configured,
+an external model adds an advisory review note to already-cited findings. It
+cannot create findings, bypass citations, or certify engineering correctness.
+The Streamlit app exposes a small cost cap before any cloud run starts.
+
 Details:
 
 - `docs/STREAMLIT_DYNAMIC_APP_2026-05-25.md`
@@ -90,6 +95,7 @@ Streamlit Cloud deployment settings:
 - main file path: `streamlit_app.py`
 - Python: `3.12`
 - secrets: none required for the default no-cloud demo
+- optional secret for advisory model review: `OPENAI_API_KEY`
 
 The AES/domain glossary is loaded from `examples/aes_glossary.yaml` by default.
 It now feeds extraction, parameter naming, context labeling, corpus runs, and

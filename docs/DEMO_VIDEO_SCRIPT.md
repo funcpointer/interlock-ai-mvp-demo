@@ -62,6 +62,8 @@ Voice-over:
 >
 > In the UI, this shows up as a context quorum panel: did the graph connect the cited claims, did search find related packet evidence, and did the memory layer place the evidence in the right document room. These signals can raise or lower confidence and explain why the evidence belongs together. But they are never enough by themselves. The published finding still needs direct citations and deterministic comparison logic.
 >
+> If cloud review is enabled, an external model can add an advisory reviewer note to an already-cited finding. It is deliberately downstream of the evidence gate: it can support or caution, but it cannot create findings.
+>
 > JSON is the source of truth. The report, graph, search layer, wiki, and UI are derived from it. That keeps the prototype easy to debug now and easy to port later.
 
 ## 2:45-3:10 — Close

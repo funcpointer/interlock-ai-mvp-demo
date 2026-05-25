@@ -21,6 +21,7 @@ dependencies = [
   "pyyaml",
   "lancedb",
   "streamlit",
+  "openai",
 ]
 
 [project.scripts]

@@ -143,6 +143,20 @@ def build_decision_traces(
                 if absence.coverage_status != "searched":
                     downgrade_reasons.append(f"absence search coverage status is {absence.coverage_status}")
 
+        if finding.model_review_status == "used":
+            signals.append(
+                DecisionSignal(
+                    signal_id=f"sig{index:05d}_external_model",
+                    source="external_model",
+                    signal_type="advisory_review",
+                    supports=bool(finding.model_review_supports),
+                    summary=finding.model_review_summary,
+                    confidence="medium",
+                )
+            )
+            why.append(f"external model `{finding.model_review_model}` added advisory review note")
+            rejected_alternatives.extend(finding.model_review_cautions)
+
         if finding.severity != "review_required":
             downgrade_reasons.append(f"severity is {finding.severity}")
 

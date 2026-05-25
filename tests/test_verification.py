@@ -1,3 +1,4 @@
+import interlock_mvp.core.verification as verification_module
 from interlock_mvp.core.models import (
     AbsenceSearch,
     AlignmentDecision,
@@ -8,7 +9,7 @@ from interlock_mvp.core.models import (
     EvidenceItem,
     ReasoningGraph,
 )
-from interlock_mvp.core.verification import authored_language_violations, findings_from_reasoning_graph
+from interlock_mvp.core.verification import ExternalFindingReview, authored_language_violations, findings_from_reasoning_graph
 
 
 def test_reasoning_graph_finding_requires_cited_evidence() -> None:
@@ -326,6 +327,99 @@ def test_banned_authored_language_detection_handles_punctuation() -> None:
     violations = authored_language_violations("This is WRONG. That result would be hazardous; not quoted.")
 
     assert violations == ["hazardous", "wrong"]
+
+
+def test_external_model_review_enriches_existing_finding_without_changing_gate(monkeypatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    def fake_review(_finding, *, model: str) -> ExternalFindingReview:
+        assert model
+        return ExternalFindingReview(
+            supports_finding=True,
+            reviewer_note="The cited values, authority, and context quorum are consistent with a reviewer-facing discrepancy.",
+            caution_note="Reviewer should confirm engineering significance before action.",
+        )
+
+    monkeypatch.setattr(verification_module, "_review_finding_with_openai", fake_review)
+    findings, warnings, metrics = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            comparisons=[
+                ComparisonDecision(
+                    comparison_id="comp00001",
+                    diff_id="diff00001",
+                    alignment_id="align00001",
+                    comparison_type="value_mismatch",
+                    unit_method="pint",
+                    deterministic=True,
+                    verifier_status="not_run",
+                    rationale="A differs from B.",
+                )
+            ],
+            context_supports=[_context_support("diff00001", supports=True, confidence="high")],
+        ),
+        diff_edges=[_diff_edge(identity_strength="strong")],
+        evidence_by_id={
+            "a1": _evidence("a1", "A", "1000", "KVA"),
+            "b1": _evidence("b1", "B", "100", "KVA"),
+        },
+        authority=_authority("B"),
+        mode="version",
+        no_cloud=False,
+        dry_run=False,
+        max_cost_usd=1.0,
+    )
+
+    assert warnings == []
+    assert metrics["external_model_reviewed_findings"] == 1.0
+    assert metrics["estimated_cloud_cost_usd"] > 0
+    assert findings[0].severity == "review_required"
+    assert findings[0].model_review_status == "used"
+    assert findings[0].model_review_supports is True
+    assert findings[0].model_review_cautions == ["Reviewer should confirm engineering significance before action."]
+
+
+def test_external_model_review_rejects_banned_authored_language(monkeypatch) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+
+    def fake_review(_finding, *, model: str) -> ExternalFindingReview:
+        return ExternalFindingReview(
+            supports_finding=True,
+            reviewer_note="This is wrong.",
+            caution_note="",
+        )
+
+    monkeypatch.setattr(verification_module, "_review_finding_with_openai", fake_review)
+    findings, warnings, metrics = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            comparisons=[
+                ComparisonDecision(
+                    comparison_id="comp00001",
+                    diff_id="diff00001",
+                    alignment_id="align00001",
+                    comparison_type="value_mismatch",
+                    unit_method="pint",
+                    deterministic=True,
+                    verifier_status="not_run",
+                    rationale="A differs from B.",
+                )
+            ]
+        ),
+        diff_edges=[_diff_edge(identity_strength="strong")],
+        evidence_by_id={
+            "a1": _evidence("a1", "A", "1000", "KVA"),
+            "b1": _evidence("b1", "B", "100", "KVA"),
+        },
+        authority=_authority("B"),
+        mode="version",
+        no_cloud=False,
+        dry_run=False,
+        max_cost_usd=1.0,
+    )
+
+    assert metrics["external_model_review_failures"] == 1.0
+    assert "banned wording" in warnings[0]
+    assert findings[0].model_review_status == "rejected_language"
+    assert findings[0].model_review_summary == ""
 
 
 def _authority(side: str) -> AuthorityDecision:

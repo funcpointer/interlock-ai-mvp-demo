@@ -15,12 +15,10 @@ def load_env_file(path: Path | None) -> list[str]:
     if not env_path or not env_path.exists():
         return loaded
     for line in env_path.read_text(encoding="utf-8").splitlines():
-        stripped = line.strip()
-        if not stripped or stripped.startswith("#") or "=" not in stripped:
+        parsed = _parse_env_assignment(line)
+        if not parsed:
             continue
-        key, value = stripped.split("=", 1)
-        key = key.strip()
-        value = value.strip().strip('"').strip("'")
+        key, value = parsed
         if key and key not in os.environ:
             os.environ[key] = value
             loaded.append(key)
@@ -30,8 +28,24 @@ def load_env_file(path: Path | None) -> list[str]:
 def load_key_files() -> list[str]:
     loaded: list[str] = []
     if DEFAULT_OPENAI_KEY_FILE.exists() and not os.environ.get("OPENAI_API_KEY"):
-        key = DEFAULT_OPENAI_KEY_FILE.read_text(encoding="utf-8").strip()
+        raw_key = DEFAULT_OPENAI_KEY_FILE.read_text(encoding="utf-8").strip()
+        parsed = _parse_env_assignment(raw_key)
+        key = parsed[1] if parsed and parsed[0] == "OPENAI_API_KEY" else raw_key
         if key:
             os.environ["OPENAI_API_KEY"] = key
             loaded.append("OPENAI_API_KEY")
     return loaded
+
+
+def _parse_env_assignment(line: str) -> tuple[str, str] | None:
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#"):
+        return None
+    if stripped.startswith("export "):
+        stripped = stripped[len("export ") :].strip()
+    if "=" not in stripped:
+        return None
+    key, value = stripped.split("=", 1)
+    key = key.strip()
+    value = value.strip().strip('"').strip("'")
+    return (key, value) if key else None

@@ -116,6 +116,8 @@ def _finding_lines(finding: Finding) -> list[str]:
         lines.append(f"- Plausibility notes: {'; '.join(finding.plausibility_notes)}")
     if finding.context_support_summary:
         lines.extend(_context_support_lines(finding))
+    if finding.model_review_status == "used":
+        lines.extend(_model_review_lines(finding))
     lines.append(f"- Verifier notes: {finding.verifier_notes}")
     if finding.evidence_a:
         lines.extend(_citation_lines("Doc A", finding.evidence_a))
@@ -143,6 +145,18 @@ def _context_signal_label(signal: str) -> str:
         "missing_context": "evidence is only in generic or missing context",
         "possible_equivalent_elsewhere": "search found possible equivalent evidence elsewhere",
     }.get(signal, signal.replace("_", " "))
+
+
+def _model_review_lines(finding: Finding) -> list[str]:
+    verdict = "supports the cited finding" if finding.model_review_supports else "adds caution for reviewer inspection"
+    lines = [
+        f"- External model reviewer: {verdict} (`{finding.model_review_model}`).",
+        "- External model note: advisory only; it cannot create or certify findings.",
+        f"- External model summary: {finding.model_review_summary}",
+    ]
+    if finding.model_review_cautions:
+        lines.append(f"- External model cautions: {'; '.join(finding.model_review_cautions)}")
+    return lines
 
 
 def _citation_lines(label: str, citation) -> list[str]:

@@ -228,9 +228,9 @@ def doctor() -> None:
     load_env_file(DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None)
     load_key_files()
     checks = []
-    for module in ["fitz", "pydantic", "typer", "rich", "rapidfuzz", "pint", "kuzu", "lancedb", "jinja2", "PIL", "structlog", "yaml"]:
+    for module in ["fitz", "pydantic", "typer", "rich", "rapidfuzz", "pint", "kuzu", "lancedb", "jinja2", "PIL", "structlog", "yaml", "openai"]:
         checks.append((module, _import_ok(module)))
-    checks.append(("cloud_key", bool(__import__("os").environ.get("OPENAI_API_KEY") or __import__("os").environ.get("ANTHROPIC_API_KEY"))))
+    checks.append(("openai_key", bool(__import__("os").environ.get("OPENAI_API_KEY"))))
     checks.append(("kuzu_temp_write", _kuzu_temp_ok()))
     checks.append(("output_tmp_write", _tmp_write_ok()))
 
@@ -240,7 +240,7 @@ def doctor() -> None:
     for name, ok in checks:
         table.add_row(name, "[green]ok[/green]" if ok else "[red]missing/fail[/red]")
     console.print(table)
-    if not all(ok for name, ok in checks if name != "cloud_key"):
+    if not all(ok for name, ok in checks if name != "openai_key"):
         raise typer.Exit(1)
 
 

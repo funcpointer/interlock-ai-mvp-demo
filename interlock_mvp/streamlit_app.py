@@ -49,15 +49,24 @@ def main() -> None:
         options = _input_options()
         source = st.radio("Input", options, index=0)
         no_cloud = st.checkbox("Disable cloud calls", value=True)
+        max_cost_usd = st.number_input(
+            "Cloud cost cap (USD)",
+            min_value=0.0,
+            max_value=5.0,
+            value=0.25,
+            step=0.05,
+            disabled=no_cloud,
+            help="Applies only when cloud calls are enabled. External model review is advisory only.",
+        )
         no_kuzu = st.checkbox("Skip Kuzu graph", value=True)
 
     if source == "Upload PDFs":
-        _upload_flow(no_cloud=no_cloud, no_kuzu=no_kuzu)
+        _upload_flow(no_cloud=no_cloud, no_kuzu=no_kuzu, max_cost_usd=max_cost_usd)
     else:
-        _preset_flow(source, no_cloud=no_cloud, no_kuzu=no_kuzu)
+        _preset_flow(source, no_cloud=no_cloud, no_kuzu=no_kuzu, max_cost_usd=max_cost_usd)
 
 
-def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool) -> None:
+def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool, max_cost_usd: float) -> None:
     if source == "Public version demo":
         request = ReviewRequest(
             doc_a_path=PUBLIC_SPEC,
@@ -71,6 +80,7 @@ def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool) -> None:
             doc_b_type="specification",
             no_cloud=no_cloud,
             no_kuzu=no_kuzu,
+            max_cost_usd=max_cost_usd,
         )
     else:
         request = ReviewRequest(
@@ -85,13 +95,14 @@ def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool) -> None:
             doc_b_type="protection_study",
             no_cloud=no_cloud,
             no_kuzu=no_kuzu,
+            max_cost_usd=max_cost_usd,
         )
     st.info("Preset demos are controlled, watermarked synthetic cases over public/fixture documents.")
     if st.button("Run review", type="primary"):
         _run_and_render(request)
 
 
-def _upload_flow(*, no_cloud: bool, no_kuzu: bool) -> None:
+def _upload_flow(*, no_cloud: bool, no_kuzu: bool, max_cost_usd: float) -> None:
     col_a, col_b = st.columns(2)
     with col_a:
         doc_a = st.file_uploader("Doc A PDF", type=["pdf"], key="doc_a")
@@ -124,6 +135,7 @@ def _upload_flow(*, no_cloud: bool, no_kuzu: bool) -> None:
                 doc_b_type=doc_b_type,
                 no_cloud=no_cloud,
                 no_kuzu=no_kuzu,
+                max_cost_usd=max_cost_usd,
             )
             _run_and_render(request)
 
@@ -234,6 +246,8 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
         )
         if finding.get("context_support_summary"):
             _render_context_support(finding)
+        if finding.get("model_review_status") == "used":
+            _render_model_review(finding)
         col_a, col_b = st.columns(2)
         with col_a:
             _render_citation(run_dir, "Doc A", finding.get("evidence_a") or {})
@@ -269,6 +283,20 @@ def _context_signal_label(signal: str) -> str:
         "missing_context": "evidence is only in generic or missing context",
         "possible_equivalent_elsewhere": "search found possible equivalent evidence elsewhere",
     }.get(signal, signal.replace("_", " "))
+
+
+def _render_model_review(finding: dict[str, Any]) -> None:
+    supports = finding.get("model_review_supports")
+    model = finding.get("model_review_model") or "external model"
+    title = "External model reviewer supports the cited finding" if supports else "External model reviewer adds caution"
+    st.info(
+        f"**{title}** (`{model}`)\n\n"
+        "Advisory only. The model cannot create findings or bypass citations; it reviews the already-cited evidence and context quorum."
+    )
+    st.markdown(str(finding.get("model_review_summary") or ""))
+    cautions = finding.get("model_review_cautions") or []
+    if cautions:
+        st.caption("Cautions: " + "; ".join(str(item) for item in cautions))
 
 
 def _render_citation(run_dir: Path, label: str, citation: dict[str, Any]) -> None:

@@ -58,6 +58,11 @@ Examples:
 - `140 MVA` vs `120 MVA`, flagged.
 - `%Z` with conflicting or missing base context routes to engineer review.
 
+When cloud review is enabled, an external model receives only the already-cited
+finding JSON, source quotes, authority direction, and context support summary.
+Its output is advisory metadata on the existing finding. It cannot create a
+finding, override deterministic gates, or replace reviewer judgment.
+
 ## Authority And Confidence
 
 Authority is explicit:

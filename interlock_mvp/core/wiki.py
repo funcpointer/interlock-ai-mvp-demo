@@ -233,6 +233,9 @@ def _finding_lines(finding: Finding) -> list[str]:
     if finding.context_support_summary:
         lines.extend(_finding_context_support_lines(finding))
         lines.append("")
+    if finding.model_review_status == "used":
+        lines.extend(_finding_model_review_lines(finding))
+        lines.append("")
     lines.extend(["## Citations", ""])
     if finding.evidence_a:
         lines.extend(_citation_lines("Doc A", finding.evidence_a))
@@ -268,6 +271,21 @@ def _context_signal_label(signal: str) -> str:
         "missing_context": "evidence is only in generic or missing context",
         "possible_equivalent_elsewhere": "search found possible equivalent evidence elsewhere",
     }.get(signal, signal.replace("_", " "))
+
+
+def _finding_model_review_lines(finding: Finding) -> list[str]:
+    verdict = "supports the cited finding" if finding.model_review_supports else "adds caution for reviewer inspection"
+    lines = [
+        "## External Model Advisory Review",
+        "",
+        f"- Model: `{finding.model_review_model}`",
+        f"- Verdict: {verdict}",
+        "- Note: advisory only; source citations and deterministic comparison remain required.",
+        f"- Summary: {finding.model_review_summary}",
+    ]
+    if finding.model_review_cautions:
+        lines.append(f"- Cautions: {'; '.join(finding.model_review_cautions)}")
+    return lines
 
 
 def _context_room_lines(room: ContextRoom) -> list[str]:
