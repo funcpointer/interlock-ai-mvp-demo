@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
-import json
-import shutil
 
 import streamlit as st
 
@@ -16,11 +15,13 @@ from .core.triage import triage_run
 
 
 ROOT = Path(__file__).resolve().parents[1]
+DEMO_ASSETS = ROOT / "demo_assets/public_aes"
+RUN_ROOT = Path(os.environ.get("INTERLOCK_RUN_ROOT", str(ROOT / "runs")))
 DEFAULT_AUTHORITY = ROOT / "examples/aes_authority.yaml"
 DEFAULT_GLOSSARY = ROOT / "examples/aes_glossary.yaml"
-PUBLIC_SPEC = ROOT / "corpora/aes/docs/public_aes/somerset_main_power_transformer_spec_sheet.pdf"
-PUBLIC_VERSION_REV = ROOT / "corpora/aes/docs/public_aes/somerset_main_power_transformer_spec_sheet_synth_rev.pdf"
-PUBLIC_CROSS_DOC = ROOT / "corpora/aes/docs/public_aes/somerset_transformer_protection_study_excerpt_synth.pdf"
+PUBLIC_SPEC = DEMO_ASSETS / "somerset_main_power_transformer_spec_sheet.pdf"
+PUBLIC_VERSION_REV = DEMO_ASSETS / "somerset_main_power_transformer_spec_sheet_synth_rev.pdf"
+PUBLIC_CROSS_DOC = DEMO_ASSETS / "somerset_transformer_protection_study_excerpt_synth.pdf"
 
 
 def main() -> None:
@@ -47,7 +48,7 @@ def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool) -> None:
             doc_a_path=PUBLIC_SPEC,
             doc_b_path=PUBLIC_VERSION_REV,
             mode="version",
-            out_dir=ROOT / "runs/streamlit-public-version",
+            out_dir=RUN_ROOT / "streamlit-public-version",
             authority_config_path=DEFAULT_AUTHORITY,
             domain_glossary_path=DEFAULT_GLOSSARY,
             env_file_path=DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None,
@@ -61,7 +62,7 @@ def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool) -> None:
             doc_a_path=PUBLIC_SPEC,
             doc_b_path=PUBLIC_CROSS_DOC,
             mode="cross_doc",
-            out_dir=ROOT / "runs/streamlit-public-cross-doc",
+            out_dir=RUN_ROOT / "streamlit-public-cross-doc",
             authority_config_path=DEFAULT_AUTHORITY,
             domain_glossary_path=DEFAULT_GLOSSARY,
             env_file_path=DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None,
@@ -92,7 +93,7 @@ def _upload_flow(*, no_cloud: bool, no_kuzu: bool) -> None:
             doc_b_path = temp_root / _safe_upload_name(doc_b.name, fallback="doc_b.pdf")
             doc_a_path.write_bytes(doc_a.getvalue())
             doc_b_path.write_bytes(doc_b.getvalue())
-            out_dir = ROOT / "runs/streamlit-upload"
+            out_dir = RUN_ROOT / "streamlit-upload"
             request = ReviewRequest(
                 doc_a_path=doc_a_path,
                 doc_b_path=doc_b_path,

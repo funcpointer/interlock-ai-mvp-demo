@@ -62,7 +62,17 @@ The Streamlit app supports preset demos and two-PDF uploads. It is the right
 surface for a private interactive demo. The static Vercel site remains the
 recommended broad-share VC URL.
 
-Details: `docs/STREAMLIT_DYNAMIC_APP_2026-05-25.md`.
+Details:
+
+- `docs/STREAMLIT_DYNAMIC_APP_2026-05-25.md`
+- `docs/STREAMLIT_CLOUD_DEPLOYMENT_2026-05-25.md`
+
+Streamlit Cloud deployment settings:
+
+- branch: `main`
+- main file path: `streamlit_app.py`
+- Python: `3.12`
+- secrets: none required for the default no-cloud demo
 
 The AES/domain glossary is loaded from `examples/aes_glossary.yaml` by default.
 It now feeds extraction, parameter naming, context labeling, corpus runs, and

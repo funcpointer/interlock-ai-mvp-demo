@@ -19,3 +19,10 @@ def test_input_options_fall_back_to_upload_only(monkeypatch) -> None:
     monkeypatch.setattr(app, "PUBLIC_CROSS_DOC", missing)
 
     assert _input_options() == ["Upload PDFs"]
+
+
+def test_public_demo_assets_are_packaged() -> None:
+    assert app.PUBLIC_SPEC.exists()
+    assert app.PUBLIC_VERSION_REV.exists()
+    assert app.PUBLIC_CROSS_DOC.exists()
+    assert _input_options()[0] == "Public version demo"
