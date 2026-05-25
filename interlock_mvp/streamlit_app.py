@@ -238,10 +238,10 @@ def _render_wiki_page(run_dir: Path, name: str, *, key_prefix: str) -> None:
 
 def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
     with st.container(border=True):
-        st.markdown(f"### {finding.get('finding_id')}: {finding.get('subject')} / {finding.get('parameter')}")
+        st.markdown(f"### {_finding_title(finding)}")
         st.write(finding.get("summary", ""))
         st.caption(
-            f"Type: {finding.get('finding_type')} | Severity: {finding.get('severity')} | "
+            f"Finding {finding.get('finding_id')} | Type: {finding.get('finding_type')} | Severity: {finding.get('severity')} | "
             f"Authority: {finding.get('authoritative_side')} ({finding.get('authority_basis')})"
         )
         if finding.get("context_support_summary"):
@@ -250,9 +250,9 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
             _render_model_review(finding)
         col_a, col_b = st.columns(2)
         with col_a:
-            _render_citation(run_dir, "Doc A", finding.get("evidence_a") or {})
+            _render_citation(run_dir, _citation_label(finding, "A"), finding.get("evidence_a") or {})
         with col_b:
-            _render_citation(run_dir, "Doc B", finding.get("evidence_b") or {})
+            _render_citation(run_dir, _citation_label(finding, "B"), finding.get("evidence_b") or {})
 
 
 def _render_context_support(finding: dict[str, Any]) -> None:
@@ -260,28 +260,25 @@ def _render_context_support(finding: dict[str, Any]) -> None:
     confidence = finding.get("context_support_confidence") or "unknown"
     signals = [str(signal) for signal in (finding.get("context_support_signal_types") or [])]
     labels = [_context_signal_label(signal) for signal in signals]
-    title = "Context quorum supports this finding" if supports else "Context quorum adds caution"
-    body = (
-        "The finding still requires direct citations and deterministic comparison logic. "
-        "These context signals explain why the cited evidence belongs together and may adjust confidence."
-    )
-    message = f"**{title}** ({confidence} confidence)\n\n{body}"
-    if supports:
-        st.success(message)
-    else:
-        st.warning(message)
-    if labels:
-        st.markdown("**Signals used:** " + "; ".join(labels))
-    st.caption(str(finding.get("context_support_summary") or ""))
+    title = "Why these citations were compared"
+    with st.expander(f"{title} ({confidence} context confidence)", expanded=False):
+        if supports:
+            st.success("Context layer found the cited values in aligned document sections.")
+        else:
+            st.warning("Context layer found weak or generic surrounding context.")
+        st.caption("Supporting signal only. The finding still comes from the cited values and deterministic comparison.")
+        if labels:
+            st.markdown("**Signals:** " + "; ".join(labels))
+        st.caption(str(finding.get("context_support_summary") or ""))
 
 
 def _context_signal_label(signal: str) -> str:
     return {
-        "context_room": "same kind of document room/table/section",
-        "graph_alignment": "graph links both cited claims through document context",
-        "search_hit": "search found related packet evidence",
-        "missing_context": "evidence is only in generic or missing context",
-        "possible_equivalent_elsewhere": "search found possible equivalent evidence elsewhere",
+        "context_room": "same section/table type",
+        "graph_alignment": "document graph aligned the claims",
+        "search_hit": "related packet evidence found",
+        "missing_context": "generic or missing context",
+        "possible_equivalent_elsewhere": "possible equivalent evidence elsewhere",
     }.get(signal, signal.replace("_", " "))
 
 
@@ -304,8 +301,10 @@ def _render_citation(run_dir: Path, label: str, citation: dict[str, Any]) -> Non
     if not citation:
         st.caption("No citation.")
         return
-    st.caption(f"Page {citation.get('page')}: {citation.get('quote')}")
-    _render_crop(run_dir, citation)
+    st.caption(f"Page {citation.get('page')} | Evidence {citation.get('evidence_id')}")
+    st.markdown(f"> {citation.get('quote')}")
+    with st.expander(f"View source crop - {label}", expanded=False):
+        _render_crop(run_dir, citation)
 
 
 def _render_crop(run_dir: Path, citation: dict[str, Any]) -> None:
@@ -319,6 +318,27 @@ def _render_crop(run_dir: Path, citation: dict[str, Any]) -> None:
         return
     if path.exists():
         st.image(str(path), use_container_width=True)
+
+
+def _finding_title(finding: dict[str, Any]) -> str:
+    if finding.get("finding_type") == "value_mismatch" and finding.get("evidence_a") and finding.get("evidence_b"):
+        return (
+            f"{finding.get('subject')} {finding.get('parameter')}: "
+            f"{_citation_value(finding['evidence_a'])} -> {_citation_value(finding['evidence_b'])}"
+        )
+    if finding.get("finding_type") == "missing_item":
+        return f"{finding.get('subject')}: missing aligned evidence"
+    return f"{finding.get('subject')} {finding.get('parameter')}"
+
+
+def _citation_value(citation: dict[str, Any]) -> str:
+    return " ".join(str(part) for part in [citation.get("value"), citation.get("unit")] if part).strip() or str(citation.get("quote") or "")
+
+
+def _citation_label(finding: dict[str, Any], side: str) -> str:
+    if finding.get("mode") == "version":
+        return "Baseline (Doc A)" if side == "A" else "Revised (Doc B)"
+    return f"Doc {side}"
 
 
 def _records(path: Path) -> list[dict[str, Any]]:

@@ -378,6 +378,37 @@ def test_external_model_review_enriches_existing_finding_without_changing_gate(m
     assert findings[0].model_review_cautions == ["Reviewer should confirm engineering significance before action."]
 
 
+def test_value_mismatch_summary_uses_reviewer_facing_authority_language() -> None:
+    findings, _, _ = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            comparisons=[
+                ComparisonDecision(
+                    comparison_id="comp00001",
+                    diff_id="diff00001",
+                    alignment_id="align00001",
+                    comparison_type="value_mismatch",
+                    unit_method="pint",
+                    deterministic=True,
+                    verifier_status="not_run",
+                    rationale="A differs from B.",
+                )
+            ]
+        ),
+        diff_edges=[_diff_edge(identity_strength="strong")],
+        evidence_by_id={
+            "a1": _evidence("a1", "A", "140", "MVA"),
+            "b1": _evidence("b1", "B", "120", "MVA"),
+        },
+        authority=_authority("B"),
+        mode="version",
+        no_cloud=True,
+        dry_run=False,
+        max_cost_usd=0,
+    )
+
+    assert findings[0].summary == "XFMR rating: authoritative Doc B cites 120 MVA; baseline Doc A cites 140 MVA."
+
+
 def test_external_model_review_rejects_banned_authored_language(monkeypatch) -> None:
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 

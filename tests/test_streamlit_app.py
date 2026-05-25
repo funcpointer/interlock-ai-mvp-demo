@@ -4,8 +4,10 @@ import interlock_mvp.streamlit_app as app
 from interlock_mvp.streamlit_app import (
     ARTIFACT_DOWNLOADS,
     WIKI_PREVIEW_FILES,
+    _citation_label,
     _context_signal_label,
     _download_name,
+    _finding_title,
     _input_options,
     _mime_for,
     _new_run_dir,
@@ -106,7 +108,27 @@ def test_wiki_labels_are_human_readable() -> None:
 
 
 def test_context_signal_labels_are_reviewer_facing() -> None:
-    assert _context_signal_label("context_room") == "same kind of document room/table/section"
-    assert _context_signal_label("graph_alignment") == "graph links both cited claims through document context"
-    assert _context_signal_label("possible_equivalent_elsewhere") == "search found possible equivalent evidence elsewhere"
+    assert _context_signal_label("context_room") == "same section/table type"
+    assert _context_signal_label("graph_alignment") == "document graph aligned the claims"
+    assert _context_signal_label("possible_equivalent_elsewhere") == "possible equivalent evidence elsewhere"
     assert _context_signal_label("custom_signal") == "custom signal"
+
+
+def test_finding_title_uses_review_values_not_internal_ids() -> None:
+    finding = {
+        "finding_id": "find_00001",
+        "finding_type": "value_mismatch",
+        "subject": "XFMR",
+        "parameter": "rating",
+        "evidence_a": {"value": "140", "unit": "MVA"},
+        "evidence_b": {"value": "120", "unit": "MVA"},
+    }
+
+    assert _finding_title(finding) == "XFMR rating: 140 MVA -> 120 MVA"
+
+
+def test_version_citation_labels_are_reviewer_facing() -> None:
+    finding = {"mode": "version"}
+
+    assert _citation_label(finding, "A") == "Baseline (Doc A)"
+    assert _citation_label(finding, "B") == "Revised (Doc B)"

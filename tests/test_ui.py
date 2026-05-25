@@ -24,22 +24,30 @@ def test_render_run_page_shows_findings_and_crop_links(tmp_path: Path) -> None:
                 "summary": "A cites 140 MVA; B cites 120 MVA.",
                 "authoritative_side": "B",
                 "authority_basis": "revised document supersedes baseline",
-                "evidence_a": {
-                    "page": 4,
-                    "quote": "Primary to Secondary Winding: 84/112/140 MVA",
-                    "crop_path": "crops/a.png",
-                },
-                "evidence_b": None,
-            }
-        ],
-    )
+                    "evidence_a": {
+                        "page": 4,
+                        "quote": "Primary to Secondary Winding: 84/112/140 MVA",
+                        "crop_path": "crops/a.png",
+                        "value": "140",
+                        "unit": "MVA",
+                    },
+                    "evidence_b": {
+                        "page": 4,
+                        "quote": "84/112/120 MVA",
+                        "crop_path": "crops/a.png",
+                        "value": "120",
+                        "unit": "MVA",
+                    },
+                }
+            ],
+        )
     _write_json(run_dir / "metrics.json", meta={"metrics": {"findings": 1, "review_required_findings": 1}})
     _write_json(run_dir / "triage.json", meta={"issues": []})
 
     html = render_run_page(run_dir)
 
     assert "find_00001" in html
-    assert "XFMR / rating" in html
+    assert "XFMR rating: 140 MVA -&gt; 120 MVA" in html
     assert "Primary to Secondary Winding" in html
     assert "/artifact?run=" in html
     assert "No triage issues" in html

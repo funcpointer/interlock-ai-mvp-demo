@@ -217,8 +217,9 @@ def _document_lines(document: DocumentRecord, doc_graph_a: DocumentGraph, doc_gr
 
 def _finding_lines(finding: Finding) -> list[str]:
     lines = [
-        f"# {finding.finding_id}: {finding.subject} / {finding.parameter}",
+        f"# {_finding_title(finding)}",
         "",
+        f"- Finding id: `{finding.finding_id}`",
         f"- Type: `{finding.finding_type}`",
         f"- Severity: `{finding.severity}`",
         f"- Confidence: `{finding.confidence}`",
@@ -249,15 +250,15 @@ def _finding_lines(finding: Finding) -> list[str]:
 
 
 def _finding_context_support_lines(finding: Finding) -> list[str]:
-    verdict = "supports this finding" if finding.context_support_supports else "adds caution"
+    verdict = "strong alignment" if finding.context_support_supports else "context caution"
     signals = "; ".join(_context_signal_label(signal) for signal in finding.context_support_signal_types)
     return [
-        "## Context Quorum",
+        "## Citation Pairing Context",
         "",
         f"- Support id: `{finding.context_support_id or ''}`",
         f"- Verdict: {verdict}",
         f"- Confidence: `{finding.context_support_confidence or 'unknown'}`",
-        "- Note: supporting signal only; source citations and deterministic comparison remain required.",
+        "- Note: this explains why the cited evidence was compared; it is not proof by itself.",
         f"- Signals: {signals or 'none'}",
         f"- Summary: {finding.context_support_summary}",
     ]
@@ -265,11 +266,11 @@ def _finding_context_support_lines(finding: Finding) -> list[str]:
 
 def _context_signal_label(signal: str) -> str:
     return {
-        "context_room": "same kind of document room/table/section",
-        "graph_alignment": "graph links both cited claims through document context",
-        "search_hit": "search found related packet evidence",
-        "missing_context": "evidence is only in generic or missing context",
-        "possible_equivalent_elsewhere": "search found possible equivalent evidence elsewhere",
+        "context_room": "same section/table type",
+        "graph_alignment": "document graph aligned the claims",
+        "search_hit": "related evidence found in packet search",
+        "missing_context": "generic or missing context",
+        "possible_equivalent_elsewhere": "possible equivalent evidence elsewhere",
     }.get(signal, signal.replace("_", " "))
 
 
@@ -333,6 +334,21 @@ def _citation_lines(label: str, citation) -> list[str]:
         f"- Quote: `{_clip(citation.quote)}`",
         "",
     ]
+
+
+def _finding_title(finding: Finding) -> str:
+    if finding.finding_type == "value_mismatch" and finding.evidence_a and finding.evidence_b:
+        return (
+            f"{finding.subject} {finding.parameter}: "
+            f"{_display_citation_value(finding.evidence_a)} -> {_display_citation_value(finding.evidence_b)}"
+        )
+    if finding.finding_type == "missing_item":
+        return f"{finding.subject}: missing aligned evidence"
+    return f"{finding.subject} {finding.parameter}"
+
+
+def _display_citation_value(citation) -> str:
+    return " ".join(part for part in [citation.value, citation.unit] if part).strip() or _clip(citation.quote, 80)
 
 
 def _subject_pages(doc_graph_a: DocumentGraph, doc_graph_b: DocumentGraph, findings: list[Finding]) -> dict[str, list[str]]:

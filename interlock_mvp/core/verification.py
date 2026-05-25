@@ -335,14 +335,27 @@ def _finding_sort_key(finding: Finding) -> tuple[int, str]:
 
 
 def _diff_summary(edge: DiffEdge, a: EvidenceItem | None, b: EvidenceItem | None, authority: AuthorityDecision) -> str:
-    direction = _direction_phrase(authority)
     if edge.diff_type == "value_mismatch" and a and b:
-        return f"{direction} Possible discrepancy for {edge.subject} {edge.parameter}: A cites {a.value} {a.unit}; B cites {b.value} {b.unit}."
+        return _value_mismatch_summary(edge, a, b, authority)
     if edge.diff_type == "needs_engineer_review" and a and b:
-        return f"{direction} {edge.subject} {edge.parameter} requires reviewer comparison because base or identity context is incomplete."
+        return f"{edge.subject} {edge.parameter} needs engineering review because base or identity context is incomplete."
     if edge.diff_type == "missing_item" and a:
-        return f"{direction} {edge.subject} {edge.parameter} appears in A's aligned context but no matching B evidence was found."
-    return f"{direction} Possible discrepancy for {edge.subject} {edge.parameter}."
+        return f"{edge.subject} {edge.parameter} appears in Doc A, but no matching Doc B evidence was found in the aligned context."
+    return f"{edge.subject} {edge.parameter} needs reviewer inspection."
+
+
+def _value_mismatch_summary(edge: DiffEdge, a: EvidenceItem, b: EvidenceItem, authority: AuthorityDecision) -> str:
+    value_a = _display_value(a)
+    value_b = _display_value(b)
+    if authority.authoritative_side == "B":
+        return f"{edge.subject} {edge.parameter}: authoritative Doc B cites {value_b}; baseline Doc A cites {value_a}."
+    if authority.authoritative_side == "A":
+        return f"{edge.subject} {edge.parameter}: authoritative Doc A cites {value_a}; Doc B cites {value_b}."
+    return f"{edge.subject} {edge.parameter}: Doc A cites {value_a}; Doc B cites {value_b}. Authority is unresolved."
+
+
+def _display_value(evidence: EvidenceItem) -> str:
+    return " ".join(part for part in [evidence.value, evidence.unit] if part).strip()
 
 
 def _citation(evidence: EvidenceItem) -> EvidenceCitation:
@@ -356,14 +369,6 @@ def _citation(evidence: EvidenceItem) -> EvidenceCitation:
         value=evidence.value,
         unit=evidence.unit,
     )
-
-
-def _direction_phrase(authority: AuthorityDecision) -> str:
-    if authority.authoritative_side == "B":
-        return "Revised/authoritative B evidence differs from A."
-    if authority.authoritative_side == "A":
-        return "Authoritative A evidence differs from B."
-    return "Documents disagree; authoritative source not determined."
 
 
 def _openai_key_present() -> bool:

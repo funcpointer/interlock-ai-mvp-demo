@@ -214,19 +214,20 @@ def _finding_html(case_id: str, finding: dict[str, Any]) -> str:
     <article class="finding {escape(str(finding.get('severity', '')))}">
       <div class="finding-head">
         <div>
-          <h3>{escape(str(finding.get('finding_id', '')))}: {escape(str(finding.get('subject', '')))} / {escape(str(finding.get('parameter', '')))}</h3>
+          <h3>{escape(_finding_title(finding))}</h3>
           <p>{escape(str(finding.get('summary', '')))}</p>
         </div>
         <span>{escape(str(finding.get('severity', '')))}</span>
       </div>
       <dl>
+        <dt>Finding</dt><dd>{escape(str(finding.get('finding_id', '')))}</dd>
         <dt>Type</dt><dd>{escape(str(finding.get('finding_type', '')))}</dd>
         <dt>Authority</dt><dd>{escape(str(finding.get('authoritative_side', '')))} - {escape(str(finding.get('authority_basis', '')))}</dd>
         <dt>Confidence</dt><dd>{escape(str(finding.get('confidence', '')))}</dd>
       </dl>
       <div class="citations">
-        {_citation_html(case_id, "Doc A", evidence_a)}
-        {_citation_html(case_id, "Doc B", evidence_b)}
+        {_citation_html(case_id, _citation_label(finding, "A"), evidence_a)}
+        {_citation_html(case_id, _citation_label(finding, "B"), evidence_b)}
       </div>
     </article>"""
 
@@ -242,6 +243,27 @@ def _citation_html(case_id: str, label: str, citation: dict[str, Any]) -> str:
       <blockquote>{escape(str(citation.get('quote', '')))}</blockquote>
       {image}
     </div>"""
+
+
+def _finding_title(finding: dict[str, Any]) -> str:
+    if finding.get("finding_type") == "value_mismatch" and finding.get("evidence_a") and finding.get("evidence_b"):
+        return (
+            f"{finding.get('subject')} {finding.get('parameter')}: "
+            f"{_citation_value(finding['evidence_a'])} -> {_citation_value(finding['evidence_b'])}"
+        )
+    if finding.get("finding_type") == "missing_item":
+        return f"{finding.get('subject')}: missing aligned evidence"
+    return f"{finding.get('subject')} {finding.get('parameter')}"
+
+
+def _citation_value(citation: dict[str, Any]) -> str:
+    return " ".join(str(part) for part in [citation.get("value"), citation.get("unit")] if part).strip() or str(citation.get("quote") or "")
+
+
+def _citation_label(finding: dict[str, Any], side: str) -> str:
+    if finding.get("mode") == "version":
+        return "Baseline (Doc A)" if side == "A" else "Revised (Doc B)"
+    return f"Doc {side}"
 
 
 def _coverage_summary_html(case_id: str, findings: list[dict[str, Any]]) -> str:

@@ -144,17 +144,18 @@ def _summary(
     search_hits: list[str],
     possible_equivalents: list[str],
 ) -> str:
-    verdict = "supports" if supports else "does not independently support"
+    verdict = "aligned cited context" if supports else "weak cited context"
     parts = [
-        f"Context quorum {verdict} this diff with {confidence} confidence.",
-        f"Signals: {', '.join(_dedup(signal_types)) or 'none'}.",
+        f"{verdict.capitalize()} ({confidence} confidence).",
     ]
     if context_ids:
-        parts.append(f"Contexts: {', '.join(context_ids[:4])}.")
+        parts.append(f"Compared sections: {', '.join(context_ids[:4])}.")
     if search_hits:
-        parts.append(f"Search hits: {len(search_hits)}.")
+        parts.append(f"Related search hits: {len(search_hits)}.")
     if possible_equivalents:
         parts.append(f"Possible equivalent elsewhere: {len(possible_equivalents)}.")
+    if signal_types:
+        parts.append(f"Signals: {', '.join(_dedup(signal_types))}.")
     return " ".join(parts)
 
 
