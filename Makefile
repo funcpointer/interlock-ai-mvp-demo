@@ -1,8 +1,10 @@
 PY := /Users/kc/venv-12/bin/python
 FIXTURES := /Users/kc/Documents/Claude/Projects/interlock-ai-v2/fixtures/pdfs
 AUTH := examples/aes_authority.yaml
+AES_MANIFEST ?= corpora/aes/local_manifest.yaml
+AES_SEED_MANIFEST ?= corpora/aes/near_real_seed.yaml
 
-.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-kuzu eval-search eval-examples eval-full doctor
+.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-kuzu eval-search eval-examples eval-aes-corpus eval-aes-seed eval-full doctor
 
 test:
 	$(PY) -m pytest -q
@@ -43,5 +45,15 @@ eval-examples:
 	$(PY) -m interlock_mvp check runs/example-synth-equipment-spec --eval eval/synth_reference_smoke.yaml
 	$(PY) -m interlock_mvp review $(FIXTURES)/real_ieee_xfmr_spec_guide.pdf $(FIXTURES)/real_sel_xfmr_protection.pdf --mode cross-doc --out runs/example-real-xfmr-cross --authority-config $(AUTH) --doc-a-type specification --doc-b-type protection_study --no-cloud --no-kuzu --max-candidates 100
 	$(PY) -m interlock_mvp check runs/example-real-xfmr-cross --eval eval/real_xfmr_smoke.yaml
+
+eval-aes-corpus:
+	@if [ -f "$(AES_MANIFEST)" ]; then \
+		$(PY) -m interlock_mvp corpus $(AES_MANIFEST) --out-root runs/aes-corpus --authority-config $(AUTH) --no-cloud --no-kuzu --max-candidates 120; \
+	else \
+		echo "No AES local manifest at $(AES_MANIFEST). Copy corpora/aes/manifest.example.yaml to corpora/aes/local_manifest.yaml."; \
+	fi
+
+eval-aes-seed:
+	$(PY) -m interlock_mvp corpus $(AES_SEED_MANIFEST) --out-root runs/aes-seed --authority-config $(AUTH) --no-cloud --no-kuzu --max-candidates 120
 
 eval-full: eval-fast eval-search eval-examples eval-kuzu

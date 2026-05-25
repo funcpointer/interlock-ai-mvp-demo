@@ -39,6 +39,7 @@ Implemented:
 - Stage-level JSONL logs and metrics.
 - `rg`-backed search over persisted review-map artifacts.
 - Local second-brain SQLite/FTS index over review-map artifacts.
+- Corpus manifest runner for AES/private partner document batches.
 
 Current validated fixture classes:
 
@@ -48,6 +49,7 @@ Current validated fixture classes:
 - scanned/low-text stress: `doc_a_scanned.pdf` vs itself
 - synthetic reference smoke: `synth_equipment_spec_v2.pdf` vs `synth_equipment_spec_v3.pdf`
 - real cross-doc smoke: `real_ieee_xfmr_spec_guide.pdf` vs `real_sel_xfmr_protection.pdf`
+- AES near-real corpus seed: `corpora/aes/near_real_seed.yaml`
 
 ## Invariants
 
@@ -94,6 +96,21 @@ Doctor:
 ```bash
 /Users/kc/venv-12/bin/python -m interlock_mvp doctor
 ```
+
+Corpus intake:
+
+```bash
+/Users/kc/venv-12/bin/python -m interlock_mvp corpus corpora/aes/local_manifest.yaml \
+  --out-root runs/aes-corpus \
+  --authority-config examples/aes_authority.yaml \
+  --no-cloud \
+  --no-kuzu
+```
+
+Private AES PDFs are not committed. They are referenced by
+`corpora/aes/local_manifest.yaml`, which is gitignored. The committed
+`corpora/aes/near_real_seed.yaml` is only a bridge over existing fixture and
+public/vendor PDFs.
 
 ## Artifact Contract
 

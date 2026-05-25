@@ -1,0 +1,35 @@
+schema_version: interlock_mvp.corpus.v1
+name: aes_local_private
+description: >
+  Local AES partner corpus. Copy this file to local_manifest.yaml and fill in
+  private PDF paths. local_manifest.yaml and corpora/aes/docs/ are gitignored.
+
+# Optional. Relative doc paths below resolve from this directory when omitted,
+# or from source_root when set.
+# source_root: docs
+
+pairs:
+  - id: aes_version_review_001
+    mode: version
+    doc_a: docs/baseline_60_percent.pdf
+    doc_b: docs/revised_90_percent.pdf
+    authority_config: ../../examples/aes_authority.yaml
+    eval: ../../eval/demo.yaml
+    doc_a_type: auto
+    doc_b_type: auto
+    no_cloud: true
+    no_kuzu: true
+    max_candidates: 120
+    notes: Version-review pair. B is expected to supersede A.
+
+  - id: aes_cross_doc_review_001
+    mode: cross_doc
+    doc_a: docs/transformer_datasheet.pdf
+    doc_b: docs/protection_coordination_study.pdf
+    authority_config: ../../examples/aes_authority.yaml
+    doc_a_type: specification
+    doc_b_type: protection_study
+    no_cloud: true
+    no_kuzu: true
+    max_candidates: 120
+    notes: Cross-document pair. Authority follows AES precedence config.

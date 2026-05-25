@@ -7,6 +7,7 @@ Fresh CLI-only evidence review engine for comparing two engineering PDFs.
 /Users/kc/venv-12/bin/python -m interlock_mvp review A.pdf B.pdf --mode version --out runs/demo --no-cloud --no-kuzu
 /Users/kc/venv-12/bin/python -m interlock_mvp check runs/demo --eval eval/demo.yaml
 /Users/kc/venv-12/bin/python -m interlock_mvp search runs/demo "transformer rating"
+/Users/kc/venv-12/bin/python -m interlock_mvp corpus corpora/aes/local_manifest.yaml --out-root runs/aes-corpus --no-cloud --no-kuzu
 ```
 
 The CLI is only an adapter. The reusable entrypoint is:
@@ -30,3 +31,23 @@ Important review-map artifacts:
 Use `--no-kuzu` when Kuzu is not part of the question being tested. Kuzu is derived from JSON today; skipping it does not skip finding logic.
 
 Search runs against persisted `search/review_map.jsonl` and `search/second_brain.sqlite` artifacts, not against PDFs directly.
+
+## AES Corpus Intake
+
+Private partner docs are loaded through `corpora/aes/local_manifest.yaml`, which is
+gitignored. Copy `corpora/aes/manifest.example.yaml`, point it at AES PDFs or
+notes, then run:
+
+```bash
+make eval-aes-corpus
+```
+
+For a non-private bridge corpus assembled from existing fixtures and public/vendor
+PDFs, run:
+
+```bash
+make eval-aes-seed
+```
+
+Corpus runs write one child run directory per pair and a summary artifact at
+`runs/<corpus>/corpus_results.json`.

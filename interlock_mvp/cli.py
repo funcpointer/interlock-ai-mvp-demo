@@ -10,6 +10,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from .core.corpus import corpus_success, run_corpus_manifest
 from .core.eval import run_eval
 from .core.env import DEFAULT_OLD_REPO_ENV, load_env_file, load_key_files
 from .core.models import ReviewRequest
@@ -137,6 +138,55 @@ def search(
             _clip(str(hit.get("quote") or hit.get("text") or ""), 90),
         )
     console.print(table)
+
+
+@app.command("corpus")
+def corpus(
+    manifest: Annotated[Path, typer.Argument(exists=True, dir_okay=False, readable=True)],
+    out_root: Annotated[Path, typer.Option(help="Output root; each pair gets a child run directory")] = Path("runs/corpus"),
+    authority_config: Annotated[Path | None, typer.Option(help="Default authority YAML path")] = Path("examples/aes_authority.yaml"),
+    no_cloud: Annotated[bool, typer.Option("--no-cloud/--cloud", help="Default cloud policy for pairs that do not override it")] = True,
+    no_kuzu: Annotated[bool, typer.Option("--no-kuzu/--kuzu", help="Default Kuzu policy for pairs that do not override it")] = True,
+    max_candidates: Annotated[int, typer.Option()] = 80,
+    max_vlm_pages: Annotated[int, typer.Option()] = 10,
+    max_cost_usd: Annotated[float, typer.Option()] = 5.0,
+) -> None:
+    summaries = run_corpus_manifest(
+        manifest,
+        out_root=out_root,
+        default_authority_config=authority_config,
+        no_cloud=no_cloud,
+        no_kuzu=no_kuzu,
+        max_candidates=max_candidates,
+        max_vlm_pages=max_vlm_pages,
+        max_cost_usd=max_cost_usd,
+    )
+    table = Table(title=f"InterLock Corpus: {manifest}")
+    table.add_column("Pair")
+    table.add_column("Status")
+    table.add_column("Mode")
+    table.add_column("Findings", justify="right")
+    table.add_column("Review", justify="right")
+    table.add_column("Coverage", justify="right")
+    table.add_column("Run")
+    for summary in summaries:
+        style = "green" if summary.status in {"completed", "eval_passed"} else "red"
+        table.add_row(
+            summary.pair_id,
+            f"[{style}]{summary.status}[/{style}]",
+            summary.mode,
+            str(summary.findings_count),
+            str(summary.review_required_count),
+            str(summary.coverage_warning_count),
+            summary.run_dir,
+        )
+    console.print(table)
+    for summary in summaries:
+        for warning in summary.warnings[:5]:
+            console.print(f"[yellow]{summary.pair_id}:[/yellow] {warning}")
+        for issue in summary.eval_issues[:5]:
+            console.print(f"[red]{summary.pair_id} eval:[/red] {issue}")
+    raise typer.Exit(0 if corpus_success(summaries) else 1)
 
 
 @app.command()

@@ -1,0 +1,56 @@
+schema_version: interlock_mvp.corpus.v1
+name: aes_near_real_seed
+description: >
+  Local near-real seed corpus assembled from the previous InterLock repos.
+  This is not AES-private data; it is a repeatable bridge until partner PDFs
+  are placed in corpora/aes/local_manifest.yaml.
+source_root: /Users/kc/Documents/Claude/Projects/interlock-ai-v2/fixtures/pdfs
+
+pairs:
+  - id: seeded_version_doc_a_60_doc_b_90
+    mode: version
+    doc_a: doc_a_60pct.pdf
+    doc_b: doc_b_90pct.pdf
+    authority_config: ../../examples/aes_authority.yaml
+    eval: ../../eval/demo.yaml
+    no_cloud: true
+    no_kuzu: true
+    max_candidates: 80
+    notes: Known AES-anecdote-style revision pair.
+
+  - id: seeded_negative_same_study
+    mode: version
+    doc_a: doc_a_60pct.pdf
+    doc_b: doc_a_60pct.pdf
+    authority_config: ../../examples/aes_authority.yaml
+    eval: ../../eval/negative.yaml
+    no_cloud: true
+    no_kuzu: true
+    max_candidates: 80
+    notes: Same-document negative control.
+
+  - id: seeded_cross_spec_vs_study
+    mode: cross_doc
+    doc_a: spec_xfmr_001.pdf
+    doc_b: doc_a_60pct.pdf
+    authority_config: ../../examples/aes_authority.yaml
+    eval: ../../eval/cross_doc.yaml
+    doc_a_type: specification
+    doc_b_type: protection_study
+    no_cloud: true
+    no_kuzu: true
+    max_candidates: 80
+    notes: Cross-document transformer spec versus coordination study.
+
+  - id: seeded_real_xfmr_vendor_cross
+    mode: cross_doc
+    doc_a: real_ieee_xfmr_spec_guide.pdf
+    doc_b: real_sel_xfmr_protection.pdf
+    authority_config: ../../examples/aes_authority.yaml
+    eval: ../../eval/real_xfmr_smoke.yaml
+    doc_a_type: specification
+    doc_b_type: protection_study
+    no_cloud: true
+    no_kuzu: true
+    max_candidates: 100
+    notes: Public/vendor cross-document smoke pair.

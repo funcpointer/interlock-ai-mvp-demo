@@ -3,3 +3,6 @@ __pycache__/
 .coverage
 *.pyc
 runs/
+corpora/aes/docs/
+corpora/aes/local_manifest.yaml
+corpora/aes/**/*.pdf

@@ -394,3 +394,59 @@ checkpoint-version decision-source metrics:
 Known limit:
 
 - `ComparisonDecision` and `AbsenceSearch` are still derived after `DiffEdge` construction. Next step: capture rejected alternatives during matching/search itself, then make `DiffEdge` a pure projection from decisions.
+
+## checkpoint-2026-05-25-aes-corpus-intake
+
+Purpose:
+
+- make AES/private partner docs a repeatable corpus input instead of ad hoc CLI runs,
+- keep private PDFs, notes, and marked-up documents out of git,
+- let every partner pair carry mode, authority config, doc type overrides, eval contract, and cost/cloud policy,
+- reuse the same `run_review(request)` core path that future API/UI adapters will call.
+
+Changed:
+
+- added `interlock_mvp corpus MANIFEST`,
+- added `interlock_mvp/core/corpus.py`,
+- added `corpora/aes/manifest.example.yaml` for private partner docs,
+- added `corpora/aes/near_real_seed.yaml` as a non-private bridge corpus over existing fixture/public PDFs,
+- added `make eval-aes-corpus` and `make eval-aes-seed`,
+- gitignored `corpora/aes/local_manifest.yaml`, `corpora/aes/docs/`, and local PDFs,
+- package version bumped to `0.10.0`.
+
+Local data inventory:
+
+- no private AES PDF bundle was found by filename under the searched local document roots,
+- existing near-real documents were found in the previous InterLock repos and recorded in `corpora/aes/README.md`,
+- the private intake path is now explicit: copy `manifest.example.yaml` to `local_manifest.yaml`, add AES paths, run `make eval-aes-corpus`.
+
+Validation result:
+
+```text
+tests/test_corpus.py
+  3 passed
+
+make coverage
+  39 passed
+  source coverage: 73%
+
+make eval-aes-seed
+  seeded_version_doc_a_60_doc_b_90: eval_passed, 4 findings, 4 review_required
+  seeded_negative_same_study: eval_passed, 0 findings, 0 review_required
+  seeded_cross_spec_vs_study: eval_passed, 4 findings, 2 review_required
+  seeded_real_xfmr_vendor_cross: eval_passed, 3 findings, 1 review_required
+
+make eval-aes-corpus
+  skipped cleanly because corpora/aes/local_manifest.yaml does not exist yet
+
+make eval-fast
+  unit tests: 39 passed during target run
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 4 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+```
+
+Known limit:
+
+- the seed corpus is not AES-private data. It is a coverage bridge. Real accuracy work now depends on dropping partner PDFs/notes into `corpora/aes/docs/` or referencing absolute paths from `corpora/aes/local_manifest.yaml`.
