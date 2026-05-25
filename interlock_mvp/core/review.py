@@ -10,6 +10,7 @@ from .artifacts import ensure_run_dirs, write_json, write_object
 from .authority import classify_doc_type, load_authority_config, resolve_authority, version_order_warning
 from .candidates import evidence_lookup, generate_candidates
 from .context_memory import build_context_memory
+from .domain import DomainDictionary
 from .docgraph import build_diff_graph, build_document_graphs
 from .evidence import mine_evidence
 from .env import load_env_file, load_key_files
@@ -51,6 +52,10 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         stage_started,
         env_keys_loaded=len(metrics.get("env_keys_loaded", [])),
     )
+
+    stage_started = time.time()
+    domain = DomainDictionary.from_yaml(request.domain_glossary_path)
+    _finish_stage(logger, stage_timings, "load_domain_dictionary", stage_started, **domain.metrics())
 
     stage_started = time.time()
     config = load_authority_config(request.authority_config_path)
@@ -127,12 +132,12 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     annotations = annotations_a + annotations_b
 
     stage_started = time.time()
-    evidence = mine_evidence(pages=pages, regions=regions, annotations=annotations)
+    evidence = mine_evidence(pages=pages, regions=regions, annotations=annotations, domain=domain)
     evidence_metrics = _evidence_metrics(evidence)
     _finish_stage(logger, stage_timings, "mine_evidence", stage_started, **evidence_metrics)
 
     stage_started = time.time()
-    graph_a, graph_b, evidence = build_document_graphs(regions=regions, evidence=evidence)
+    graph_a, graph_b, evidence = build_document_graphs(regions=regions, evidence=evidence, domain=domain)
     diff_graph = build_diff_graph(graph_a, graph_b)
     diff_graph.edges.extend(_coverage_diff_edges(diff_graph, evidence))
     reasoning_graph = build_reasoning_graph(diff_graph, graph_a, graph_b)
@@ -221,6 +226,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     metrics.update(context_memory_metrics)
     metrics.update(candidate_metrics)
     metrics.update(finding_metrics)
+    metrics["domain_dictionary"] = domain.metrics()
     metrics["stage_seconds"] = stage_timings
     metrics["elapsed_seconds"] = round(time.time() - started, 3)
 
@@ -232,6 +238,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
             "run_id": run_id,
             "started_at": datetime.now(UTC).isoformat(),
             "request": request.model_dump(mode="json"),
+            "domain_dictionary": domain.metrics(),
         },
     )
     write_object(

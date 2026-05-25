@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from .domain import DomainDictionary
 from .models import AnnotationRecord, EvidenceItem, PageRecord, RegionRecord
 from .normalization import normalize_key, normalize_text
 from .subjects import canonical_parameter, extract_subjects
@@ -18,6 +19,7 @@ def mine_evidence(
     pages: list[PageRecord],
     regions: list[RegionRecord],
     annotations: list[AnnotationRecord],
+    domain: DomainDictionary | None = None,
 ) -> list[EvidenceItem]:
     evidence: list[EvidenceItem] = []
     counter = 0
@@ -48,7 +50,7 @@ def mine_evidence(
 
     for region in regions:
         raw = normalize_text(region.text)
-        subjects = extract_subjects(raw)
+        subjects = extract_subjects(raw, domain=domain)
         for subject in subjects:
             counter += 1
             evidence.append(
@@ -76,7 +78,7 @@ def mine_evidence(
         for match in VALUE_RE.finditer(raw):
             unit = match.group("unit")
             value = match.group("value")
-            parameter = canonical_parameter(raw, unit)
+            parameter = canonical_parameter(raw, unit, domain=domain)
             counter += 1
             evidence.append(
                 EvidenceItem(

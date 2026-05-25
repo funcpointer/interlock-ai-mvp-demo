@@ -10,9 +10,8 @@ from hashlib import blake2b
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 from .context_memory import context_memory_search_records
+from .domain import DomainDictionary
 from .models import SCHEMA_VERSION
 from .models import ContextMemory, DiffGraph, DocumentGraph, EvidenceItem, Finding, ReasoningGraph
 
@@ -460,9 +459,8 @@ def _write_lancedb_meta(path: Path, *, ok: bool, records: int, message: str) -> 
 def _load_aliases(glossary_path: Path | None) -> dict[str, list[str]]:
     if not glossary_path or not glossary_path.exists():
         return {}
-    payload = yaml.safe_load(glossary_path.read_text(encoding="utf-8")) or {}
-    aliases = payload.get("aliases", {})
-    return {str(key): [str(value) for value in values or []] for key, values in aliases.items()}
+    domain = DomainDictionary.from_yaml(glossary_path)
+    return {key: [str(value) for value in values] for key, values in domain.search_aliases().items()}
 
 
 def _rg_records(search_dir: Path, term: str) -> list[dict[str, Any]]:
@@ -482,7 +480,10 @@ def _rg_records(search_dir: Path, term: str) -> list[dict[str, Any]]:
                 continue
             text = event.get("data", {}).get("lines", {}).get("text", "").strip()
             if text:
-                records.append(json.loads(text))
+                try:
+                    records.append(json.loads(text))
+                except json.JSONDecodeError:
+                    continue
         return records
     return _python_search_records(search_dir, term)
 

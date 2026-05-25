@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from .domain import DomainDictionary
 from .models import RegionRecord
 from .normalization import normalize_key
 
@@ -16,7 +17,11 @@ CONTEXT_PATTERNS = [
 ROW_MARKER_RE = re.compile(r"^\s*(\d{1,3})\s+")
 
 
-def context_label_for_region(region: RegionRecord, current_by_doc: dict[str, tuple[str, str, str, int]]) -> tuple[str, str, str, str]:
+def context_label_for_region(
+    region: RegionRecord,
+    current_by_doc: dict[str, tuple[str, str, str, int]],
+    domain: DomainDictionary | None = None,
+) -> tuple[str, str, str, str]:
     text = region.text or ""
     row_match = ROW_MARKER_RE.match(text)
     if row_match and region.doc_id in current_by_doc:
@@ -37,6 +42,13 @@ def context_label_for_region(region: RegionRecord, current_by_doc: dict[str, tup
         raw = match.group(0)
         current_by_doc[region.doc_id] = (context_id, canonical, kind, region.page)
         return context_id, canonical, kind, raw
+    if domain:
+        domain_context = domain.context_for(text)
+        if domain_context:
+            canonical, kind, raw = domain_context
+            context_id = f"{region.doc_id}:{normalize_key(canonical)}"
+            current_by_doc[region.doc_id] = (context_id, canonical, kind, region.page)
+            return context_id, canonical, kind, raw
     if region.doc_id in current_by_doc:
         context_id, canonical, kind, page = current_by_doc[region.doc_id]
         if page != region.page:

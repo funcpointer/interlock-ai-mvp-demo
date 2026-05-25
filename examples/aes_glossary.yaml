@@ -1,4 +1,5 @@
 schema_version: interlock_mvp.glossary.v1
+
 aliases:
   transformer:
     - xfmr
@@ -31,3 +32,209 @@ aliases:
     - time current curve
     - coordination curve
     - selective coordination
+
+equipment:
+  transformer:
+    kind: transformer
+    aliases:
+      - transformer
+      - xfmr
+      - xfrmr
+    tag_prefixes:
+      - XFMR
+      - XFRMR
+      - TX
+      - T
+      - Transformer
+  fuse:
+    kind: protective_device
+    aliases:
+      - fuse
+      - low-peak
+      - current limiting fuse
+    tag_prefixes:
+      - Fuse
+    part_families:
+      - LPN-RK
+      - LPS-RK
+      - KRP-C
+      - LPJ
+      - FRN
+      - JCN
+  breaker:
+    kind: protective_device
+    aliases:
+      - breaker
+      - circuit breaker
+      - cb
+    tag_prefixes:
+      - BRK
+      - CB
+      - Breaker
+  relay:
+    kind: protective_device
+    aliases:
+      - relay
+      - protective relay
+    tag_prefixes:
+      - Relay
+      - SEL
+  feeder:
+    kind: feeder
+    aliases:
+      - feeder
+    tag_prefixes:
+      - Feeder
+      - FDR
+  bus:
+    kind: bus
+    aliases:
+      - bus
+    tag_prefixes:
+      - Bus
+  switchboard:
+    kind: switchgear
+    aliases:
+      - switchboard
+      - swbd
+      - switchgear
+    tag_prefixes:
+      - SWBD
+      - Switchboard
+  panel:
+    kind: panel
+    aliases:
+      - panel
+      - panelboard
+    tag_prefixes:
+      - Panel
+      - PNL
+
+parameters:
+  rating:
+    aliases:
+      - rating
+      - rated power
+      - transformer rating
+      - kva rating
+      - mva rating
+      - size
+    units:
+      - kVA
+      - MVA
+  impedance:
+    aliases:
+      - impedance
+      - percent impedance
+      - "%z"
+      - z percent
+    units:
+      - "%"
+      - "%Z"
+  primary_voltage:
+    aliases:
+      - primary voltage
+      - primary volts
+      - high side voltage
+      - hv
+    units:
+      - kV
+      - V
+  secondary_voltage:
+    aliases:
+      - secondary voltage
+      - secondary volts
+      - low side voltage
+      - lv
+    units:
+      - kV
+      - V
+  voltage:
+    aliases:
+      - voltage
+      - volts
+      - nominal voltage
+    units:
+      - kV
+      - V
+  fault_current:
+    aliases:
+      - fault current
+      - available fault current
+      - short circuit current
+      - rms sym
+      - interrupting current
+    units:
+      - A
+      - kA
+  current:
+    aliases:
+      - current
+      - amps
+      - amperes
+    units:
+      - A
+      - kA
+  bil:
+    aliases:
+      - bil
+      - basic impulse level
+    units:
+      - kV
+  conductor_size:
+    aliases:
+      - conductor
+      - cable
+      - awg
+      - kcmil
+      - conductor size
+    units: []
+
+contexts:
+  tcc:
+    kind: time_current_curve
+    aliases:
+      - TCC
+      - Time Current Curve
+      - Coordination Curve
+      - Selective Coordination Curve
+  selective_coordination_studies:
+    kind: coordination_study
+    aliases:
+      - Selective Coordination Study
+      - Selective Coordination Studies
+      - Coordination Study
+  equipment_data_sheet:
+    kind: equipment_data_sheet
+    aliases:
+      - Equipment Data Sheet
+      - Equipment Datasheet
+      - Data Sheet
+  nameplate_parameters:
+    kind: nameplate_table
+    aliases:
+      - Nameplate Parameters
+      - Nameplate Data
+      - Transformer Nameplate
+  one_line:
+    kind: drawing
+    aliases:
+      - One Line
+      - One-Line
+      - Single Line
+      - Single-Line Diagram
+  protection_settings:
+    kind: settings_table
+    aliases:
+      - Protective Device Settings
+      - Relay Settings
+      - Breaker Settings
+
+references:
+  - NEC
+  - NFPA 70
+  - IEEE
+  - ANSI
+  - IEC
+  - UL
+  - NEMA

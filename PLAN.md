@@ -25,6 +25,7 @@ Implemented:
 - JSON artifact store with one top-level `schema_version` per artifact.
 - Authority resolution for version and cross-document mode.
 - Evidence mining for equipment IDs, values/units, references, annotations, and coverage warnings.
+- AES/domain glossary loader used by extraction, parameter naming, context labeling, corpus runs, and search expansion.
 - Review-map graph artifacts:
   - `doc_graph_a.json`
   - `doc_graph_b.json`
@@ -53,6 +54,13 @@ Current validated fixture classes:
 - synthetic reference smoke: `synth_equipment_spec_v2.pdf` vs `synth_equipment_spec_v3.pdf`
 - real cross-doc smoke: `real_ieee_xfmr_spec_guide.pdf` vs `real_sel_xfmr_protection.pdf`
 - AES near-real corpus seed: `corpora/aes/near_real_seed.yaml`
+
+Current accuracy caution:
+
+- The AES glossary is first-class but intentionally bounded. It improves recall
+  for partner vocabulary without becoming an authority source. It must not
+  invent equipment identity from weak row text; exact citations and reasoning
+  gates still decide findings.
 
 ## Invariants
 
@@ -186,6 +194,7 @@ Every run must answer:
 
 Required metrics:
 
+- domain dictionary term counts
 - `stage_seconds`
 - page/region/annotation counts per document
 - empty/low-text page counts

@@ -22,6 +22,7 @@ class CorpusPair(BaseModel):
     doc_a: Path
     doc_b: Path
     authority_config: Path | None = None
+    domain_glossary: Path | None = None
     eval: Path | None = None
     doc_a_type: str | None = "auto"
     doc_b_type: str | None = "auto"
@@ -69,6 +70,7 @@ def run_corpus_manifest(
     *,
     out_root: Path,
     default_authority_config: Path | None = None,
+    default_domain_glossary: Path | None = None,
     no_cloud: bool = True,
     no_kuzu: bool = True,
     max_candidates: int = 80,
@@ -85,11 +87,14 @@ def run_corpus_manifest(
         run_dir = out_root / _safe_run_id(pair.id)
         eval_path = _resolve_control_path(pair.eval, manifest_path=manifest_path) if pair.eval else None
         authority_config = _resolve_control_path(pair.authority_config, manifest_path=manifest_path) if pair.authority_config else default_authority_config
+        domain_glossary = _resolve_control_path(pair.domain_glossary, manifest_path=manifest_path) if pair.domain_glossary else default_domain_glossary
         missing = [str(path) for path in (doc_a, doc_b) if not path.exists()]
         if eval_path and not eval_path.exists():
             missing.append(str(eval_path))
         if authority_config and not authority_config.exists():
             missing.append(str(authority_config))
+        if domain_glossary and not domain_glossary.exists():
+            missing.append(str(domain_glossary))
         if missing:
             summaries.append(
                 CorpusRunSummary(
@@ -113,6 +118,7 @@ def run_corpus_manifest(
                     mode=pair.mode,
                     out_dir=run_dir,
                     authority_config_path=authority_config,
+                    domain_glossary_path=domain_glossary,
                     env_file_path=DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None,
                     doc_a_type=pair.doc_a_type,
                     doc_b_type=pair.doc_b_type,

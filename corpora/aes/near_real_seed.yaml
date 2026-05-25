@@ -12,6 +12,7 @@ pairs:
     doc_a: doc_a_60pct.pdf
     doc_b: doc_b_90pct.pdf
     authority_config: ../../examples/aes_authority.yaml
+    domain_glossary: ../../examples/aes_glossary.yaml
     eval: ../../eval/demo.yaml
     no_cloud: true
     no_kuzu: true
@@ -23,6 +24,7 @@ pairs:
     doc_a: doc_a_60pct.pdf
     doc_b: doc_a_60pct.pdf
     authority_config: ../../examples/aes_authority.yaml
+    domain_glossary: ../../examples/aes_glossary.yaml
     eval: ../../eval/negative.yaml
     no_cloud: true
     no_kuzu: true
@@ -34,6 +36,7 @@ pairs:
     doc_a: spec_xfmr_001.pdf
     doc_b: doc_a_60pct.pdf
     authority_config: ../../examples/aes_authority.yaml
+    domain_glossary: ../../examples/aes_glossary.yaml
     eval: ../../eval/cross_doc.yaml
     doc_a_type: specification
     doc_b_type: protection_study
@@ -47,6 +50,7 @@ pairs:
     doc_a: real_ieee_xfmr_spec_guide.pdf
     doc_b: real_sel_xfmr_protection.pdf
     authority_config: ../../examples/aes_authority.yaml
+    domain_glossary: ../../examples/aes_glossary.yaml
     eval: ../../eval/real_xfmr_smoke.yaml
     doc_a_type: specification
     doc_b_type: protection_study

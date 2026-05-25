@@ -14,6 +14,7 @@ pairs:
     doc_a: docs/baseline_60_percent.pdf
     doc_b: docs/revised_90_percent.pdf
     authority_config: ../../examples/aes_authority.yaml
+    domain_glossary: ../../examples/aes_glossary.yaml
     eval: ../../eval/demo.yaml
     doc_a_type: auto
     doc_b_type: auto
@@ -27,6 +28,7 @@ pairs:
     doc_a: docs/transformer_datasheet.pdf
     doc_b: docs/protection_coordination_study.pdf
     authority_config: ../../examples/aes_authority.yaml
+    domain_glossary: ../../examples/aes_glossary.yaml
     doc_a_type: specification
     doc_b_type: protection_study
     no_cloud: true

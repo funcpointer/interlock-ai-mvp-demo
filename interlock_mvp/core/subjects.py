@@ -4,6 +4,7 @@ import re
 
 from rapidfuzz import fuzz
 
+from .domain import DomainDictionary
 from .normalization import normalize_subject
 
 EQUIPMENT_PATTERNS = [
@@ -16,9 +17,10 @@ EQUIPMENT_PATTERNS = [
 ]
 
 
-def extract_subjects(text: str) -> list[str]:
+def extract_subjects(text: str, domain: DomainDictionary | None = None) -> list[str]:
     found: list[str] = []
-    for pattern in EQUIPMENT_PATTERNS:
+    patterns = [*EQUIPMENT_PATTERNS, *(domain.subject_patterns() if domain else [])]
+    for pattern in patterns:
         for match in pattern.finditer(text or ""):
             subject = normalize_subject(match.group(0))
             if subject and subject not in found:
@@ -26,9 +28,13 @@ def extract_subjects(text: str) -> list[str]:
     return found
 
 
-def canonical_parameter(text: str, unit: str) -> str:
+def canonical_parameter(text: str, unit: str, domain: DomainDictionary | None = None) -> str:
     lower = text.lower()
     unit_lower = unit.lower()
+    if domain:
+        domain_parameter = domain.parameter_for(text, unit)
+        if domain_parameter:
+            return domain_parameter
     if "bil" in lower:
         return "bil"
     if "primary voltage" in lower:

@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 
 from .contexts import align_context_label, align_context_label_strict, context_label_for_region
+from .domain import DomainDictionary
 from .models import ClaimNode, ContextNode, DiffEdge, DiffGraph, DocumentGraph, EvidenceItem, RegionRecord, SubjectNode
 from .normalization import normalize_key
 from .plausibility import values_equivalent
@@ -13,11 +14,12 @@ def build_document_graphs(
     *,
     regions: list[RegionRecord],
     evidence: list[EvidenceItem],
+    domain: DomainDictionary | None = None,
 ) -> tuple[DocumentGraph, DocumentGraph, list[EvidenceItem]]:
     context_by_region: dict[str, tuple[str, str, str, str]] = {}
     current_by_doc: dict[str, tuple[str, str, str, int]] = {}
     for region in sorted(regions, key=lambda r: (r.doc_id, r.page, r.bbox[1], r.bbox[0])):
-        context_by_region[region.region_id] = context_label_for_region(region, current_by_doc)
+        context_by_region[region.region_id] = context_label_for_region(region, current_by_doc, domain=domain)
 
     updated_evidence: list[EvidenceItem] = []
     for item in evidence:

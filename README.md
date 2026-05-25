@@ -21,6 +21,10 @@ result = run_review(ReviewRequest(...))
 
 Canonical outputs are JSON artifacts. `report.md`, `graph.kuzu/`, and search indexes are derived.
 
+The AES/domain glossary is loaded from `examples/aes_glossary.yaml` by default.
+It now feeds extraction, parameter naming, context labeling, corpus runs, and
+search expansion. It is still an MVP glossary, not a complete AES ontology.
+
 Important review-map artifacts:
 
 - `doc_graph_a.json` / `doc_graph_b.json`: contexts, subjects, claims.

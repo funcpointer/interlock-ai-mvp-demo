@@ -674,3 +674,72 @@ P1 next work:
 - add OCR/VLM/table extraction against real AES documents where PyMuPDF text extraction fails,
 - improve context segmentation from real page/table/section structure,
 - keep candidate generation auxiliary until decision-sourced matching is fully primary.
+
+## checkpoint-2026-05-25-domain-dictionary
+
+Purpose:
+
+- prioritize the next MVP work after the audit,
+- move AES glossary/dictionary data from search-only support into the extraction/reasoning input path,
+- improve recall for partner vocabulary without turning glossary aliases into an authority source,
+- document the next ordered work queue.
+
+Changed:
+
+- added `interlock_mvp/core/domain.py`,
+- expanded `examples/aes_glossary.yaml` into:
+  - equipment terms,
+  - parameter terms,
+  - context terms,
+  - standards/reference terms,
+  - legacy search aliases,
+- added `ReviewRequest.domain_glossary_path`,
+- added CLI/corpus `--glossary` support,
+- wired `DomainDictionary` into:
+  - subject extraction,
+  - parameter canonicalization,
+  - context labeling,
+  - corpus manifests,
+  - search query expansion,
+- added `tests/test_domain_dictionary.py`,
+- added `docs/NEXT_STEPS_2026-05-25.md`,
+- package version bumped to `0.15.0`.
+
+Important regression caught:
+
+- first dictionary implementation over-admitted `XFMR 12 x FLA` as a concrete equipment tag `XFMR-12`,
+- this inflated version-review findings from 4 to 8/10 and broke gold alignments,
+- fix: acronym prefixes such as `XFMR` require compact/hyphen/hash-style IDs and do not treat plain row text as equipment identity,
+- natural prefixes such as `Switchboard SB-1` remain supported.
+
+Validation result:
+
+```text
+tests/test_domain_dictionary.py tests/test_evidence.py tests/test_search.py tests/test_review_integration.py
+  12 passed
+
+make eval-fast
+  46 tests passed
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 6 findings, 4 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make coverage
+  46 passed
+  source coverage: 77%
+
+make eval-aes-seed
+  4/4 corpus pairs eval_passed
+
+make eval-search
+  passed
+```
+
+Priority queue after this checkpoint:
+
+1. keep the authoritative review spine singular by demoting/removing stale candidate-verifier surfaces,
+2. add `decision_traces.json` / signal corroboration for explainability,
+3. run real AES corpus manifests and add eval YAML for each pair,
+4. add OCR/VLM/table extraction only where telemetry proves deterministic extraction failed,
+5. replace LanceDB hash vectors with local Ollama/SLM embeddings only after real corpus recall demands it.

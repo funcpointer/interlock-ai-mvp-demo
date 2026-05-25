@@ -36,6 +36,7 @@ class ReviewRequest(BaseModel):
     mode: ReviewMode
     out_dir: Path
     authority_config_path: Path | None = None
+    domain_glossary_path: Path | None = None
     env_file_path: Path | None = None
     doc_a_type: str | None = None
     doc_b_type: str | None = None
