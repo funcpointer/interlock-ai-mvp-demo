@@ -1196,3 +1196,44 @@ Design decision:
 
 - no Streamlit or JS stack yet. The UI is deliberately small and dependency-free
   because the MVP risk is accuracy, not frontend framework capability.
+
+## checkpoint-2026-05-25-static-vc-demo
+
+Purpose:
+
+- create the correct shareable-URL surface for VCs,
+- avoid exposing the local operator UI, local file paths, or run execution over
+  a public tunnel,
+- package existing review outputs into a static site that can be hosted by any
+  static web host.
+
+Changed:
+
+- added `interlock_mvp/core/demo_package.py`,
+- added `interlock_mvp demo-package`,
+- added `make eval-demo-package`,
+- added static package tests,
+- README now distinguishes local operator UI from external static demo site.
+
+Shareable surface:
+
+```text
+runs/demo-package/site/index.html
+```
+
+Includes:
+
+- public version demo,
+- public cross-doc demo,
+- negative control,
+- scanned/low-text control,
+- copied citation crops,
+- copied JSON/Markdown artifacts,
+- summary at `runs/demo-package/summary.md`.
+
+Security posture:
+
+- safe to host as static files,
+- no arbitrary path input,
+- no review execution endpoint,
+- no access to local filesystem beyond exported artifacts.

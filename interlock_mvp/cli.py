@@ -11,6 +11,7 @@ from rich.console import Console
 from rich.table import Table
 
 from .core.corpus import corpus_success, run_corpus_manifest
+from .core.demo_package import write_demo_package
 from .core.eval import run_eval
 from .core.env import DEFAULT_OLD_REPO_ENV, load_env_file, load_key_files
 from .core.models import ReviewRequest
@@ -251,6 +252,15 @@ def ui(
     from .ui import serve
 
     serve(host=host, port=port)
+
+
+@app.command("demo-package")
+def demo_package(
+    out: Annotated[Path, typer.Option(help="Output directory for static demo package")] = Path("runs/demo-package"),
+) -> None:
+    site_dir = write_demo_package(out_dir=out)
+    console.print(f"[green]Wrote static demo site:[/green] {site_dir / 'index.html'}")
+    console.print(f"[green]Wrote summary:[/green] {out / 'summary.md'}")
 
 
 def _normalize_mode(mode: str):

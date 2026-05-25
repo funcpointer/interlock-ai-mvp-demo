@@ -11,6 +11,7 @@ Fresh CLI-only evidence review engine for comparing two engineering PDFs.
 /Users/kc/venv-12/bin/python -m interlock_mvp corpus corpora/aes/local_manifest.yaml --out-root runs/aes-corpus --no-cloud --no-kuzu
 make eval-public-demo
 make eval-public-cross-doc-demo
+make eval-demo-package
 make ui
 ```
 
@@ -33,6 +34,16 @@ make ui
 
 Open `http://127.0.0.1:8765` and run either the public version demo, the public
 cross-doc demo, or a custom two-PDF review by local file path.
+
+For a URL you can safely share externally, generate the static demo package:
+
+```bash
+make eval-demo-package
+```
+
+Deploy `runs/demo-package/site/` as a static site. This is the recommended VC
+sharing surface because it has no run button, no local path inputs, no server
+execution, and no access to files outside the exported artifacts.
 
 The AES/domain glossary is loaded from `examples/aes_glossary.yaml` by default.
 It now feeds extraction, parameter naming, context labeling, corpus runs, and

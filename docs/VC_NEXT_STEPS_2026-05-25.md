@@ -163,12 +163,13 @@ Pitch the system as an expert-assist reviewer that makes human review faster, mo
 ## Immediate Build Queue
 
 1. Done: add a simple local UI adapter over `run_review`.
-2. Add `make eval-demo-package`.
-3. Add `runs/demo-package/summary.md`.
+2. Done: add `make eval-demo-package`.
+3. Done: add `runs/demo-package/summary.md`.
 4. Fix cross-doc fixture noise from document/revision IDs.
 5. Add a third public cross-doc demo finding class: missing-item or reference conflict.
 6. Re-run coverage and evals.
-7. Record demo video.
+7. Deploy `runs/demo-package/site/` as a static URL.
+8. Record demo video.
 
 ## Funding Readiness Bar
 
