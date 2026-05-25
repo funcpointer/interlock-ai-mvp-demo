@@ -63,6 +63,41 @@ def test_reference_subjects_do_not_become_missing_equipment() -> None:
     assert not [edge for edge in diff.edges if edge.subject in {"IEC 60034-1", "NEMA MG 1-2016"}]
 
 
+def test_percent_values_without_impedance_context_do_not_diff_as_impedance() -> None:
+    regions = [
+        _region("A", 17, "ra1", "TAPS (range, locations etc.)"),
+        _region("A", 17, "ra2", "Transformer taps 2.5%"),
+        _region("B", 17, "rb1", "TAPS (range, locations etc.)"),
+    ]
+    evidence = [
+        _claim("A", 17, "ra2", "ev1", "XFMR", "impedance", "2.5", "%", "Transformer taps 2.5%"),
+    ]
+    graph_a, graph_b, _updated = build_document_graphs(regions=regions, evidence=evidence)
+    diff = build_diff_graph(graph_a, graph_b)
+
+    assert not [edge for edge in diff.edges if edge.parameter == "impedance"]
+
+
+def test_duplicate_same_value_edges_collapse() -> None:
+    regions = [
+        _region("A", 7, "ra1", "TCC3"),
+        _region("A", 7, "ra2", "1000KVA XFMR"),
+        _region("A", 7, "ra3", "1000KVA XFMR"),
+        _region("B", 7, "rb1", "TCC3"),
+        _region("B", 7, "rb2", "100KVA XFMR"),
+    ]
+    evidence = [
+        _claim("A", 7, "ra2", "ev1", "XFMR", "rating", "1000", "KVA", "1000KVA XFMR"),
+        _claim("A", 7, "ra3", "ev2", "XFMR", "rating", "1000", "KVA", "1000KVA XFMR"),
+        _claim("B", 7, "rb2", "ev3", "XFMR", "rating", "100", "KVA", "100KVA XFMR"),
+    ]
+    graph_a, graph_b, _updated = build_document_graphs(regions=regions, evidence=evidence)
+    diff = build_diff_graph(graph_a, graph_b)
+
+    rating_edges = [edge for edge in diff.edges if edge.parameter == "rating"]
+    assert len(rating_edges) == 1
+
+
 def _region(doc_id: str, page: int, region_id: str, text: str) -> RegionRecord:
     return RegionRecord(
         region_id=region_id,

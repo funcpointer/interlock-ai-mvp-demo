@@ -43,6 +43,8 @@ def build_diff_graph(graph_a: DocumentGraph, graph_b: DocumentGraph) -> DiffGrap
     for claim_a in graph_a.claims:
         if _is_generic_subject_id(claim_a.subject_id):
             continue
+        if not _claim_admissible_for_diff(claim_a):
+            continue
         context_a = align_context_label(_context_label(graph_a, claim_a.context_id))
         matches = [
             claim_b
@@ -294,6 +296,19 @@ def _is_transformer_claim(claim: ClaimNode) -> bool:
     )
 
 
+def _claim_admissible_for_diff(claim: ClaimNode) -> bool:
+    raw = claim.raw_text.lower()
+    if claim.parameter == "impedance":
+        if claim.unit.lower() == "%z":
+            return True
+        return any(token in raw for token in ("%z", "impedance", "z%"))
+    if claim.parameter == "rating":
+        return claim.unit.lower() in {"kva", "mva"}
+    if claim.parameter == "fault_current":
+        return "fault" in raw or "short circuit" in raw
+    return True
+
+
 def _strong_missing_subject(subject: str) -> bool:
     upper = subject.upper()
     if upper in {"GENERAL", "XFMR", "FUSE", "BREAKER", "RELAY"}:
@@ -316,10 +331,22 @@ def _dedup_edges(edges: list[DiffEdge]) -> list[DiffEdge]:
     seen: set[tuple[str, str, str, str | None, str | None]] = set()
     result: list[DiffEdge] = []
     for edge in edges:
-        key = (edge.diff_type, edge.subject, edge.parameter, edge.a_node_id, edge.b_node_id)
+        key = _edge_dedup_key(edge)
         if key in seen:
             continue
         seen.add(key)
         edge.diff_id = f"diff{len(result)+1:05d}"
         result.append(edge)
     return result
+
+
+def _edge_dedup_key(edge: DiffEdge) -> tuple[str, str, str, str | None, str | None]:
+    if edge.diff_type == "value_mismatch" and edge.parameter in {"rating", "impedance", "fault_current"}:
+        return (edge.diff_type, edge.subject, edge.parameter, _value_rationale_key(edge.rationale), None)
+    if edge.diff_type == "missing_item" and edge.parameter in {"rating", "impedance", "fault_current"}:
+        return (edge.diff_type, edge.subject, edge.parameter, edge.rationale, None)
+    return (edge.diff_type, edge.subject, edge.parameter, edge.a_node_id, edge.b_node_id)
+
+
+def _value_rationale_key(rationale: str) -> str:
+    return " ".join(rationale.lower().split())

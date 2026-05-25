@@ -26,8 +26,8 @@ Purpose:
 Latest result:
 
 ```text
-5 findings
-5 review_required
+4 findings
+4 review_required
 0 coverage_warnings
 eval passed
 ```
@@ -78,8 +78,8 @@ Purpose:
 Latest result:
 
 ```text
-7 findings
-4 review_required
+5 findings
+2 review_required
 eval passed
 ```
 
@@ -157,7 +157,7 @@ Purpose:
 Latest result:
 
 ```text
-17 findings
+3 findings
 1 review_required
 0 coverage_warnings
 eval passed under loose smoke cap
@@ -165,7 +165,7 @@ eval passed under loose smoke cap
 
 Important caveat:
 
-- This is not a gold precision/recall label. It is an inspection smoke. The current output still has many repeated possible impedance findings and needs later dedup/alignment work.
+- This is not a gold precision/recall label. It is an inspection smoke. The current output is much cleaner after percent-context filtering, but the remaining possible impedance findings still need human review before becoming gold labels.
 
 ## Known Extraction-Gap Examples
 

@@ -192,3 +192,40 @@ Accuracy finding:
 - The real cross-doc example is now less noisy than before the reference fix, but still has repeated possible impedance findings.
 - PID/HVAC/relay examples expose weak table/subject extraction and should drive the next table/VLM extraction phase.
 - Gold cross-doc got cleaner after the reference fix: 7 findings / 4 review_required became 5 findings / 2 review_required while expected findings still pass.
+
+## checkpoint-2026-05-25-precision-dedup
+
+Purpose:
+
+- improve precision without losing labeled recall,
+- remove duplicate same-value mismatch findings,
+- stop prose/tap/loss percentages from being classified as impedance unless `%Z` or explicit impedance context is present.
+
+Changed:
+
+- `docgraph` diff admission now filters impedance claims with weak `%` context,
+- repeated same-value `rating`/`impedance`/`fault_current` diffs collapse,
+- regression tests for percent-context admission and duplicate diff collapse.
+
+Validation result:
+
+```text
+make test
+  15 passed
+
+make eval-fast
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 5 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make eval-examples
+  synth equipment spec v2/v3: 0 findings, eval passed
+  real IEEE vs SEL: 3 findings, 1 review_required, eval passed under smoke cap
+```
+
+Accuracy result:
+
+- Version gold kept all expected findings but removed the duplicate XFMR rating finding.
+- Real IEEE/SEL smoke dropped from 17 findings to 3 findings by eliminating prose-percent noise.
+- Remaining real IEEE/SEL findings still need review; two are possible impedance missing-items and one is equipment presence.
