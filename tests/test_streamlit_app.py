@@ -8,8 +8,10 @@ from interlock_mvp.streamlit_app import (
     _input_options,
     _mime_for,
     _new_run_dir,
+    _preview_wiki_markdown,
     _safe_upload_name,
     _upload_errors,
+    _wiki_pages,
 )
 
 
@@ -73,3 +75,21 @@ def test_streamlit_exposes_context_layer_wiki_artifacts() -> None:
     assert "wiki/memory-palace.md" in ARTIFACT_DOWNLOADS
     assert WIKI_PREVIEW_FILES == ["wiki/index.md", "wiki/review-map.md", "wiki/memory-palace.md"]
     assert _download_name("wiki/index.md") == "wiki_index.md"
+
+
+def test_wiki_pages_prioritize_entrypoints(tmp_path: Path) -> None:
+    for name in ["wiki/context-rooms/room_a.md", "wiki/index.md", "wiki/memory-palace.md", "wiki/review-map.md"]:
+        path = tmp_path / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("# page\n", encoding="utf-8")
+
+    assert _wiki_pages(tmp_path)[:3] == ["wiki/index.md", "wiki/review-map.md", "wiki/memory-palace.md"]
+    assert "wiki/context-rooms/room_a.md" in _wiki_pages(tmp_path)
+
+
+def test_wiki_preview_rewrites_internal_links_to_non_broken_labels() -> None:
+    rendered = _preview_wiki_markdown("- [Review Map](review-map.md)\n- [[memory-palace|Memory Palace]]")
+
+    assert "[Review Map]" not in rendered
+    assert "**Review Map** (`review-map.md`)" in rendered
+    assert "**Memory Palace** (`memory-palace.md`)" in rendered

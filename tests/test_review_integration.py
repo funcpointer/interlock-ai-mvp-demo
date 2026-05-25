@@ -91,8 +91,9 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
     assert context_memory["trails"][0]["finding_ids"] == ["find_00001"]
     wiki_index = (out_dir / "wiki" / "index.md").read_text(encoding="utf-8")
     assert "compiled memory layer" in wiki_index
-    assert "[[memory-palace|Memory Palace]]" in wiki_index
-    assert "[[findings/find_00001|find_00001]]" in wiki_index
+    assert "[Memory Palace](memory-palace.md)" in wiki_index
+    assert "[find_00001](findings/find_00001.md)" in wiki_index
+    assert "[[" not in wiki_index
     wiki_memory = (out_dir / "wiki" / "memory-palace.md").read_text(encoding="utf-8")
     assert "Each room is a document context" in wiki_memory
     wiki_finding = (out_dir / "wiki" / "findings" / "find_00001.md").read_text(encoding="utf-8")

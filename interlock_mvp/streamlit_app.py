@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
@@ -186,23 +187,23 @@ def _render_run(run_dir: Path) -> None:
 
 
 def _render_context_layer(run_dir: Path) -> None:
-    available = [name for name in WIKI_PREVIEW_FILES if (run_dir / name).exists()]
-    if not available:
+    pages = _wiki_pages(run_dir)
+    if not pages:
         return
     with st.expander("Context layer: graph, search, wiki"):
         st.caption(
-            "Derived second-brain layer for navigation. JSON findings remain the source of truth; the wiki helps inspect surrounding context and reasoning trails."
+            "Derived second-brain layer for navigation. JSON findings remain the source of truth; use the selector to inspect wiki pages."
         )
-        tabs = st.tabs([Path(name).stem for name in available])
-        for tab, name in zip(tabs, available, strict=True):
-            with tab:
-                st.markdown((run_dir / name).read_text(encoding="utf-8"))
-                st.download_button(
-                    f"Download {name}",
-                    data=(run_dir / name).read_bytes(),
-                    file_name=_download_name(name),
-                    mime="text/markdown",
-                )
+        index = pages.index("wiki/index.md") if "wiki/index.md" in pages else 0
+        selected = st.selectbox("Wiki page", pages, index=index)
+        path = run_dir / selected
+        st.markdown(_preview_wiki_markdown(path.read_text(encoding="utf-8")))
+        st.download_button(
+            f"Download {selected}",
+            data=path.read_bytes(),
+            file_name=_download_name(selected),
+            mime="text/markdown",
+        )
 
 
 def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
@@ -288,6 +289,21 @@ def _mime_for(name: str) -> str:
 
 def _download_name(name: str) -> str:
     return name.replace("/", "_")
+
+
+def _wiki_pages(run_dir: Path) -> list[str]:
+    wiki_dir = run_dir / "wiki"
+    if not wiki_dir.exists():
+        return []
+    pages = sorted(f"wiki/{path.relative_to(wiki_dir)}" for path in wiki_dir.rglob("*.md"))
+    entrypoints = [name for name in WIKI_PREVIEW_FILES if name in pages]
+    return entrypoints + [name for name in pages if name not in set(entrypoints)]
+
+
+def _preview_wiki_markdown(text: str) -> str:
+    text = re.sub(r"\[\[([^|\]]+)\|([^\]]+)\]\]", r"**\2** (`\1.md`)", text)
+    text = re.sub(r"\[([^\]]+)\]\(([^)]+\.md)\)", r"**\1** (`\2`)", text)
+    return text
 
 
 def _input_options() -> list[str]:

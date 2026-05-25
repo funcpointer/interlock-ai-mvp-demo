@@ -69,10 +69,10 @@ def _index_lines(
         "",
         "## Start Here",
         "",
-        "- [[review-map|Review Map]]",
-        "- [[memory-palace|Memory Palace]]",
-        "- [[log|Run Log]]",
-        "- [[reasoning/decisions|Reasoning Decisions]]",
+        f"- {_md_link('review-map', 'Review Map')}",
+        f"- {_md_link('memory-palace', 'Memory Palace')}",
+        f"- {_md_link('log', 'Run Log')}",
+        f"- {_md_link('reasoning/decisions', 'Reasoning Decisions')}",
         "- `../findings.json`",
         "- `../reasoning_graph.json`",
         "- `../search/review_map.jsonl`",
@@ -81,12 +81,12 @@ def _index_lines(
         "",
     ]
     for document in documents:
-        lines.append(f"- [[documents/{document.doc_id}|Doc {document.doc_id}]]: `{document.doc_type}` / `{document.mode_role}`")
+        lines.append(f"- {_md_link(f'documents/{document.doc_id}', f'Doc {document.doc_id}')}: `{document.doc_type}` / `{document.mode_role}`")
     lines.extend(["", "## Findings", ""])
     if findings:
         for finding in findings:
             lines.append(
-                f"- [[findings/{_slug(finding.finding_id)}|{finding.finding_id}]]: `{finding.finding_type}` `{finding.severity}` - {finding.subject} / {finding.parameter}"
+                f"- {_md_link(f'findings/{_slug(finding.finding_id)}', finding.finding_id)}: `{finding.finding_type}` `{finding.severity}` - {finding.subject} / {finding.parameter}"
             )
     else:
         lines.append("- No findings.")
@@ -174,12 +174,12 @@ def _memory_palace_lines(context_memory: ContextMemory) -> list[str]:
     ]
     for room in sorted(context_memory.rooms, key=lambda item: (-item.salience_score, item.doc_id, item.page_span[0] if item.page_span else 0))[:80]:
         lines.append(
-            f"- [[context-rooms/{_slug(room.room_id)}|{room.canonical_label}]] `{room.doc_id}` `{room.kind}` salience={room.salience_score}: {room.summary}"
+            f"- {_md_link(f'context-rooms/{_slug(room.room_id)}', room.canonical_label)} `{room.doc_id}` `{room.kind}` salience={room.salience_score}: {room.summary}"
         )
     lines.extend(["", "## Trails", ""])
     if context_memory.trails:
         for trail in context_memory.trails:
-            rooms = ", ".join(f"[[context-rooms/{_slug(room_id)}|{room_id}]]" for room_id in trail.room_ids)
+            rooms = ", ".join(_md_link(f"context-rooms/{_slug(room_id)}", room_id) for room_id in trail.room_ids)
             lines.append(f"- `{trail.trail_id}` {trail.name}: {rooms or 'no linked rooms'}")
     else:
         lines.append("- No trails.")
@@ -207,7 +207,7 @@ def _document_lines(document: DocumentRecord, doc_graph_a: DocumentGraph, doc_gr
         lines.append(f"- ... {len(graph.contexts) - 80} more in `../doc_graph_{document.doc_id.lower()}.json`")
     lines.extend(["", "## Subjects", ""])
     for subject in graph.subjects[:120]:
-        lines.append(f"- [[../subjects/{_slug(subject.subject_id)}|{subject.canonical_label}]] `{subject.kind}` `{subject.confidence}`")
+        lines.append(f"- {_md_link(f'../subjects/{_slug(subject.subject_id)}', subject.canonical_label)} `{subject.kind}` `{subject.confidence}`")
     if len(graph.subjects) > 120:
         lines.append(f"- ... {len(graph.subjects) - 120} more in `../doc_graph_{document.doc_id.lower()}.json`")
     lines.append("")
@@ -258,7 +258,7 @@ def _context_room_lines(room: ContextRoom) -> list[str]:
         "",
     ]
     if room.neighboring_room_ids:
-        lines.extend(f"- [[{_slug(room_id)}|{room_id}]]" for room_id in room.neighboring_room_ids)
+        lines.extend(f"- {_md_link(_slug(room_id), room_id)}" for room_id in room.neighboring_room_ids)
     else:
         lines.append("- No neighboring rooms.")
     lines.extend(["", "## Subjects", ""])
@@ -266,7 +266,7 @@ def _context_room_lines(room: ContextRoom) -> list[str]:
     lines.extend(["", "## Claims", ""])
     lines.extend(f"- `{claim_id}`" for claim_id in room.claim_ids) if room.claim_ids else lines.append("- No claims.")
     lines.extend(["", "## Findings", ""])
-    lines.extend(f"- [[../findings/{_slug(finding_id)}|{finding_id}]]" for finding_id in room.finding_ids) if room.finding_ids else lines.append("- No linked findings.")
+    lines.extend(f"- {_md_link(f'../findings/{_slug(finding_id)}', finding_id)}" for finding_id in room.finding_ids) if room.finding_ids else lines.append("- No linked findings.")
     lines.extend(["", "## Evidence", ""])
     lines.extend(f"- `{evidence_id}`" for evidence_id in room.evidence_ids[:120]) if room.evidence_ids else lines.append("- No evidence.")
     if len(room.evidence_ids) > 120:
@@ -321,7 +321,7 @@ def _subject_pages(doc_graph_a: DocumentGraph, doc_graph_b: DocumentGraph, findi
                 "",
             ]
             if linked_findings:
-                lines.extend(f"- [[../findings/{_slug(finding.finding_id)}|{finding.finding_id}]] {finding.parameter}" for finding in linked_findings)
+                lines.extend(f"- {_md_link(f'../findings/{_slug(finding.finding_id)}', finding.finding_id)} {finding.parameter}" for finding in linked_findings)
             else:
                 lines.append("- No linked findings.")
             lines.append("")
@@ -356,6 +356,11 @@ def _write(path: Path, lines: list[str]) -> None:
 def _slug(value: str) -> str:
     slug = re.sub(r"[^A-Za-z0-9_.-]+", "-", value).strip("-")
     return slug or "item"
+
+
+def _md_link(target: str, label: str) -> str:
+    path = target if target.endswith(".md") else f"{target}.md"
+    return f"[{label}]({path})"
 
 
 def _clip(text: str, limit: int = 320) -> str:
