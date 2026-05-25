@@ -1,0 +1,52 @@
+schema_version: interlock_mvp.eval.v1
+expected_findings:
+  - finding_type: value_mismatch
+    severity: review_required
+    subject_contains: XFMR
+    parameter: rating
+    alignment:
+      subject_method: exact
+      context_method: canonicalized
+    comparison:
+      comparison_type: value_mismatch
+      unit_method: pint
+    evidence_a:
+      page: 4
+      value: "140"
+      unit: MVA
+      quote_contains: 84/112/140 MVA
+    evidence_b:
+      page: 4
+      value: "120"
+      unit: MVA
+      quote_contains: 84/112/120 MVA
+  - finding_type: value_mismatch
+    severity: review_required
+    subject_contains: XFMR
+    parameter: impedance
+    alignment:
+      subject_method: exact
+      context_method: canonicalized
+    comparison:
+      comparison_type: value_mismatch
+      unit_method: custom_percent_impedance
+    evidence_a:
+      page: 5
+      value: "10"
+      unit: "%"
+      quote_contains: "Primary - Secondary (ONAF): 10%"
+    evidence_b:
+      page: 5
+      value: "8"
+      unit: "%"
+      quote_contains: "8% (+/- allowed tolerance)"
+forbidden_findings:
+  - finding_type: value_mismatch
+    parameter: voltage
+  - finding_type: missing_item
+  - finding_type: coverage_warning
+  - parameter: percent
+    summary_contains: "0.625"
+expected_coverage_warnings: []
+max_review_required: 2
+max_findings: 2

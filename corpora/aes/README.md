@@ -66,3 +66,29 @@ Current public-AES signal:
 
 These public documents are useful because they expose the real next problem:
 subject/context extraction and value alignment, not another storage layer.
+
+## Public Demo Synthetic Revision
+
+`scripts/make_synthetic_transformer_revision.py` creates a watermarked synthetic
+revision:
+
+```text
+corpora/aes/docs/public_aes/somerset_main_power_transformer_spec_sheet_synth_rev.pdf
+```
+
+It is generated from the public AES Somerset main power transformer specification
+sheet and plants two explicit changes:
+
+- `84/112/140 MVA` -> `84/112/120 MVA`
+- `10% (+/- allowed tolerance)` -> `8% (+/- allowed tolerance)`
+
+Run:
+
+```bash
+make eval-public-demo
+```
+
+The target uses `corpora/aes/public_demo_manifest.yaml` and
+`eval/public_transformer_spec_synth.yaml`. This is the current best demo-quality
+case because it uses a real public AES PDF while keeping the mutation source and
+gold expectations explicit.

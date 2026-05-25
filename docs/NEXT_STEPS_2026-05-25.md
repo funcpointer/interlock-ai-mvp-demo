@@ -90,12 +90,18 @@ Finding:
 
 Immediate next action:
 
-- create a demo-quality paired spec/study/drawing case:
-  - either obtain one real AES paired packet,
-  - or create a bounded synthetic mutation of the public transformer spec sheet
-    and label it explicitly as synthetic.
-- build eval YAML for that pair with expected/forbidden citations. Do not treat
-  arbitrary public smoke findings as product-quality findings.
+- done: `make eval-public-demo` creates and validates a watermarked synthetic
+  revision of the public AES Somerset main power transformer specification
+  sheet.
+- current demo case emits exactly two review-required, cited findings:
+  - `140 MVA -> 120 MVA`,
+  - `10% impedance -> 8%`.
+
+Next demo action:
+
+- polish `report.md` / README walkthrough around
+  `runs/public-demo/public_transformer_spec_synthetic_revision` so a 2-5 minute
+  screen recording can show the exact workflow and citations.
 
 ### P2: Extraction Upgrade Based on Failures
 
@@ -118,7 +124,7 @@ Then add targeted extraction lanes:
 
 Current triage priority:
 
-1. paired corpus/gold creation for a demo-quality AES-style example,
+1. demo report/walkthrough polish for `make eval-public-demo`,
 2. table extraction for schedules/settings beyond section headers,
 3. subject attachment from nearby labels and table headings,
 4. OCR/VLM only on pages triage marks low-text/weak,

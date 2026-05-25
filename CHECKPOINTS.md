@@ -968,3 +968,62 @@ Accuracy finding:
   project set. The next demo-quality data step is a real paired transformer
   spec/drawing/study pair or a bounded synthetic mutation of a public AES spec
   sheet with explicit gold.
+
+## checkpoint-2026-05-25-public-demo-synth
+
+Purpose:
+
+- create a demo-quality paired case over a real public AES PDF,
+- keep the mutation explicitly synthetic and watermarked,
+- prove the MVP can emit cited directional version-review findings with eval and
+  triage around the same artifact.
+
+Changed:
+
+- added `scripts/make_synthetic_transformer_revision.py`,
+- added `corpora/aes/public_demo_manifest.yaml`,
+- added `eval/public_transformer_spec_synth.yaml`,
+- added `make eval-public-demo`,
+- fixed impedance diff admission so `%` rows under an
+  `impedance_information` context do not need the word `impedance` repeated in
+  the row text,
+- made primary/secondary/high/low winding voltage rows directional parameters,
+- synthetic demo now plants two changes:
+  - `84/112/140 MVA` -> `84/112/120 MVA`,
+  - `10% (+/- allowed tolerance)` -> `8% (+/- allowed tolerance)`,
+- package version bumped to `0.19.0`.
+
+Validation result:
+
+```text
+make eval-public-demo
+  public_transformer_spec_synthetic_revision: eval_passed
+  findings: 2
+  review_required: 2
+  coverage warnings: 0
+
+demo run metrics:
+  alignment_decisions: 2
+  comparison_decisions: 2
+  absence_searches: 0
+  decision_traces_with_downgrades: 0
+```
+
+Expected findings:
+
+- rating mismatch: A cites `84/112/140 MVA`; B cites `84/112/120 MVA`,
+- impedance mismatch: A cites `Primary - Secondary (ONAF): 10%`; B cites
+  `8% (+/- allowed tolerance)`.
+
+Forbidden findings:
+
+- voltage mismatch,
+- missing item,
+- coverage warning,
+- tap step size / `0.625%` as a finding.
+
+Demo note:
+
+- This is not claimed as a real AES revision. It is a real public AES source PDF
+  plus a generated, watermarked synthetic revision that creates controlled,
+  auditable mismatches for the funding demo.

@@ -59,6 +59,7 @@ Current validated fixture classes:
 - real cross-doc smoke: `real_ieee_xfmr_spec_guide.pdf` vs `real_sel_xfmr_protection.pdf`
 - AES near-real corpus seed: `corpora/aes/near_real_seed.yaml`
 - public AES smoke corpus downloaded locally under gitignored `corpora/aes/docs/public_aes/`
+- public AES synthetic revision demo: `make eval-public-demo`
 
 Current accuracy caution:
 
@@ -69,6 +70,9 @@ Current accuracy caution:
 - Public AES smoke runs are useful stress tests, but not gold product demos by
   themselves. The best demo needs a paired revision/cross-doc set with explicit
   expected/forbidden findings.
+- The first demo-quality public pair now exists. It is a watermarked synthetic
+  revision of the public AES Somerset main power transformer specification sheet
+  with explicit eval gold.
 
 ## Invariants
 
@@ -624,16 +628,17 @@ Completed:
 10. Remove the stale candidate-generation path and add `decision_traces.json` as the finding-level signal ledger.
 11. Add `triage` command and use it on fixture/public-AES runs to expose extraction/context/reasoning failures.
 12. Add transformer-spec context carry, main-equipment subject attachment, and fix `%` misclassification caused by matching the `z` in `size`.
+13. Add `make eval-public-demo`: generate a watermarked synthetic revision of a
+    public AES transformer spec and validate two cited directional findings.
 
 Next:
 
-1. Build a demo-quality paired corpus case: real AES packet if available, otherwise a clearly labeled synthetic mutation of a public AES transformer spec sheet.
-2. Add eval YAML for that pair: expected, forbidden, max review-required, coverage expectations.
-3. Improve subject/context alignment for cross-document review using that paired data.
-4. Add OCR/VLM extraction for pages that triage marks weak/low-text.
-5. Add table-aware extraction for schedules, settings, and drawing/spec tables beyond the current section-header carry.
-6. Add real local embeddings for LanceDB after extraction/context failures are measured.
-7. Add Kuzu smoke queries for finding-to-decision-trace traceability.
+1. Polish the public-demo report/walkthrough for a 2-5 minute screen recording.
+2. Improve subject/context alignment for cross-document review using true paired AES packet data when available.
+3. Add OCR/VLM extraction for pages that triage marks weak/low-text.
+4. Add table-aware extraction for schedules, settings, and drawing/spec tables beyond the current section-header carry.
+5. Add real local embeddings for LanceDB after extraction/context failures are measured.
+6. Add Kuzu smoke queries for finding-to-decision-trace traceability.
 
 Validation after each step:
 

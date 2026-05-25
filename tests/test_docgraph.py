@@ -195,6 +195,26 @@ def test_impedance_context_carries_across_page_and_stops_at_oltc() -> None:
     assert updated_by_id["ev1"].source_method.endswith("+context_parameter+main_equipment_context")
 
 
+def test_impedance_context_admits_percent_diff_without_repeating_impedance_in_row() -> None:
+    regions = [
+        _region("A", 1, "ra1", "Main Power Transformer Specification Sheet"),
+        _region("A", 2, "ra2", "Impedance Information"),
+        _region("A", 3, "ra3", "Primary - Secondary (ONAF): 10% (+/- allowed tolerance)"),
+        _region("B", 1, "rb1", "Main Power Transformer Specification Sheet"),
+        _region("B", 2, "rb2", "Impedance Information"),
+        _region("B", 3, "rb3", "Primary - Secondary (ONAF): 8% (+/- allowed tolerance)"),
+    ]
+    evidence = [
+        _claim("A", 3, "ra3", "ev1", "GENERAL", "percent", "10", "%", "Primary - Secondary (ONAF): 10% (+/- allowed tolerance)"),
+        _claim("B", 3, "rb3", "ev2", "GENERAL", "percent", "8", "%", "Primary - Secondary (ONAF): 8% (+/- allowed tolerance)"),
+    ]
+
+    graph_a, graph_b, _updated = build_document_graphs(regions=regions, evidence=evidence)
+    diff = build_diff_graph(graph_a, graph_b)
+
+    assert any(edge.diff_type == "value_mismatch" and edge.parameter == "impedance" for edge in diff.edges)
+
+
 def _region(doc_id: str, page: int, region_id: str, text: str) -> RegionRecord:
     return RegionRecord(
         region_id=region_id,

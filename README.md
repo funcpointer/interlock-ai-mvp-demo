@@ -9,6 +9,7 @@ Fresh CLI-only evidence review engine for comparing two engineering PDFs.
 /Users/kc/venv-12/bin/python -m interlock_mvp triage runs/demo
 /Users/kc/venv-12/bin/python -m interlock_mvp search runs/demo "transformer rating"
 /Users/kc/venv-12/bin/python -m interlock_mvp corpus corpora/aes/local_manifest.yaml --out-root runs/aes-corpus --no-cloud --no-kuzu
+make eval-public-demo
 ```
 
 The CLI is only an adapter. The reusable entrypoint is:
@@ -57,6 +58,17 @@ PDFs, run:
 ```bash
 make eval-aes-seed
 ```
+
+For the funding-demo-oriented public AES synthetic revision, run:
+
+```bash
+make eval-public-demo
+```
+
+That target regenerates a watermarked synthetic revision of the public AES
+Somerset main power transformer specification sheet, runs the version review,
+checks `eval/public_transformer_spec_synth.yaml`, and writes triage diagnostics.
+The planted changes are `140 MVA -> 120 MVA` and `10% impedance -> 8%`.
 
 Corpus runs write one child run directory per pair and a summary artifact at
 `runs/<corpus>/corpus_results.json`.

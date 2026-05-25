@@ -61,6 +61,21 @@ def test_step_size_percent_is_not_impedance() -> None:
     assert value.parameter == "percent"
 
 
+def test_winding_voltage_rows_are_directional_parameters() -> None:
+    evidence = mine_evidence(
+        pages=[_page("A", 1)],
+        regions=[
+            _region("A", 1, "r1", "Primary Winding: 345 Grd Y/ 199.2 kV"),
+            _region("A", 1, "r2", "Secondary Winding: 34.5 Grd Y/ 19.92 kV"),
+        ],
+        annotations=[],
+    )
+
+    values = [item for item in evidence if item.kind == "parameter_value"]
+    assert values[0].parameter == "primary_voltage"
+    assert values[1].parameter == "secondary_voltage"
+
+
 def test_annotations_preserve_comment_and_highlight_as_evidence() -> None:
     evidence = mine_evidence(
         pages=[_page("B", 2)],

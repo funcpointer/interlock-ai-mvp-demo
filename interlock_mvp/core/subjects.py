@@ -37,9 +37,9 @@ def canonical_parameter(text: str, unit: str, domain: DomainDictionary | None = 
             return domain_parameter
     if "bil" in lower:
         return "bil"
-    if "primary voltage" in lower:
+    if "primary voltage" in lower or "primary winding" in lower or "high voltage winding" in lower:
         return "primary_voltage"
-    if "secondary voltage" in lower:
+    if "secondary voltage" in lower or "secondary winding" in lower or "low voltage winding" in lower:
         return "secondary_voltage"
     if unit_lower in {"kva", "mva"}:
         return "rating"

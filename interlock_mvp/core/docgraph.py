@@ -387,6 +387,8 @@ def _is_transformer_subject(subject_id: str) -> bool:
 def _claim_admissible_for_diff(claim: ClaimNode) -> bool:
     raw = claim.raw_text.lower()
     if claim.parameter == "impedance":
+        if "impedance" in claim.context_id.lower():
+            return True
         if claim.unit.lower() == "%z":
             return True
         return any(token in raw for token in ("%z", "impedance", "z%"))

@@ -3,8 +3,9 @@ FIXTURES := /Users/kc/Documents/Claude/Projects/interlock-ai-v2/fixtures/pdfs
 AUTH := examples/aes_authority.yaml
 AES_MANIFEST ?= corpora/aes/local_manifest.yaml
 AES_SEED_MANIFEST ?= corpora/aes/near_real_seed.yaml
+PUBLIC_DEMO_MANIFEST ?= corpora/aes/public_demo_manifest.yaml
 
-.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-triage eval-kuzu eval-search eval-examples eval-aes-corpus eval-aes-seed eval-full doctor
+.PHONY: test coverage eval-version eval-negative eval-cross eval-scanned eval-fast eval-triage eval-kuzu eval-search eval-examples eval-public-demo eval-aes-corpus eval-aes-seed eval-full doctor
 
 test:
 	$(PY) -m pytest -q
@@ -50,6 +51,11 @@ eval-examples:
 	$(PY) -m interlock_mvp check runs/example-synth-equipment-spec --eval eval/synth_reference_smoke.yaml
 	$(PY) -m interlock_mvp review $(FIXTURES)/real_ieee_xfmr_spec_guide.pdf $(FIXTURES)/real_sel_xfmr_protection.pdf --mode cross-doc --out runs/example-real-xfmr-cross --authority-config $(AUTH) --doc-a-type specification --doc-b-type protection_study --no-cloud --no-kuzu
 	$(PY) -m interlock_mvp check runs/example-real-xfmr-cross --eval eval/real_xfmr_smoke.yaml
+
+eval-public-demo:
+	$(PY) scripts/make_synthetic_transformer_revision.py
+	$(PY) -m interlock_mvp corpus $(PUBLIC_DEMO_MANIFEST) --out-root runs/public-demo --authority-config $(AUTH) --no-cloud --no-kuzu
+	$(PY) -m interlock_mvp triage runs/public-demo/public_transformer_spec_synthetic_revision
 
 eval-aes-corpus:
 	@if [ -f "$(AES_MANIFEST)" ]; then \
