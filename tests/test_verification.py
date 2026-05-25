@@ -53,6 +53,7 @@ def test_known_authority_strong_deterministic_diff_is_review_required() -> None:
         no_cloud=True,
         dry_run=False,
         max_cost_usd=0,
+        reasoning_by_diff_id={"diff00001": {"alignment_id": "align00001", "comparison_id": "comp00001"}},
     )
 
     assert len(findings) == 1
@@ -60,6 +61,8 @@ def test_known_authority_strong_deterministic_diff_is_review_required() -> None:
     assert findings[0].confidence == "high"
     assert findings[0].evidence_a is not None
     assert findings[0].evidence_b is not None
+    assert findings[0].alignment_id == "align00001"
+    assert findings[0].comparison_id == "comp00001"
 
 
 def test_unknown_authority_downgrades_strong_deterministic_diff() -> None:

@@ -67,6 +67,7 @@ def findings_from_diff_graph(
     no_cloud: bool,
     dry_run: bool,
     max_cost_usd: float,
+    reasoning_by_diff_id: dict[str, dict[str, str]] | None = None,
 ) -> tuple[list[Finding], list[str], dict[str, float]]:
     warnings: list[str] = []
     metrics = {"estimated_cloud_cost_usd": 0.0}
@@ -74,7 +75,7 @@ def findings_from_diff_graph(
         warnings.append("cloud verification skipped; deterministic verifier used")
     findings: list[Finding] = []
     for edge in diff_edges:
-        finding = _diff_edge_to_finding(edge, evidence_by_id, authority, mode)
+        finding = _diff_edge_to_finding(edge, evidence_by_id, authority, mode, (reasoning_by_diff_id or {}).get(edge.diff_id, {}))
         if finding:
             findings.append(finding)
     return findings, warnings, metrics
@@ -143,6 +144,7 @@ def _diff_edge_to_finding(
     evidence_by_id: dict[str, EvidenceItem],
     authority: AuthorityDecision,
     mode: str,
+    reasoning_ids: dict[str, str] | None = None,
 ) -> Finding | None:
     cited_evidence = [evidence_by_id[eid] for eid in edge.evidence_ids if eid in evidence_by_id]
     if not cited_evidence:
@@ -185,6 +187,9 @@ def _diff_edge_to_finding(
         evidence_b=_citation(evidence_b) if evidence_b else None,
         plausibility_notes=edge.plausibility_notes,
         verifier_notes="Deterministic graph verifier confirmed cited evidence and preserved reviewer-assist wording.",
+        alignment_id=(reasoning_ids or {}).get("alignment_id"),
+        comparison_id=(reasoning_ids or {}).get("comparison_id"),
+        absence_id=(reasoning_ids or {}).get("absence_id"),
     )
 
 

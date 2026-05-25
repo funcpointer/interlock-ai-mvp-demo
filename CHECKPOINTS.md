@@ -282,3 +282,62 @@ Accuracy finding:
 - The old cross-doc primary-voltage expectation was too weak and allowed A `12.47 kV` to pair with B `277 V`.
 - The tightened contract forbids that citation class instead of pretending it is a valid high-confidence mismatch.
 - Correct primary-voltage recall now requires better extraction/subject attribution, not a looser graph matcher.
+
+## checkpoint-2026-05-25-reasoning-graph-slice
+
+Purpose:
+
+- start working the graph-modeling critique directly,
+- stop treating every important review relation as a thin edge,
+- add explicit reasoning decisions while preserving current `diff_graph.json` compatibility,
+- make findings traceable to alignment/comparison/absence-search decisions.
+
+Changed:
+
+- added `AlignmentDecision`, `ComparisonDecision`, `AbsenceSearch`, and `ReasoningGraph` models,
+- added `interlock_mvp/core/reasoning.py`,
+- every current value mismatch / engineer-review finding now carries `alignment_id` and `comparison_id`,
+- every current missing-item finding now carries `absence_id`,
+- new canonical artifact: `reasoning_graph.json`,
+- eval YAML can assert alignment/comparison/absence-search details,
+- Kuzu mirrors reasoning decision nodes and finding-to-decision relations,
+- search index includes alignment/comparison/absence-search records,
+- `metrics.json` includes reasoning-health counters,
+- `report.md` includes a compact "Review Reasoning Health" section,
+- package version bumped to `0.8.0`.
+
+Validation result:
+
+```text
+make coverage
+  35 passed
+  source coverage: 73%
+
+make eval-fast
+  unit tests: 35 passed during target run
+  version gold: 4 findings, 4 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 4 findings, 2 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+make eval-examples
+  synth equipment spec v2/v3: 0 findings, eval passed
+  real IEEE vs SEL: 3 findings, 1 review_required, eval passed
+
+make eval-search
+  query: transformer rating
+  top hit: finding
+
+make eval-kuzu
+  version gold: 4 findings, 4 review_required
+  Kuzu graph built without warning
+
+Kuzu decision-node sanity:
+  AlignmentDecision: 3
+  ComparisonDecision: 3
+  AbsenceSearch: 1
+```
+
+Known limit:
+
+- This is a compatibility-layer slice. Reasoning decisions are currently derived from `DiffEdge`; the next hardening step is to generate findings directly from `ComparisonDecision` and `AbsenceSearch`, then make rejected alternatives first-class at match time rather than reconstructed after the fact.

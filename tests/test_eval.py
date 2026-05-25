@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from interlock_mvp.core.artifacts import write_json
+from interlock_mvp.core.artifacts import write_json, write_object
 from interlock_mvp.core.eval import run_eval
 
 
@@ -195,6 +195,175 @@ forbidden_findings:
 
     assert not ok
     assert any("forbidden finding present" in issue for issue in issues)
+
+
+def test_eval_matches_reasoning_decision_contract(tmp_path: Path) -> None:
+    write_json(
+        tmp_path / "findings.json",
+        records=[
+            {
+                **_finding(
+                    evidence_a={
+                        "evidence_id": "ev1",
+                        "doc_id": "A",
+                        "page": 1,
+                        "quote": "1000KVA XFMR",
+                        "crop_path": "crops/ev1.png",
+                        "value": "1000",
+                        "unit": "KVA",
+                    },
+                    evidence_b={
+                        "evidence_id": "ev2",
+                        "doc_id": "B",
+                        "page": 2,
+                        "quote": "100KVA XFMR",
+                        "crop_path": "crops/ev2.png",
+                        "value": "100",
+                        "unit": "KVA",
+                    },
+                ),
+                "alignment_id": "align00001",
+                "comparison_id": "comp00001",
+            }
+        ],
+    )
+    write_object(
+        tmp_path / "reasoning_graph.json",
+        {
+            "alignments": [
+                {
+                    "alignment_id": "align00001",
+                    "diff_id": "diff00001",
+                    "a_claim_id": "A:claim:ev1",
+                    "b_claim_id": "B:claim:ev2",
+                    "subject_method": "exact",
+                    "parameter_method": "exact",
+                    "context_method": "canonicalized",
+                    "confidence": "high",
+                    "accepted": True,
+                    "rationale": "A differs from B.",
+                    "rejected_b_claim_ids": ["B:claim:ev3"],
+                }
+            ],
+            "comparisons": [
+                {
+                    "comparison_id": "comp00001",
+                    "diff_id": "diff00001",
+                    "alignment_id": "align00001",
+                    "comparison_type": "value_mismatch",
+                    "unit_method": "pint",
+                    "plausibility_notes": [],
+                    "deterministic": True,
+                    "verifier_status": "not_run",
+                    "rationale": "A differs from B.",
+                }
+            ],
+            "absence_searches": [],
+        },
+    )
+    eval_path = tmp_path / "eval.yaml"
+    eval_path.write_text(
+        """
+expected_findings:
+  - finding_type: value_mismatch
+    parameter: rating
+    alignment:
+      subject_method: exact
+      context_method: canonicalized
+      rejected_b_claim_count_max: 2
+    comparison:
+      comparison_type: value_mismatch
+      unit_method: pint
+      deterministic: true
+""",
+        encoding="utf-8",
+    )
+
+    ok, issues = run_eval(tmp_path, eval_path)
+
+    assert ok, issues
+
+
+def test_eval_rejects_wrong_reasoning_decision_contract(tmp_path: Path) -> None:
+    write_json(
+        tmp_path / "findings.json",
+        records=[
+            {
+                **_finding(
+                    evidence_a={
+                        "evidence_id": "ev1",
+                        "doc_id": "A",
+                        "page": 1,
+                        "quote": "1000KVA XFMR",
+                        "crop_path": "crops/ev1.png",
+                        "value": "1000",
+                        "unit": "KVA",
+                    },
+                    evidence_b={
+                        "evidence_id": "ev2",
+                        "doc_id": "B",
+                        "page": 2,
+                        "quote": "100KVA XFMR",
+                        "crop_path": "crops/ev2.png",
+                        "value": "100",
+                        "unit": "KVA",
+                    },
+                ),
+                "alignment_id": "align00001",
+                "comparison_id": "comp00001",
+            }
+        ],
+    )
+    write_object(
+        tmp_path / "reasoning_graph.json",
+        {
+            "alignments": [
+                {
+                    "alignment_id": "align00001",
+                    "diff_id": "diff00001",
+                    "a_claim_id": "A:claim:ev1",
+                    "b_claim_id": "B:claim:ev2",
+                    "subject_method": "context_bridge",
+                    "parameter_method": "exact",
+                    "context_method": "cross_doc_bridge",
+                    "confidence": "medium",
+                    "accepted": True,
+                    "rationale": "A differs from B.",
+                    "rejected_b_claim_ids": [],
+                }
+            ],
+            "comparisons": [
+                {
+                    "comparison_id": "comp00001",
+                    "diff_id": "diff00001",
+                    "alignment_id": "align00001",
+                    "comparison_type": "value_mismatch",
+                    "unit_method": "pint",
+                    "plausibility_notes": [],
+                    "deterministic": True,
+                    "verifier_status": "not_run",
+                    "rationale": "A differs from B.",
+                }
+            ],
+            "absence_searches": [],
+        },
+    )
+    eval_path = tmp_path / "eval.yaml"
+    eval_path.write_text(
+        """
+expected_findings:
+  - finding_type: value_mismatch
+    parameter: rating
+    alignment:
+      subject_method: exact
+""",
+        encoding="utf-8",
+    )
+
+    ok, issues = run_eval(tmp_path, eval_path)
+
+    assert not ok
+    assert any("missing expected finding" in issue for issue in issues)
 
 
 def _finding(

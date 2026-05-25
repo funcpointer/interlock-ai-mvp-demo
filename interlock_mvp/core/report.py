@@ -33,6 +33,8 @@ def render_report(
         lines.extend(f"- {warning}" for warning in warnings)
         lines.append("")
 
+    lines.extend(_reasoning_health_lines(metrics))
+
     for title, key in [
         ("Directional High-Confidence Findings", "directional"),
         ("Possible Discrepancies", "possible"),
@@ -55,6 +57,26 @@ def render_report(
         lines.append(f"- `{key}`: {value}")
     lines.append("")
     path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _reasoning_health_lines(metrics: dict) -> list[str]:
+    keys = [
+        "alignment_decisions",
+        "comparison_decisions",
+        "absence_searches",
+        "alignment_decisions_by_subject_method",
+        "alignment_decisions_by_context_method",
+        "comparison_decisions_by_unit_method",
+        "absence_searches_by_coverage_status",
+    ]
+    if not any(key in metrics for key in keys):
+        return []
+    lines = ["## Review Reasoning Health", ""]
+    for key in keys:
+        if key in metrics:
+            lines.append(f"- `{key}`: {metrics[key]}")
+    lines.append("")
+    return lines
 
 
 def _route_findings(findings: list[Finding]) -> dict[str, list[Finding]]:

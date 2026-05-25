@@ -172,6 +172,9 @@ class Finding(BaseModel):
     evidence_b: EvidenceCitation | None = None
     plausibility_notes: list[str] = Field(default_factory=list)
     verifier_notes: str
+    alignment_id: str | None = None
+    comparison_id: str | None = None
+    absence_id: str | None = None
 
 
 class ContextNode(BaseModel):
@@ -233,6 +236,54 @@ class DocumentGraph(BaseModel):
 
 class DiffGraph(BaseModel):
     edges: list[DiffEdge] = Field(default_factory=list)
+
+
+class AlignmentDecision(BaseModel):
+    alignment_id: str
+    diff_id: str
+    a_claim_id: str
+    b_claim_id: str
+    subject_method: str
+    parameter_method: str
+    context_method: str
+    confidence: Confidence
+    accepted: bool
+    rationale: str
+    rejected_b_claim_ids: list[str] = Field(default_factory=list)
+
+
+class ComparisonDecision(BaseModel):
+    comparison_id: str
+    diff_id: str
+    alignment_id: str | None = None
+    comparison_type: FindingType | Literal["equivalent"]
+    unit_method: str
+    plausibility_notes: list[str] = Field(default_factory=list)
+    deterministic: bool
+    verifier_status: str
+    rationale: str
+
+
+class AbsenceSearch(BaseModel):
+    absence_id: str
+    diff_id: str
+    a_subject_id: str | None = None
+    a_claim_id: str | None = None
+    searched_doc_id: str
+    searched_context_ids: list[str] = Field(default_factory=list)
+    searched_parameters: list[str] = Field(default_factory=list)
+    query_terms: list[str] = Field(default_factory=list)
+    candidate_ids_considered: list[str] = Field(default_factory=list)
+    rejected_candidate_ids: list[str] = Field(default_factory=list)
+    coverage_status: str
+    confidence: Confidence
+    rationale: str
+
+
+class ReasoningGraph(BaseModel):
+    alignments: list[AlignmentDecision] = Field(default_factory=list)
+    comparisons: list[ComparisonDecision] = Field(default_factory=list)
+    absence_searches: list[AbsenceSearch] = Field(default_factory=list)
 
 
 class AuthorityDecision(BaseModel):

@@ -38,6 +38,7 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
         "doc_graph_a.json",
         "doc_graph_b.json",
         "diff_graph.json",
+        "reasoning_graph.json",
         "candidates.json",
         "findings.json",
         "metrics.json",
@@ -55,6 +56,18 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
     assert finding["evidence_a"]["crop_path"]
     assert finding["evidence_b"]["quote"]
     assert finding["evidence_b"]["crop_path"]
+    assert finding["alignment_id"]
+    assert finding["comparison_id"]
+    assert finding["absence_id"] is None
+
+    reasoning = json.loads((out_dir / "reasoning_graph.json").read_text(encoding="utf-8"))
+    assert reasoning["comparisons"][0]["comparison_id"] == finding["comparison_id"]
+    assert reasoning["alignments"][0]["alignment_id"] == finding["alignment_id"]
+
+    metrics = json.loads((out_dir / "metrics.json").read_text(encoding="utf-8"))["metrics"]
+    assert metrics["alignment_decisions"] == 1
+    assert metrics["comparison_decisions"] == 1
+    assert "Review Reasoning Health" in (out_dir / "report.md").read_text(encoding="utf-8")
 
     logs = (out_dir / "logs.jsonl").read_text(encoding="utf-8")
     assert "extract_doc_a" in logs

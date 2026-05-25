@@ -16,6 +16,7 @@ from .extraction import extract_pdf
 from .graph import build_kuzu_graph
 from .logging import JsonlLogger
 from .models import ReviewRequest, ReviewResult
+from .reasoning import build_reasoning_graph, reasoning_lookup
 from .report import render_report
 from .search import write_search_index
 from .verification import findings_from_diff_graph
@@ -132,9 +133,11 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     graph_a, graph_b, evidence = build_document_graphs(regions=regions, evidence=evidence)
     diff_graph = build_diff_graph(graph_a, graph_b)
     diff_graph.edges.extend(_coverage_diff_edges(diff_graph, evidence))
+    reasoning_graph = build_reasoning_graph(diff_graph, graph_a, graph_b)
     evidence_metrics = _evidence_metrics(evidence)
     graph_metrics = _graph_metrics(graph_a, graph_b, diff_graph)
-    _finish_stage(logger, stage_timings, "build_review_graph", stage_started, **graph_metrics)
+    reasoning_metrics = _reasoning_metrics(reasoning_graph)
+    _finish_stage(logger, stage_timings, "build_review_graph", stage_started, **graph_metrics, **reasoning_metrics)
 
     stage_started = time.time()
     candidates = generate_candidates(evidence, max_candidates=request.max_candidates, mode=request.mode)
@@ -150,6 +153,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         no_cloud=request.no_cloud,
         dry_run=request.dry_run,
         max_cost_usd=request.max_cost_usd,
+        reasoning_by_diff_id=reasoning_lookup(reasoning_graph),
     )
     warnings.extend(verifier_warnings)
     metrics.update(verifier_metrics)
@@ -170,6 +174,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         doc_graph_a=graph_a,
         doc_graph_b=graph_b,
         diff_graph=diff_graph,
+        reasoning_graph=reasoning_graph,
         findings=findings,
     )
     _finish_stage(logger, stage_timings, "write_search_index", stage_started, search_records=search_records)
@@ -187,11 +192,12 @@ def run_review(request: ReviewRequest) -> ReviewResult:
             regions=regions,
             evidence=evidence,
             findings=findings,
-            authority=authority,
-            doc_graph_a=graph_a,
-            doc_graph_b=graph_b,
-            diff_graph=diff_graph,
-        )
+        authority=authority,
+        doc_graph_a=graph_a,
+        doc_graph_b=graph_b,
+        diff_graph=diff_graph,
+        reasoning_graph=reasoning_graph,
+    )
         if not graph_ok:
             warnings.append(graph_message)
         _finish_stage(logger, stage_timings, "build_kuzu_graph", stage_started, graph_ok=graph_ok, message=graph_message)
@@ -203,6 +209,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     metrics["evidence"] = len(evidence)
     metrics.update(evidence_metrics)
     metrics.update(graph_metrics)
+    metrics.update(reasoning_metrics)
     metrics.update(candidate_metrics)
     metrics.update(finding_metrics)
     metrics["stage_seconds"] = stage_timings
@@ -234,6 +241,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     write_object(request.out_dir / "doc_graph_a.json", graph_a.model_dump(mode="json"))
     write_object(request.out_dir / "doc_graph_b.json", graph_b.model_dump(mode="json"))
     write_object(request.out_dir / "diff_graph.json", diff_graph.model_dump(mode="json"))
+    write_object(request.out_dir / "reasoning_graph.json", reasoning_graph.model_dump(mode="json"))
     write_json(request.out_dir / "candidates.json", records=candidates)
     write_json(request.out_dir / "findings.json", records=findings)
     write_object(request.out_dir / "metrics.json", {"metrics": metrics, "warnings": warnings})
@@ -244,7 +252,7 @@ def run_review(request: ReviewRequest) -> ReviewResult:
         metrics=metrics,
         warnings=warnings,
     )
-    _finish_stage(logger, stage_timings, "write_artifacts", stage_started, artifact_count=15)
+    _finish_stage(logger, stage_timings, "write_artifacts", stage_started, artifact_count=16)
     logger.event("run_finished", findings=len(findings), elapsed_seconds=metrics["elapsed_seconds"])
 
     return ReviewResult(
@@ -321,6 +329,19 @@ def _graph_metrics(graph_a, graph_b, diff_graph) -> dict[str, object]:
         "diff_edges_by_type": _counter(diff_graph.edges, "diff_type"),
         "diff_edges_by_alignment": _counter(diff_graph.edges, "alignment_status"),
         "diff_edges_by_identity_strength": _counter(diff_graph.edges, "identity_strength"),
+    }
+
+
+def _reasoning_metrics(reasoning_graph) -> dict[str, object]:
+    return {
+        "alignment_decisions": len(reasoning_graph.alignments),
+        "comparison_decisions": len(reasoning_graph.comparisons),
+        "absence_searches": len(reasoning_graph.absence_searches),
+        "alignment_decisions_by_subject_method": _counter(reasoning_graph.alignments, "subject_method"),
+        "alignment_decisions_by_context_method": _counter(reasoning_graph.alignments, "context_method"),
+        "comparison_decisions_by_type": _counter(reasoning_graph.comparisons, "comparison_type"),
+        "comparison_decisions_by_unit_method": _counter(reasoning_graph.comparisons, "unit_method"),
+        "absence_searches_by_coverage_status": _counter(reasoning_graph.absence_searches, "coverage_status"),
     }
 
 

@@ -17,6 +17,7 @@ def build_kuzu_graph(
     doc_graph_a: Any | None = None,
     doc_graph_b: Any | None = None,
     diff_graph: Any | None = None,
+    reasoning_graph: Any | None = None,
 ) -> tuple[bool, str]:
     try:
         import kuzu
@@ -32,6 +33,8 @@ def build_kuzu_graph(
         _insert_nodes(conn, documents, pages, regions, evidence, findings, authority)
         if doc_graph_a and doc_graph_b and diff_graph:
             _insert_review_graph(conn, doc_graph_a, doc_graph_b, diff_graph)
+        if reasoning_graph:
+            _insert_reasoning_graph(conn, reasoning_graph, findings)
         return True, "graph built"
     except Exception as exc:  # pragma: no cover - Kuzu can fail by platform/runtime
         return False, f"kuzu graph skipped: {exc}"
@@ -49,6 +52,9 @@ def _create_schema(conn) -> None:
         "CREATE NODE TABLE IF NOT EXISTS Subject(id STRING, doc_id STRING, label STRING, kind STRING, PRIMARY KEY(id));",
         "CREATE NODE TABLE IF NOT EXISTS Claim(id STRING, doc_id STRING, parameter STRING, value STRING, unit STRING, PRIMARY KEY(id));",
         "CREATE NODE TABLE IF NOT EXISTS DiffEdge(id STRING, diff_type STRING, status STRING, subject STRING, parameter STRING, PRIMARY KEY(id));",
+        "CREATE NODE TABLE IF NOT EXISTS AlignmentDecision(id STRING, diff_id STRING, subject_method STRING, parameter_method STRING, context_method STRING, confidence STRING, accepted BOOL, PRIMARY KEY(id));",
+        "CREATE NODE TABLE IF NOT EXISTS ComparisonDecision(id STRING, diff_id STRING, comparison_type STRING, unit_method STRING, verifier_status STRING, PRIMARY KEY(id));",
+        "CREATE NODE TABLE IF NOT EXISTS AbsenceSearch(id STRING, diff_id STRING, searched_doc_id STRING, coverage_status STRING, confidence STRING, PRIMARY KEY(id));",
         "CREATE REL TABLE IF NOT EXISTS DOCUMENT_HAS_PAGE(FROM Document TO Page);",
         "CREATE REL TABLE IF NOT EXISTS PAGE_HAS_REGION(FROM Page TO Region);",
         "CREATE REL TABLE IF NOT EXISTS REGION_SUPPORTS_EVIDENCE(FROM Region TO Evidence);",
@@ -58,6 +64,15 @@ def _create_schema(conn) -> None:
         "CREATE REL TABLE IF NOT EXISTS SUBJECT_HAS_CLAIM(FROM Subject TO Claim);",
         "CREATE REL TABLE IF NOT EXISTS CLAIM_IN_CONTEXT(FROM Claim TO Context);",
         "CREATE REL TABLE IF NOT EXISTS DIFF_CITES_CLAIM(FROM DiffEdge TO Claim);",
+        "CREATE REL TABLE IF NOT EXISTS ALIGNMENT_LEFT_CLAIM(FROM AlignmentDecision TO Claim);",
+        "CREATE REL TABLE IF NOT EXISTS ALIGNMENT_RIGHT_CLAIM(FROM AlignmentDecision TO Claim);",
+        "CREATE REL TABLE IF NOT EXISTS ALIGNMENT_REJECTED_CLAIM(FROM AlignmentDecision TO Claim);",
+        "CREATE REL TABLE IF NOT EXISTS COMPARISON_FROM_ALIGNMENT(FROM ComparisonDecision TO AlignmentDecision);",
+        "CREATE REL TABLE IF NOT EXISTS ABSENCE_SEARCHED_CONTEXT(FROM AbsenceSearch TO Context);",
+        "CREATE REL TABLE IF NOT EXISTS ABSENCE_REJECTED_CLAIM(FROM AbsenceSearch TO Claim);",
+        "CREATE REL TABLE IF NOT EXISTS ABSENCE_REJECTED_SUBJECT(FROM AbsenceSearch TO Subject);",
+        "CREATE REL TABLE IF NOT EXISTS FINDING_FROM_COMPARISON(FROM Finding TO ComparisonDecision);",
+        "CREATE REL TABLE IF NOT EXISTS FINDING_FROM_ABSENCE_SEARCH(FROM Finding TO AbsenceSearch);",
     ]
     for statement in statements:
         conn.execute(statement)
@@ -131,3 +146,91 @@ def _insert_review_graph(conn, doc_graph_a, doc_graph_b, diff_graph) -> None:
                     "MATCH (d:DiffEdge {id: $diff_id}), (c:Claim {id: $claim_id}) CREATE (d)-[:DIFF_CITES_CLAIM]->(c);",
                     {"diff_id": edge.diff_id, "claim_id": node_id},
                 )
+
+
+def _insert_reasoning_graph(conn, reasoning_graph, findings) -> None:
+    for alignment in reasoning_graph.alignments:
+        conn.execute(
+            "CREATE (:AlignmentDecision {id: $id, diff_id: $diff_id, subject_method: $subject_method, parameter_method: $parameter_method, context_method: $context_method, confidence: $confidence, accepted: $accepted});",
+            {
+                "id": alignment.alignment_id,
+                "diff_id": alignment.diff_id,
+                "subject_method": alignment.subject_method,
+                "parameter_method": alignment.parameter_method,
+                "context_method": alignment.context_method,
+                "confidence": alignment.confidence,
+                "accepted": alignment.accepted,
+            },
+        )
+        conn.execute(
+            "MATCH (a:AlignmentDecision {id: $alignment_id}), (c:Claim {id: $claim_id}) CREATE (a)-[:ALIGNMENT_LEFT_CLAIM]->(c);",
+            {"alignment_id": alignment.alignment_id, "claim_id": alignment.a_claim_id},
+        )
+        conn.execute(
+            "MATCH (a:AlignmentDecision {id: $alignment_id}), (c:Claim {id: $claim_id}) CREATE (a)-[:ALIGNMENT_RIGHT_CLAIM]->(c);",
+            {"alignment_id": alignment.alignment_id, "claim_id": alignment.b_claim_id},
+        )
+        for claim_id in alignment.rejected_b_claim_ids:
+            conn.execute(
+                "MATCH (a:AlignmentDecision {id: $alignment_id}), (c:Claim {id: $claim_id}) CREATE (a)-[:ALIGNMENT_REJECTED_CLAIM]->(c);",
+                {"alignment_id": alignment.alignment_id, "claim_id": claim_id},
+            )
+
+    for comparison in reasoning_graph.comparisons:
+        conn.execute(
+            "CREATE (:ComparisonDecision {id: $id, diff_id: $diff_id, comparison_type: $comparison_type, unit_method: $unit_method, verifier_status: $verifier_status});",
+            {
+                "id": comparison.comparison_id,
+                "diff_id": comparison.diff_id,
+                "comparison_type": comparison.comparison_type,
+                "unit_method": comparison.unit_method,
+                "verifier_status": comparison.verifier_status,
+            },
+        )
+        if comparison.alignment_id:
+            conn.execute(
+                "MATCH (c:ComparisonDecision {id: $comparison_id}), (a:AlignmentDecision {id: $alignment_id}) CREATE (c)-[:COMPARISON_FROM_ALIGNMENT]->(a);",
+                {"comparison_id": comparison.comparison_id, "alignment_id": comparison.alignment_id},
+            )
+
+    for absence in reasoning_graph.absence_searches:
+        conn.execute(
+            "CREATE (:AbsenceSearch {id: $id, diff_id: $diff_id, searched_doc_id: $searched_doc_id, coverage_status: $coverage_status, confidence: $confidence});",
+            {
+                "id": absence.absence_id,
+                "diff_id": absence.diff_id,
+                "searched_doc_id": absence.searched_doc_id,
+                "coverage_status": absence.coverage_status,
+                "confidence": absence.confidence,
+            },
+        )
+        for context_id in absence.searched_context_ids:
+            conn.execute(
+                "MATCH (a:AbsenceSearch {id: $absence_id}), (c:Context {id: $context_id}) CREATE (a)-[:ABSENCE_SEARCHED_CONTEXT]->(c);",
+                {"absence_id": absence.absence_id, "context_id": context_id},
+            )
+        for candidate_id in absence.rejected_candidate_ids:
+            if ":claim:" in candidate_id:
+                conn.execute(
+                    "MATCH (a:AbsenceSearch {id: $absence_id}), (c:Claim {id: $candidate_id}) CREATE (a)-[:ABSENCE_REJECTED_CLAIM]->(c);",
+                    {"absence_id": absence.absence_id, "candidate_id": candidate_id},
+                )
+            elif ":subject:" in candidate_id:
+                conn.execute(
+                    "MATCH (a:AbsenceSearch {id: $absence_id}), (s:Subject {id: $candidate_id}) CREATE (a)-[:ABSENCE_REJECTED_SUBJECT]->(s);",
+                    {"absence_id": absence.absence_id, "candidate_id": candidate_id},
+                )
+
+    comparison_ids = {comparison.comparison_id for comparison in reasoning_graph.comparisons}
+    absence_ids = {absence.absence_id for absence in reasoning_graph.absence_searches}
+    for finding in findings:
+        if finding.comparison_id in comparison_ids:
+            conn.execute(
+                "MATCH (f:Finding {id: $finding_id}), (c:ComparisonDecision {id: $comparison_id}) CREATE (f)-[:FINDING_FROM_COMPARISON]->(c);",
+                {"finding_id": finding.finding_id, "comparison_id": finding.comparison_id},
+            )
+        if finding.absence_id in absence_ids:
+            conn.execute(
+                "MATCH (f:Finding {id: $finding_id}), (a:AbsenceSearch {id: $absence_id}) CREATE (f)-[:FINDING_FROM_ABSENCE_SEARCH]->(a);",
+                {"finding_id": finding.finding_id, "absence_id": finding.absence_id},
+            )

@@ -9,7 +9,7 @@ from typing import Any
 
 import yaml
 
-from .models import DiffGraph, DocumentGraph, EvidenceItem, Finding
+from .models import DiffGraph, DocumentGraph, EvidenceItem, Finding, ReasoningGraph
 
 
 def write_search_index(
@@ -20,6 +20,7 @@ def write_search_index(
     doc_graph_b: DocumentGraph,
     diff_graph: DiffGraph,
     findings: list[Finding],
+    reasoning_graph: ReasoningGraph | None = None,
 ) -> int:
     search_dir = run_dir / "search"
     search_dir.mkdir(parents=True, exist_ok=True)
@@ -28,6 +29,8 @@ def write_search_index(
     records.extend(_graph_records(doc_graph_a))
     records.extend(_graph_records(doc_graph_b))
     records.extend(_diff_records(diff_graph))
+    if reasoning_graph:
+        records.extend(_reasoning_records(reasoning_graph))
     records.extend(_finding_records(findings))
     _write_jsonl(search_dir / "review_map.jsonl", records)
     _write_second_brain(search_dir / "second_brain.sqlite", records)
@@ -194,6 +197,102 @@ def _diff_records(diff_graph: DiffGraph) -> list[dict[str, Any]]:
         }
         for edge in diff_graph.edges
     ]
+
+
+def _reasoning_records(reasoning_graph: ReasoningGraph) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for alignment in reasoning_graph.alignments:
+        records.append(
+            {
+                "search_id": f"alignment:{alignment.alignment_id}",
+                "source": "alignment",
+                "record_id": alignment.alignment_id,
+                "doc_id": "",
+                "page": None,
+                "context_id": "",
+                "subject": alignment.subject_method,
+                "parameter": alignment.parameter_method,
+                "value": alignment.confidence,
+                "unit": "",
+                "quote": alignment.rationale,
+                "crop_path": "",
+                "text": " ".join(
+                    [
+                        alignment.alignment_id,
+                        alignment.diff_id,
+                        alignment.a_claim_id,
+                        alignment.b_claim_id,
+                        alignment.subject_method,
+                        alignment.parameter_method,
+                        alignment.context_method,
+                        alignment.confidence,
+                        alignment.rationale,
+                    ]
+                ),
+            }
+        )
+    for comparison in reasoning_graph.comparisons:
+        records.append(
+            {
+                "search_id": f"comparison:{comparison.comparison_id}",
+                "source": "comparison",
+                "record_id": comparison.comparison_id,
+                "doc_id": "",
+                "page": None,
+                "context_id": "",
+                "subject": comparison.comparison_type,
+                "parameter": comparison.unit_method,
+                "value": str(comparison.deterministic),
+                "unit": "",
+                "quote": comparison.rationale,
+                "crop_path": "",
+                "text": " ".join(
+                    [
+                        comparison.comparison_id,
+                        comparison.diff_id,
+                        comparison.alignment_id or "",
+                        comparison.comparison_type,
+                        comparison.unit_method,
+                        comparison.verifier_status,
+                        *comparison.plausibility_notes,
+                        comparison.rationale,
+                    ]
+                ),
+            }
+        )
+    for absence in reasoning_graph.absence_searches:
+        records.append(
+            {
+                "search_id": f"absence:{absence.absence_id}",
+                "source": "absence_search",
+                "record_id": absence.absence_id,
+                "doc_id": absence.searched_doc_id,
+                "page": None,
+                "context_id": " ".join(absence.searched_context_ids),
+                "subject": " ".join(absence.query_terms),
+                "parameter": " ".join(absence.searched_parameters),
+                "value": absence.coverage_status,
+                "unit": "",
+                "quote": absence.rationale,
+                "crop_path": "",
+                "text": " ".join(
+                    [
+                        absence.absence_id,
+                        absence.diff_id,
+                        absence.a_subject_id or "",
+                        absence.a_claim_id or "",
+                        absence.searched_doc_id,
+                        absence.coverage_status,
+                        absence.confidence,
+                        *absence.query_terms,
+                        *absence.searched_context_ids,
+                        *absence.candidate_ids_considered,
+                        absence.rationale,
+                    ]
+                ),
+            }
+        )
+    return records
 
 
 def _finding_records(findings: list[Finding]) -> list[dict[str, Any]]:

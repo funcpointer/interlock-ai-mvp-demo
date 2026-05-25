@@ -29,6 +29,8 @@ Implemented:
   - `doc_graph_a.json`
   - `doc_graph_b.json`
   - `diff_graph.json`
+- Reasoning graph artifact:
+  - `reasoning_graph.json`
 - Deterministic diff graph to findings.
 - Pint-backed unit equivalence and custom `%Z` / decimal-slip checks.
 - Markdown report.
@@ -108,6 +110,7 @@ evidence.json
 doc_graph_a.json
 doc_graph_b.json
 diff_graph.json
+reasoning_graph.json
 candidates.json
 findings.json
 metrics.json
@@ -273,9 +276,9 @@ Never let local SLMs publish findings without deterministic/verifier gates.
 
 ### Phase F: Reasoning Graph Hardening
 
-Status: planned next.
+Status: first slice implemented.
 
-The current graph is useful but too artifact-shaped. It traces where evidence came from, but it does not yet model enough of the reviewer reasoning:
+The original graph was useful but too artifact-shaped. It traced where evidence came from, but did not model enough of the reviewer reasoning:
 
 - why claim A aligned to claim B,
 - which alternatives were rejected,
@@ -366,10 +369,10 @@ AbsenceSearch
 
 Acceptance:
 
-- all three models serialize into JSON artifacts,
-- every `missing_item` finding references an `AbsenceSearch`,
-- every `value_mismatch` or `needs_engineer_review` finding references a `ComparisonDecision`,
-- tests prove findings can be traced back to decision nodes and cited evidence.
+- all three models serialize into JSON artifacts, **implemented**,
+- every `missing_item` finding references an `AbsenceSearch`, **implemented for current graph findings**,
+- every `value_mismatch` or `needs_engineer_review` finding references a `ComparisonDecision`, **implemented for current graph findings**,
+- tests prove findings can be traced back to decision nodes and cited evidence, **implemented**.
 
 #### F2: Replace Thin `DiffEdge` Semantics Incrementally
 
@@ -378,7 +381,7 @@ Do not delete `DiffEdge` immediately. First make it a compatibility projection d
 Order:
 
 1. Keep `diff_graph.json` shape stable.
-2. Add `reasoning_graph.json` with decisions.
+2. Add `reasoning_graph.json` with decisions. **Implemented.**
 3. Generate findings from `ComparisonDecision` and `AbsenceSearch`.
 4. Keep old diff graph in artifacts for search/debug compatibility.
 5. Once evals pass, decide whether `DiffEdge` stays as a derived view or disappears.
@@ -388,7 +391,7 @@ Acceptance:
 - existing `make eval-fast` passes,
 - `findings.json` count and gold expectations stay stable unless a stricter contract exposes a real false positive,
 - search still returns finding/diff/evidence hits,
-- `reasoning_graph.json` explains the path from evidence to finding.
+- `reasoning_graph.json` explains the path from evidence to finding, **implemented as a compatibility layer**.
 
 #### F3: Make Kuzu Mirror the Reasoning Graph
 
@@ -413,11 +416,13 @@ Add relation tables:
 
 Acceptance:
 
-- `make eval-kuzu` builds without warnings,
-- a Kuzu query can answer: "why was this finding created?",
+- `make eval-kuzu` builds without warnings, **implemented**,
+- a Kuzu query can answer: "why was this finding created?", **partially implemented through decision nodes**,
 - a Kuzu query can answer: "what did we reject before calling this missing?"
 
 #### F4: Strengthen Eval Around Reasoning, Not Just Output
+
+Status: first slice implemented.
 
 Extend eval YAML matchers with:
 
@@ -450,9 +455,9 @@ expected_findings:
 
 Acceptance:
 
-- eval fails if a finding has the right label but wrong evidence,
-- eval fails if a missing item has no absence-search trace,
-- eval fails if an alignment used an explicitly forbidden method.
+- eval fails if a finding has the right label but wrong evidence, **implemented**,
+- eval fails if a missing item has no absence-search trace, **implemented for expected findings that declare `absence_search`**,
+- eval fails if an alignment used an explicitly forbidden method, **implemented through nested reasoning matchers**.
 
 #### F5: Instrument Reasoning Quality Metrics
 
@@ -470,7 +475,7 @@ Acceptance:
 
 - metrics reveal whether a run is relying too much on weak context bridges,
 - metrics reveal missing-item risk caused by low-text or unsearched contexts,
-- report includes a compact "review reasoning health" section.
+- report includes a compact "review reasoning health" section, **implemented**.
 
 #### F6: Do Not Overbuild
 
@@ -542,17 +547,18 @@ Completed:
 5. Add AES glossary.
 6. Improve search ranking so diff/finding hits beat generic evidence when the query names a discrepancy.
 7. Tighten eval contracts around cited evidence.
+8. Add reasoning decision models, `reasoning_graph.json`, finding decision IDs, reasoning metrics, report reasoning health, search records, Kuzu decision nodes, and eval assertions over reasoning decisions.
 
 Next:
 
-1. Add `AlignmentDecision`, `ComparisonDecision`, and `AbsenceSearch` models.
-2. Emit `reasoning_graph.json` without changing `findings.json`.
-3. Add tests proving current findings trace through reasoning decisions.
-4. Generate findings from decisions while preserving current gold output where still valid.
-5. Extend eval YAML to assert alignment/comparison/absence-search details.
-6. Mirror reasoning decision nodes into Kuzu.
-7. Add reasoning-health metrics to `metrics.json` and `report.md`.
-8. Re-run:
+1. Generate findings directly from `ComparisonDecision` and `AbsenceSearch` while preserving current gold output where still valid.
+2. Add Kuzu smoke queries for finding-to-decision traceability.
+3. Improve rejected-alternative capture inside alignment/missing search instead of deriving it after the fact.
+4. Add table-aware extraction for weak examples: PID, HVAC schedules, relay settings.
+5. Add candidate-proposal mode from search results, still `proposal_only`.
+6. Only then consider LanceDB/local SLM integration.
+
+Validation after each step:
 
 ```bash
 make coverage
@@ -561,9 +567,3 @@ make eval-examples
 make eval-search
 make eval-kuzu
 ```
-
-Then:
-
-9. Add table-aware extraction for weak examples: PID, HVAC schedules, relay settings.
-10. Add candidate-proposal mode from search results, still `proposal_only`.
-11. Only then consider LanceDB/local SLM integration.
