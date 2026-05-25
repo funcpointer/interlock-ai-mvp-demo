@@ -242,8 +242,8 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
         st.markdown(f"**Why it is flagged:** {_why_flagged(finding)}")
         st.caption(_finding_caption(finding))
         _render_micro_evidence(finding)
-        if _has_audit_trail(finding):
-            _render_audit_trail(finding)
+        if _has_explainability(finding):
+            _render_explainability(finding)
         if finding.get("model_review_status") == "used":
             _render_model_review(finding)
         col_a, col_b = st.columns(2)
@@ -253,7 +253,7 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
             _render_citation(run_dir, _citation_label(finding, "B"), finding.get("evidence_b") or {})
 
 
-def _has_audit_trail(finding: dict[str, Any]) -> bool:
+def _has_explainability(finding: dict[str, Any]) -> bool:
     return bool(
         finding.get("pairing_subject_method")
         or finding.get("comparison_unit_method")
@@ -261,25 +261,25 @@ def _has_audit_trail(finding: dict[str, Any]) -> bool:
     )
 
 
-def _render_audit_trail(finding: dict[str, Any]) -> None:
+def _render_explainability(finding: dict[str, Any]) -> None:
     confidence = finding.get("pairing_confidence") or finding.get("context_support_confidence") or "unknown"
-    with st.expander(f"Audit trail: pairing and comparison ({confidence})", expanded=False):
-        st.markdown("**Pairing decision**")
+    with st.expander(f"Explainability: why this finding was made ({confidence})", expanded=False):
+        st.markdown("**Why these two citations were compared**")
         for line in _pairing_details(finding):
             st.markdown(f"- {line}")
 
-        st.markdown("**Comparison rule**")
+        st.markdown("**How the value was checked**")
         for line in _comparison_details(finding):
             st.markdown(f"- {line}")
 
         context_details = _context_support_details(finding)
         if context_details:
-            st.markdown("**Context/search support**")
+            st.markdown("**What surrounding context supported the pairing**")
             for detail in context_details:
                 st.markdown(f"- {detail}")
 
         alternatives = _pairing_alternatives(finding)
-        st.markdown("**Other candidates considered**")
+        st.markdown("**What else was considered**")
         if alternatives:
             for alternative in alternatives:
                 st.markdown(f"- {alternative}")
@@ -297,11 +297,11 @@ def _pairing_details(finding: dict[str, Any]) -> list[str]:
     parameter = _pairing_method_label("parameter", str(finding.get("pairing_parameter_method") or ""))
     context = _pairing_method_label("context", str(finding.get("pairing_context_method") or ""))
     if subject:
-        details.append(f"Subject identity: {subject}")
+        details.append(f"Subject match: {subject}")
     if parameter:
-        details.append(f"Parameter identity: {parameter}")
+        details.append(f"Parameter match: {parameter}")
     if context:
-        details.append(f"Context bridge: {context}")
+        details.append(f"Context match: {context}")
     rationale = str(finding.get("pairing_rationale") or "").strip()
     if rationale:
         details.append(f"Accepted pair rationale: {rationale}")

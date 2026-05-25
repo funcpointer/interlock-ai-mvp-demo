@@ -116,7 +116,7 @@ def _finding_lines(finding: Finding) -> list[str]:
     if finding.plausibility_notes:
         lines.append(f"- Plausibility notes: {'; '.join(finding.plausibility_notes)}")
     if finding.alignment_id or finding.comparison_id:
-        lines.extend(_audit_trail_lines(finding))
+        lines.extend(_explainability_lines(finding))
     if finding.context_support_summary:
         lines.extend(_context_support_lines(finding))
     if finding.model_review_status == "used":
@@ -132,7 +132,7 @@ def _finding_lines(finding: Finding) -> list[str]:
 def _context_support_lines(finding: Finding) -> list[str]:
     verdict = "aligned context" if finding.context_support_supports else "context caution"
     lines = [
-        f"- Audit trail context: {verdict}; {finding.context_support_confidence or 'unknown'} confidence.",
+        f"- Explainability context: {verdict}; {finding.context_support_confidence or 'unknown'} confidence.",
     ]
     if finding.context_support_context_refs:
         sections = "; ".join(_human_context_ref(item) for item in finding.context_support_context_refs[:4])
@@ -142,11 +142,11 @@ def _context_support_lines(finding: Finding) -> list[str]:
     return lines
 
 
-def _audit_trail_lines(finding: Finding) -> list[str]:
+def _explainability_lines(finding: Finding) -> list[str]:
     lines = [
         f"- Candidate pool: {finding.pairing_candidate_pool_count} Doc B claim(s); "
         f"{finding.pairing_same_parameter_candidate_count} same-parameter candidate(s).",
-        f"- Pairing: subject `{finding.pairing_subject_method or 'n/a'}`, "
+        f"- Why paired: subject `{finding.pairing_subject_method or 'n/a'}`, "
         f"parameter `{finding.pairing_parameter_method or 'n/a'}`, "
         f"context `{finding.pairing_context_method or 'n/a'}`.",
     ]
@@ -156,7 +156,7 @@ def _audit_trail_lines(finding: Finding) -> list[str]:
             lines.append(f"- Rejected candidate: {summary}")
     if finding.comparison_unit_method:
         deterministic = "deterministic" if finding.comparison_deterministic else "not deterministic"
-        lines.append(f"- Comparison rule: `{finding.comparison_unit_method}` ({deterministic}).")
+        lines.append(f"- How checked: `{finding.comparison_unit_method}` ({deterministic}).")
     return lines
 
 

@@ -184,9 +184,9 @@ def test_audit_trail_explains_pairing_without_repeating_citations() -> None:
 
     assert _pairing_details(finding) == [
         "Candidate pool: 4 Doc B claim(s); 3 matched the parameter before value comparison",
-        "Subject identity: exact subject/tag match",
-        "Parameter identity: exact normalized parameter match",
-        "Context bridge: different labels, but compatible review contexts",
+        "Subject match: exact subject/tag match",
+        "Parameter match: exact normalized parameter match",
+        "Context match: different labels, but compatible review contexts",
         "Accepted pair rationale: A differs from B.",
     ]
     assert _comparison_details(finding) == [

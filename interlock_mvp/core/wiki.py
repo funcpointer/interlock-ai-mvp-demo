@@ -274,13 +274,13 @@ def _finding_context_support_lines(finding: Finding) -> list[str]:
 
 def _finding_pairing_lines(finding: Finding) -> list[str]:
     lines = [
-        "## Pairing and Comparison",
+        "## Explainability",
         "",
         f"- Alignment decision: `{finding.alignment_id or ''}`",
         f"- Candidate pool: {finding.pairing_candidate_pool_count} Doc B claim(s); {finding.pairing_same_parameter_candidate_count} same-parameter candidate(s)",
-        f"- Subject match: `{finding.pairing_subject_method or 'n/a'}`",
-        f"- Parameter match: `{finding.pairing_parameter_method or 'n/a'}`",
-        f"- Context bridge: `{finding.pairing_context_method or 'n/a'}`",
+        f"- Why paired - subject: `{finding.pairing_subject_method or 'n/a'}`",
+        f"- Why paired - parameter: `{finding.pairing_parameter_method or 'n/a'}`",
+        f"- Why paired - context: `{finding.pairing_context_method or 'n/a'}`",
     ]
     if finding.pairing_rationale:
         lines.append(f"- Pairing rationale: {finding.pairing_rationale}")
@@ -292,7 +292,7 @@ def _finding_pairing_lines(finding: Finding) -> list[str]:
         lines.extend(
             [
                 f"- Comparison decision: `{finding.comparison_id}`",
-                f"- Unit/value method: `{finding.comparison_unit_method or 'n/a'}`",
+                f"- How checked: `{finding.comparison_unit_method or 'n/a'}`",
                 f"- Deterministic discrepancy: {deterministic}",
             ]
         )
