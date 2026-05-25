@@ -5,6 +5,7 @@ from interlock_mvp.streamlit_app import (
     ARTIFACT_DOWNLOADS,
     WIKI_PREVIEW_FILES,
     _citation_label,
+    _context_support_details,
     _context_signal_label,
     _download_name,
     _finding_title,
@@ -148,3 +149,18 @@ def test_finding_card_copy_is_reviewer_native() -> None:
 
     assert _why_flagged(finding) == "Doc B is treated as controlling, and its cited value does not match Doc A."
     assert _finding_caption(finding) == "review required | value mismatch | authority B - protection_study ranks higher in configured AES precedence"
+
+
+def test_context_support_details_show_concrete_trace_without_signal_dump() -> None:
+    finding = {
+        "context_support_context_ids": ["A:capacity_ratings", "B:capacity_ratings"],
+        "context_support_search_ids": ["s1", "s2", "s3"],
+        "context_support_signal_types": ["context_room", "graph_alignment", "search_hit"],
+        "subject": "XFMR",
+        "parameter": "rating",
+    }
+
+    assert _context_support_details(finding) == [
+        "Compared sections: Doc A - capacity ratings; Doc B - capacity ratings",
+        "Related packet evidence: 3 search hit(s) for XFMR / rating",
+    ]

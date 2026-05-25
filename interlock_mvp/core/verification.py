@@ -220,6 +220,8 @@ def _external_review_payload(finding: Finding) -> str:
                 "context_support_confidence",
                 "context_support_summary",
                 "context_support_signal_types",
+                "context_support_context_ids",
+                "context_support_search_ids",
             },
         ),
     }
@@ -293,6 +295,8 @@ def _diff_edge_to_finding(
         context_support_confidence=context_support.confidence if context_support else None,
         context_support_summary=context_support.summary if context_support else "",
         context_support_signal_types=context_support.signal_types if context_support else [],
+        context_support_context_ids=context_support.context_ids if context_support else [],
+        context_support_search_ids=context_support.search_ids if context_support else [],
     )
 
 

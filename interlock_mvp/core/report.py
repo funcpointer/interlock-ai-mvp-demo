@@ -129,11 +129,15 @@ def _finding_lines(finding: Finding) -> list[str]:
 
 def _context_support_lines(finding: Finding) -> list[str]:
     verdict = "aligned context" if finding.context_support_supports else "context caution"
-    signals = "; ".join(_context_signal_label(signal) for signal in finding.context_support_signal_types)
-    return [
+    lines = [
         f"- Audit trail context: {verdict}; {finding.context_support_confidence or 'unknown'} confidence.",
-        f"- Context checked: {signals or 'none'}",
     ]
+    if finding.context_support_context_ids:
+        sections = "; ".join(_human_context_id(item) for item in finding.context_support_context_ids[:4])
+        lines.append(f"- Compared sections: {sections}")
+    if finding.context_support_search_ids:
+        lines.append(f"- Related packet evidence: {len(finding.context_support_search_ids)} supporting search hit(s)")
+    return lines
 
 
 def _context_signal_label(signal: str) -> str:
@@ -144,6 +148,13 @@ def _context_signal_label(signal: str) -> str:
         "missing_context": "generic or missing context",
         "possible_equivalent_elsewhere": "possible equivalent evidence elsewhere",
     }.get(signal, signal.replace("_", " "))
+
+
+def _human_context_id(context_id: str) -> str:
+    parts = context_id.split(":", 1)
+    doc = parts[0] if len(parts) == 2 else ""
+    label = parts[-1].replace("_", " ")
+    return f"Doc {doc} - {label}" if doc in {"A", "B"} else label
 
 
 def _model_review_lines(finding: Finding) -> list[str]:

@@ -165,6 +165,8 @@ class Finding(BaseModel):
     context_support_confidence: Confidence | None = None
     context_support_summary: str = ""
     context_support_signal_types: list[str] = Field(default_factory=list)
+    context_support_context_ids: list[str] = Field(default_factory=list)
+    context_support_search_ids: list[str] = Field(default_factory=list)
     model_review_status: str = "not_run"
     model_review_model: str = ""
     model_review_supports: bool | None = None

@@ -258,8 +258,15 @@ def _finding_context_support_lines(finding: Finding) -> list[str]:
         f"- Support id: `{finding.context_support_id or ''}`",
         f"- Verdict: {verdict}",
         f"- Confidence: `{finding.context_support_confidence or 'unknown'}`",
-        f"- Signals checked: {signals or 'none'}",
     ]
+    if finding.context_support_context_ids:
+        sections = "; ".join(_human_context_id(item) for item in finding.context_support_context_ids[:4])
+        lines.append(f"- Compared sections: {sections}")
+    if finding.context_support_search_ids:
+        lines.append(f"- Related packet evidence: {len(finding.context_support_search_ids)} supporting search hit(s)")
+    if signals:
+        lines.append(f"- Debug signals: {signals}")
+    return lines
 
 
 def _context_signal_label(signal: str) -> str:
@@ -270,6 +277,13 @@ def _context_signal_label(signal: str) -> str:
         "missing_context": "generic or missing context",
         "possible_equivalent_elsewhere": "possible equivalent evidence elsewhere",
     }.get(signal, signal.replace("_", " "))
+
+
+def _human_context_id(context_id: str) -> str:
+    parts = context_id.split(":", 1)
+    doc = parts[0] if len(parts) == 2 else ""
+    label = parts[-1].replace("_", " ")
+    return f"Doc {doc} - {label}" if doc in {"A", "B"} else label
 
 
 def _finding_model_review_lines(finding: Finding) -> list[str]:

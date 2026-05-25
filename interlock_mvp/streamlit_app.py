@@ -256,15 +256,36 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
 def _render_context_support(finding: dict[str, Any]) -> None:
     supports = finding.get("context_support_supports")
     confidence = finding.get("context_support_confidence") or "unknown"
-    signals = [str(signal) for signal in (finding.get("context_support_signal_types") or [])]
-    labels = [_context_signal_label(signal) for signal in signals]
     with st.expander(f"Audit trail: context check ({confidence})", expanded=False):
         if supports:
             st.success("Aligned context around both citations.")
         else:
             st.warning("Weak or generic context around at least one citation.")
-        if labels:
-            st.markdown("**Checked:** " + "; ".join(labels))
+        details = _context_support_details(finding)
+        if details:
+            for detail in details:
+                st.markdown(f"- {detail}")
+
+
+def _context_support_details(finding: dict[str, Any]) -> list[str]:
+    details: list[str] = []
+    context_ids = [str(item) for item in (finding.get("context_support_context_ids") or [])]
+    if context_ids:
+        details.append("Compared sections: " + "; ".join(_human_context_id(item) for item in context_ids[:4]))
+    search_ids = [str(item) for item in (finding.get("context_support_search_ids") or [])]
+    if search_ids:
+        subject = str(finding.get("subject") or "subject")
+        parameter = str(finding.get("parameter") or "parameter")
+        details.append(f"Related packet evidence: {len(search_ids)} search hit(s) for {subject} / {parameter}")
+    if "possible_equivalent_elsewhere" in (finding.get("context_support_signal_types") or []):
+        details.append("Caution: search found a possible equivalent value elsewhere")
+    return details
+
+def _human_context_id(context_id: str) -> str:
+    parts = context_id.split(":", 1)
+    doc = parts[0] if len(parts) == 2 else ""
+    label = parts[-1].replace("_", " ")
+    return f"Doc {doc} - {label}" if doc in {"A", "B"} else label
 
 
 def _context_signal_label(signal: str) -> str:
