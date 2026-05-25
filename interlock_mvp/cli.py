@@ -123,6 +123,7 @@ def search(
     table.add_column("Page")
     table.add_column("Subject")
     table.add_column("Parameter")
+    table.add_column("Via")
     table.add_column("Quote")
     for hit in hits:
         table.add_row(
@@ -132,6 +133,7 @@ def search(
             "" if hit.get("page") is None else str(hit.get("page")),
             str(hit.get("subject", ""))[:28],
             str(hit.get("parameter", ""))[:24],
+            ",".join(str(item) for item in hit.get("retrieval_methods", [])),
             _clip(str(hit.get("quote") or hit.get("text") or ""), 90),
         )
     console.print(table)

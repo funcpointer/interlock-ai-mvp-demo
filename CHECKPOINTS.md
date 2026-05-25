@@ -105,3 +105,50 @@ make eval-search
 Known current finding:
 
 - duplicate XFMR rating findings still exist in the graph output. They are visible in search and should be deduped in a later accuracy pass, not hidden in the search layer.
+
+## checkpoint-2026-05-25-second-brain-search
+
+Purpose:
+
+- add a local persistent memory index for each run,
+- support memory-palace/second-brain retrieval without adding finding authority,
+- fuse exact `rg` hits with SQLite FTS hits.
+
+Changed:
+
+- `search/second_brain.sqlite` emitted on every run,
+- search ranking now records retrieval method provenance,
+- CLI search shows which retrieval path found the hit.
+
+Validation result:
+
+```text
+make test
+  11 passed
+
+make eval-fast
+  version gold: 5 findings, 5 review_required, eval passed
+  negative: 0 findings, 0 review_required, eval passed
+  cross-doc: 7 findings, 4 review_required, eval passed
+  scanned: 18 coverage warnings, 0 review_required, eval passed
+
+  second_brain.sqlite: 514 records, 514 FTS rows
+
+interlock_mvp search runs/checkpoint-version "transformer rating"
+  top hits: finding -> diff -> claim/evidence
+  retrieval methods: sqlite_fts + rg
+```
+
+Latest second-brain index sizes:
+
+```text
+checkpoint-version: 514 records
+checkpoint-negative: 504 records
+checkpoint-cross: 288 records
+checkpoint-scanned: 54 records
+```
+
+Authority rule:
+
+- The second brain is recall/debug infrastructure only.
+- It may propose evidence to inspect later, but it cannot create findings.

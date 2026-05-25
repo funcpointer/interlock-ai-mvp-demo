@@ -36,6 +36,7 @@ Implemented:
 - Optional Kuzu graph build.
 - Stage-level JSONL logs and metrics.
 - `rg`-backed search over persisted review-map artifacts.
+- Local second-brain SQLite/FTS index over review-map artifacts.
 
 Current validated fixture classes:
 
@@ -112,6 +113,7 @@ logs.jsonl
 report.md
 crops/
 search/review_map.jsonl
+search/second_brain.sqlite
 graph.kuzu/        # optional, derived, skipped by --no-kuzu
 ```
 
@@ -197,7 +199,7 @@ Status: mostly done.
 
 ### Phase B: Search-Assisted Debugging
 
-Status: first slice implemented.
+Status: second slice implemented.
 
 Add `search` over persisted JSON/text artifacts. Use `rg --json` as the deterministic primitive.
 
@@ -214,13 +216,15 @@ Current MVP writes a combined:
 
 ```text
 search/review_map.jsonl
+search/second_brain.sqlite
 ```
 
 Agentic behavior is limited to:
 
 - query expansion from AES glossary,
-- multiple `rg` searches,
+- multiple `rg` and SQLite FTS searches,
 - ranking by context/subject/claim proximity,
+- fusing exact and full-text results,
 - returning cited evidence hits,
 - proposing candidates marked `proposal_only`.
 
@@ -306,6 +310,8 @@ Do not accept slow paths for:
 
 Kuzu is currently in the second category: useful for inspection, not part of finding authority.
 
+The second-brain SQLite index is also derived, but cheap enough to build every run and useful enough for debugging that it stays on by default.
+
 ## Near-Term Execution Plan
 
 1. Make Kuzu optional because it is derived, not because it is slow.
@@ -316,4 +322,5 @@ Kuzu is currently in the second category: useful for inspection, not part of fin
 6. Add AES glossary.
 7. Re-run accuracy checkpoint suite.
 8. Improve search ranking so diff/finding hits beat generic evidence when the query names a discrepancy.
-9. Only then consider LanceDB/local SLM integration.
+9. Add candidate-proposal mode from search results, still `proposal_only`.
+10. Only then consider LanceDB/local SLM integration.

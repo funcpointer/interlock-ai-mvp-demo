@@ -46,7 +46,9 @@ def test_search_run_returns_cited_artifact_hits(tmp_path: Path) -> None:
     hits = search_run(tmp_path, "transformer rating", glossary_path=Path("examples/aes_glossary.yaml"))
 
     assert count == 1
+    assert (tmp_path / "search" / "second_brain.sqlite").exists()
     assert hits
     assert hits[0]["record_id"] == "ev1"
     assert hits[0]["doc_id"] == "A"
     assert hits[0]["page"] == 7
+    assert "sqlite_fts" in hits[0]["retrieval_methods"]

@@ -22,4 +22,4 @@ Canonical outputs are JSON artifacts. `report.md` and `graph.kuzu/` are derived.
 
 Use `--no-kuzu` when Kuzu is not part of the question being tested. Kuzu is derived from JSON today; skipping it does not skip finding logic.
 
-Search runs against persisted `search/review_map.jsonl` artifacts using `rg`, not against PDFs directly.
+Search runs against persisted `search/review_map.jsonl` and `search/second_brain.sqlite` artifacts, not against PDFs directly.

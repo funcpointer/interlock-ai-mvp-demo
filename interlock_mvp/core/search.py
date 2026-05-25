@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import sqlite3
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -29,6 +30,7 @@ def write_search_index(
     records.extend(_diff_records(diff_graph))
     records.extend(_finding_records(findings))
     _write_jsonl(search_dir / "review_map.jsonl", records)
+    _write_second_brain(search_dir / "second_brain.sqlite", records)
     return len(records)
 
 
@@ -57,7 +59,7 @@ def search_run(run_dir: Path, query: str, *, glossary_path: Path | None = None, 
 
     scored: dict[str, dict[str, Any]] = {}
     for idx, term in enumerate(terms):
-        for record in _rg_records(search_dir, term):
+        for method, record in _retrieval_records(search_dir, term):
             search_id = str(record.get("search_id") or record.get("record_id") or record.get("text"))
             item = scored.setdefault(
                 search_id,
@@ -65,10 +67,13 @@ def search_run(run_dir: Path, query: str, *, glossary_path: Path | None = None, 
                     **record,
                     "score": 0,
                     "matched_terms": [],
+                    "retrieval_methods": [],
                 },
             )
             score = 10 if idx == 0 else 3
             score += _source_boost(record)
+            if method == "sqlite_fts":
+                score += 4
             if term.lower() == str(record.get("subject", "")).lower():
                 score += 5
             if term.lower() in str(record.get("parameter", "")).lower():
@@ -77,6 +82,7 @@ def search_run(run_dir: Path, query: str, *, glossary_path: Path | None = None, 
                 score -= 4
             item["score"] += score
             item["matched_terms"].append(term)
+            item["retrieval_methods"].append(method)
 
     results = sorted(
         scored.values(),
@@ -84,6 +90,7 @@ def search_run(run_dir: Path, query: str, *, glossary_path: Path | None = None, 
     )
     for result in results:
         result["matched_terms"] = _dedup_preserve_order(result["matched_terms"])
+        result["retrieval_methods"] = _dedup_preserve_order(result["retrieval_methods"])
     return results[:limit]
 
 
@@ -217,6 +224,69 @@ def _write_jsonl(path: Path, records: list[dict[str, Any]]) -> None:
     path.write_text("".join(json.dumps(record, sort_keys=True) + "\n" for record in records), encoding="utf-8")
 
 
+def _write_second_brain(path: Path, records: list[dict[str, Any]]) -> None:
+    if path.exists():
+        path.unlink()
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE records (
+              search_id TEXT PRIMARY KEY,
+              source TEXT,
+              doc_id TEXT,
+              page INTEGER,
+              context_id TEXT,
+              subject TEXT,
+              parameter TEXT,
+              value TEXT,
+              quote TEXT,
+              crop_path TEXT,
+              text TEXT,
+              payload TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE VIRTUAL TABLE records_fts USING fts5(
+              search_id UNINDEXED,
+              source,
+              doc_id,
+              context_id,
+              subject,
+              parameter,
+              value,
+              quote,
+              text
+            )
+            """
+        )
+        for record in records:
+            row = (
+                str(record.get("search_id", "")),
+                str(record.get("source", "")),
+                str(record.get("doc_id", "")),
+                record.get("page"),
+                str(record.get("context_id", "")),
+                str(record.get("subject", "")),
+                str(record.get("parameter", "")),
+                str(record.get("value", "")),
+                str(record.get("quote", "")),
+                str(record.get("crop_path", "")),
+                str(record.get("text", "")),
+                json.dumps(record, sort_keys=True),
+            )
+            conn.execute("INSERT INTO records VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", row)
+            conn.execute(
+                "INSERT INTO records_fts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (row[0], row[1], row[2], row[4], row[5], row[6], row[7], row[8], row[10]),
+            )
+        conn.commit()
+    finally:
+        conn.close()
+
+
 def _load_aliases(glossary_path: Path | None) -> dict[str, list[str]]:
     if not glossary_path or not glossary_path.exists():
         return {}
@@ -245,6 +315,46 @@ def _rg_records(search_dir: Path, term: str) -> list[dict[str, Any]]:
                 records.append(json.loads(text))
         return records
     return _python_search_records(search_dir, term)
+
+
+def _retrieval_records(search_dir: Path, term: str) -> list[tuple[str, dict[str, Any]]]:
+    records: list[tuple[str, dict[str, Any]]] = []
+    records.extend(("sqlite_fts", record) for record in _sqlite_records(search_dir / "second_brain.sqlite", term))
+    records.extend(("rg", record) for record in _rg_records(search_dir, term))
+    return records
+
+
+def _sqlite_records(path: Path, term: str) -> list[dict[str, Any]]:
+    if not path.exists():
+        return []
+    query = _fts_query(term)
+    if not query:
+        return []
+    conn = sqlite3.connect(path)
+    try:
+        rows = conn.execute(
+            """
+            SELECT records.payload
+            FROM records_fts
+            JOIN records ON records_fts.search_id = records.search_id
+            WHERE records_fts MATCH ?
+            ORDER BY bm25(records_fts)
+            LIMIT 100
+            """,
+            (query,),
+        ).fetchall()
+        return [json.loads(row[0]) for row in rows]
+    except sqlite3.Error:
+        return []
+    finally:
+        conn.close()
+
+
+def _fts_query(term: str) -> str:
+    tokens = [token for token in term.replace("-", " ").replace("_", " ").split() if token]
+    cleaned = [token.replace('"', "").replace("'", "") for token in tokens]
+    cleaned = [token for token in cleaned if token]
+    return " OR ".join(f'"{token}"' for token in cleaned)
 
 
 def _python_search_records(search_dir: Path, term: str) -> list[dict[str, Any]]:
