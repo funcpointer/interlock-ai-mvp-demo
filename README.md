@@ -3,17 +3,24 @@
 Fresh CLI-only evidence review engine for comparing two engineering PDFs.
 
 ```bash
-/Users/kc/venv-12/bin/python -m interlock_mvp doctor
-/Users/kc/venv-12/bin/python -m interlock_mvp review A.pdf B.pdf --mode version --out runs/demo --no-cloud --no-kuzu
-/Users/kc/venv-12/bin/python -m interlock_mvp check runs/demo --eval eval/demo.yaml
-/Users/kc/venv-12/bin/python -m interlock_mvp triage runs/demo
-/Users/kc/venv-12/bin/python -m interlock_mvp search runs/demo "transformer rating"
-/Users/kc/venv-12/bin/python -m interlock_mvp corpus corpora/aes/local_manifest.yaml --out-root runs/aes-corpus --no-cloud --no-kuzu
+python -m interlock_mvp doctor
+python -m interlock_mvp review A.pdf B.pdf --mode version --out runs/demo --no-cloud --no-kuzu
+python -m interlock_mvp check runs/demo --eval eval/demo.yaml
+python -m interlock_mvp triage runs/demo
+python -m interlock_mvp search runs/demo "transformer rating"
+python -m interlock_mvp corpus corpora/aes/local_manifest.yaml --out-root runs/aes-corpus --no-cloud --no-kuzu
 make eval-public-demo
 make eval-public-cross-doc-demo
 make eval-demo-package
 make ui
 make streamlit
+```
+
+Local development with a specific interpreter:
+
+```bash
+make PY=/path/to/python test
+python -m interlock_mvp review A.pdf B.pdf --env-file .env.local --no-kuzu
 ```
 
 The CLI is only an adapter. The reusable entrypoint is:
@@ -59,8 +66,8 @@ make streamlit
 ```
 
 The Streamlit app supports preset demos and two-PDF uploads. It is the right
-surface for a private interactive demo. The static Vercel site remains the
-recommended broad-share VC URL.
+surface for a live interactive demo. The static Vercel site remains the
+lowest-risk read-only VC URL.
 
 Details:
 

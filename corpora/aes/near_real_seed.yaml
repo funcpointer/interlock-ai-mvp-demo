@@ -4,7 +4,7 @@ description: >
   Local near-real seed corpus assembled from the previous InterLock repos.
   This is not AES-private data; it is a repeatable bridge until partner PDFs
   are placed in corpora/aes/local_manifest.yaml.
-source_root: /Users/kc/Documents/Claude/Projects/interlock-ai-v2/fixtures/pdfs
+source_root: fixtures/pdfs
 
 pairs:
   - id: seeded_version_doc_a_60_doc_b_90

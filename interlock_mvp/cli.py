@@ -31,7 +31,7 @@ def review(
     out: Annotated[Path, typer.Option(help="Output run directory")] = Path("runs/demo"),
     authority_config: Annotated[Path | None, typer.Option(help="Authority YAML path")] = None,
     glossary: Annotated[Path | None, typer.Option(help="AES/domain glossary YAML path")] = Path("examples/aes_glossary.yaml"),
-    env_file: Annotated[Path | None, typer.Option(help="Optional .env file. Defaults to old repo .env when present.")] = None,
+    env_file: Annotated[Path | None, typer.Option(help="Optional .env file. Defaults to .env.local when present.")] = None,
     doc_a_type: Annotated[str | None, typer.Option(help="Doc A type or auto")] = "auto",
     doc_b_type: Annotated[str | None, typer.Option(help="Doc B type or auto")] = "auto",
     dry_run: Annotated[bool, typer.Option(help="No cloud calls; deterministic only")] = False,

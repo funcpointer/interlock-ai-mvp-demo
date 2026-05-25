@@ -1,6 +1,6 @@
 # Streamlit Dynamic App - 2026-05-25
 
-Purpose: private interactive demo surface for uploading two PDFs and running a live review.
+Purpose: interactive demo surface for public presets and uploading two PDFs for a live review.
 
 Run locally:
 
@@ -17,6 +17,8 @@ streamlit_app.py
 Behavior:
 
 - supports two-PDF uploads,
+- writes each review to a unique run directory to avoid cross-session artifact reuse,
+- enforces an upload-size cap for the public demo host,
 - supports `version` and `cross_doc` modes,
 - defaults to no-cloud and no-Kuzu for predictable demo runs,
 - calls the same `run_review(ReviewRequest)` core as the CLI and local UI,
@@ -31,7 +33,7 @@ Hosted behavior:
 Deployment note:
 
 - Vercel remains the static investor URL.
-- Streamlit is the right private interactive URL once connected to a GitHub repo or another Streamlit-capable host.
+- Streamlit is the live upload/review URL once connected to a GitHub repo or another Streamlit-capable host.
 - Do not expose arbitrary local-path input in a hosted app.
 
 Known limitation:

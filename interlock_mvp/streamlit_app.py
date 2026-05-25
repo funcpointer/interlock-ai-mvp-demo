@@ -4,6 +4,7 @@ import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any
+from uuid import uuid4
 
 import streamlit as st
 
@@ -22,6 +23,7 @@ DEFAULT_GLOSSARY = ROOT / "examples/aes_glossary.yaml"
 PUBLIC_SPEC = DEMO_ASSETS / "somerset_main_power_transformer_spec_sheet.pdf"
 PUBLIC_VERSION_REV = DEMO_ASSETS / "somerset_main_power_transformer_spec_sheet_synth_rev.pdf"
 PUBLIC_CROSS_DOC = DEMO_ASSETS / "somerset_transformer_protection_study_excerpt_synth.pdf"
+MAX_UPLOAD_BYTES = int(os.environ.get("INTERLOCK_MAX_UPLOAD_BYTES", str(25 * 1024 * 1024)))
 
 
 def main() -> None:
@@ -48,7 +50,7 @@ def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool) -> None:
             doc_a_path=PUBLIC_SPEC,
             doc_b_path=PUBLIC_VERSION_REV,
             mode="version",
-            out_dir=RUN_ROOT / "streamlit-public-version",
+            out_dir=_new_run_dir("streamlit-public-version"),
             authority_config_path=DEFAULT_AUTHORITY,
             domain_glossary_path=DEFAULT_GLOSSARY,
             env_file_path=DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None,
@@ -62,7 +64,7 @@ def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool) -> None:
             doc_a_path=PUBLIC_SPEC,
             doc_b_path=PUBLIC_CROSS_DOC,
             mode="cross_doc",
-            out_dir=RUN_ROOT / "streamlit-public-cross-doc",
+            out_dir=_new_run_dir("streamlit-public-cross-doc"),
             authority_config_path=DEFAULT_AUTHORITY,
             domain_glossary_path=DEFAULT_GLOSSARY,
             env_file_path=DEFAULT_OLD_REPO_ENV if DEFAULT_OLD_REPO_ENV.exists() else None,
@@ -85,15 +87,18 @@ def _upload_flow(*, no_cloud: bool, no_kuzu: bool) -> None:
         doc_b = st.file_uploader("Doc B PDF", type=["pdf"], key="doc_b")
         doc_b_type = st.selectbox("Doc B type", ["auto", "specification", "protection_study", "drawing", "checklist"], index=0)
     mode = st.radio("Mode", ["version", "cross_doc"], horizontal=True)
+    upload_errors = _upload_errors(doc_a, doc_b)
+    for error in upload_errors:
+        st.error(error)
 
-    if st.button("Run uploaded review", type="primary", disabled=not (doc_a and doc_b)):
+    if st.button("Run uploaded review", type="primary", disabled=not (doc_a and doc_b) or bool(upload_errors)):
         with TemporaryDirectory(prefix="interlock-streamlit-") as temp_dir:
             temp_root = Path(temp_dir)
             doc_a_path = temp_root / _safe_upload_name(doc_a.name, fallback="doc_a.pdf")
             doc_b_path = temp_root / _safe_upload_name(doc_b.name, fallback="doc_b.pdf")
             doc_a_path.write_bytes(doc_a.getvalue())
             doc_b_path.write_bytes(doc_b.getvalue())
-            out_dir = RUN_ROOT / "streamlit-upload"
+            out_dir = _new_run_dir("streamlit-upload")
             request = ReviewRequest(
                 doc_a_path=doc_a_path,
                 doc_b_path=doc_b_path,
@@ -112,8 +117,12 @@ def _upload_flow(*, no_cloud: bool, no_kuzu: bool) -> None:
 
 def _run_and_render(request: ReviewRequest) -> None:
     with st.spinner("Reviewing PDFs..."):
-        result = run_review(request)
-        triage_run(result.out_dir, write=True)
+        try:
+            result = run_review(request)
+            triage_run(result.out_dir, write=True)
+        except Exception as exc:
+            st.error(f"Review failed: {type(exc).__name__}: {exc}")
+            return
     _render_run(result.out_dir)
 
 
@@ -159,7 +168,7 @@ def _render_run(run_dir: Path) -> None:
         for name in ["report.md", "findings.json", "metrics.json", "triage.json", "reasoning_graph.json", "decision_traces.json"]:
             path = run_dir / name
             if path.exists():
-                st.download_button(name, data=path.read_bytes(), file_name=name, mime="application/octet-stream")
+                st.download_button(name, data=path.read_bytes(), file_name=name, mime=_mime_for(name))
 
 
 def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
@@ -216,6 +225,31 @@ def _safe_upload_name(name: str, *, fallback: str) -> str:
     if not clean.lower().endswith(".pdf"):
         clean = fallback
     return clean or fallback
+
+
+def _upload_errors(doc_a: Any, doc_b: Any) -> list[str]:
+    errors: list[str] = []
+    for label, doc in [("Doc A", doc_a), ("Doc B", doc_b)]:
+        if not doc:
+            continue
+        size = int(getattr(doc, "size", 0) or 0)
+        if size > MAX_UPLOAD_BYTES:
+            limit_mb = MAX_UPLOAD_BYTES / (1024 * 1024)
+            actual_mb = size / (1024 * 1024)
+            errors.append(f"{label} is {actual_mb:.1f} MB; max upload size is {limit_mb:.0f} MB for this demo.")
+    return errors
+
+
+def _new_run_dir(prefix: str) -> Path:
+    return RUN_ROOT / f"{prefix}-{uuid4().hex[:10]}"
+
+
+def _mime_for(name: str) -> str:
+    if name.endswith(".json"):
+        return "application/json"
+    if name.endswith(".md"):
+        return "text/markdown"
+    return "application/octet-stream"
 
 
 def _input_options() -> list[str]:

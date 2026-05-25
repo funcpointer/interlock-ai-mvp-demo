@@ -1,5 +1,5 @@
-PY := /Users/kc/venv-12/bin/python
-FIXTURES := /Users/kc/Documents/Claude/Projects/interlock-ai-v2/fixtures/pdfs
+PY ?= python
+FIXTURES ?= fixtures/pdfs
 AUTH := examples/aes_authority.yaml
 AES_MANIFEST ?= corpora/aes/local_manifest.yaml
 AES_SEED_MANIFEST ?= corpora/aes/near_real_seed.yaml

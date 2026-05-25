@@ -6,9 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote, unquote, urlparse
-import importlib.util
 import mimetypes
-import sys
 
 from .core.artifacts import read_artifact
 from .core.env import DEFAULT_OLD_REPO_ENV
@@ -18,11 +16,12 @@ from .core.triage import triage_run
 
 
 ROOT = Path(__file__).resolve().parents[1]
+DEMO_ASSETS = ROOT / "demo_assets/public_aes"
 DEFAULT_AUTHORITY = ROOT / "examples/aes_authority.yaml"
 DEFAULT_GLOSSARY = ROOT / "examples/aes_glossary.yaml"
-PUBLIC_SPEC = ROOT / "corpora/aes/docs/public_aes/somerset_main_power_transformer_spec_sheet.pdf"
-PUBLIC_VERSION_REV = ROOT / "corpora/aes/docs/public_aes/somerset_main_power_transformer_spec_sheet_synth_rev.pdf"
-PUBLIC_CROSS_DOC = ROOT / "corpora/aes/docs/public_aes/somerset_transformer_protection_study_excerpt_synth.pdf"
+PUBLIC_SPEC = DEMO_ASSETS / "somerset_main_power_transformer_spec_sheet.pdf"
+PUBLIC_VERSION_REV = DEMO_ASSETS / "somerset_main_power_transformer_spec_sheet_synth_rev.pdf"
+PUBLIC_CROSS_DOC = DEMO_ASSETS / "somerset_transformer_protection_study_excerpt_synth.pdf"
 
 
 def serve(*, host: str = "127.0.0.1", port: int = 8765) -> None:
@@ -275,7 +274,6 @@ def _request_from_form(form: dict[str, list[str]]) -> ReviewRequest:
 
 def _preset_request(preset: str) -> ReviewRequest:
     if preset == "public_version":
-        _run_script(ROOT / "scripts/make_synthetic_transformer_revision.py")
         return ReviewRequest(
             doc_a_path=PUBLIC_SPEC,
             doc_b_path=PUBLIC_VERSION_REV,
@@ -290,7 +288,6 @@ def _preset_request(preset: str) -> ReviewRequest:
             no_kuzu=True,
         )
     if preset == "public_cross_doc":
-        _run_script(ROOT / "scripts/make_synthetic_transformer_cross_doc.py")
         return ReviewRequest(
             doc_a_path=PUBLIC_SPEC,
             doc_b_path=PUBLIC_CROSS_DOC,
@@ -325,16 +322,6 @@ def _one(form: dict[str, list[str]], key: str) -> str:
 
 def _path_or_none(value: str) -> Path | None:
     return Path(value) if value else None
-
-
-def _run_script(path: Path) -> None:
-    spec = importlib.util.spec_from_file_location(path.stem, path)
-    if not spec or not spec.loader:
-        raise RuntimeError(f"Cannot load script: {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[path.stem] = module
-    spec.loader.exec_module(module)
-    module.main()
 
 
 def _count_severity(findings: list[dict[str, Any]], severity: str) -> int:

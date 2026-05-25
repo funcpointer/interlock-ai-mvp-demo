@@ -4,7 +4,8 @@ import os
 from pathlib import Path
 
 
-DEFAULT_OLD_REPO_ENV = Path("/Users/kc/Documents/Claude/Projects/interlock-ai-v2/.env")
+DEFAULT_ENV_FILE = Path(os.environ.get("INTERLOCK_ENV_FILE", ".env.local"))
+DEFAULT_OLD_REPO_ENV = DEFAULT_ENV_FILE
 DEFAULT_OPENAI_KEY_FILE = Path.home() / "oumi" / ".openai.key"
 
 

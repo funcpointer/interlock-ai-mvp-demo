@@ -94,20 +94,20 @@ Current accuracy caution:
 Fast deterministic eval path:
 
 ```bash
-/Users/kc/venv-12/bin/python -m interlock_mvp review A.pdf B.pdf \
+python -m interlock_mvp review A.pdf B.pdf \
   --mode version \
   --out runs/demo \
   --authority-config examples/aes_authority.yaml \
   --no-cloud \
   --no-kuzu
 
-/Users/kc/venv-12/bin/python -m interlock_mvp check runs/demo --eval eval/demo.yaml
+python -m interlock_mvp check runs/demo --eval eval/demo.yaml
 ```
 
 Full derived-graph path:
 
 ```bash
-/Users/kc/venv-12/bin/python -m interlock_mvp review A.pdf B.pdf \
+python -m interlock_mvp review A.pdf B.pdf \
   --mode version \
   --out runs/demo-with-graph \
   --authority-config examples/aes_authority.yaml \
@@ -117,13 +117,13 @@ Full derived-graph path:
 Doctor:
 
 ```bash
-/Users/kc/venv-12/bin/python -m interlock_mvp doctor
+python -m interlock_mvp doctor
 ```
 
 Corpus intake:
 
 ```bash
-/Users/kc/venv-12/bin/python -m interlock_mvp corpus corpora/aes/local_manifest.yaml \
+python -m interlock_mvp corpus corpora/aes/local_manifest.yaml \
   --out-root runs/aes-corpus \
   --authority-config examples/aes_authority.yaml \
   --no-cloud \
@@ -133,7 +133,7 @@ Corpus intake:
 Run triage on any completed run:
 
 ```bash
-/Users/kc/venv-12/bin/python -m interlock_mvp triage runs/demo
+python -m interlock_mvp triage runs/demo
 ```
 
 Private AES PDFs are not committed. They are referenced by
