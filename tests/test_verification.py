@@ -3,6 +3,7 @@ from interlock_mvp.core.models import (
     AlignmentDecision,
     AuthorityDecision,
     ComparisonDecision,
+    ContextSupport,
     DiffEdge,
     EvidenceItem,
     ReasoningGraph,
@@ -161,6 +162,115 @@ def test_unknown_authority_downgrades_strong_deterministic_diff() -> None:
     assert findings[0].authoritative_side == "unknown_direction"
 
 
+def test_context_support_can_upgrade_medium_identity_value_mismatch() -> None:
+    findings, _warnings, _metrics = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            comparisons=[
+                ComparisonDecision(
+                    comparison_id="comp00001",
+                    diff_id="diff00001",
+                    alignment_id="align00001",
+                    comparison_type="value_mismatch",
+                    unit_method="pint",
+                    deterministic=True,
+                    verifier_status="not_run",
+                    rationale="A differs from B.",
+                )
+            ],
+            context_supports=[_context_support("diff00001", supports=True, confidence="high")],
+        ),
+        diff_edges=[_diff_edge(identity_strength="medium")],
+        evidence_by_id={
+            "a1": _evidence("a1", "A", "1000", "KVA"),
+            "b1": _evidence("b1", "B", "100", "KVA"),
+        },
+        authority=_authority("B"),
+        mode="cross_doc",
+        no_cloud=True,
+        dry_run=False,
+        max_cost_usd=0,
+    )
+
+    assert findings[0].severity == "review_required"
+    assert findings[0].confidence == "high"
+    assert findings[0].context_support_id == "ctx00001"
+
+
+def test_context_support_does_not_upgrade_weak_identity() -> None:
+    findings, _warnings, _metrics = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            comparisons=[
+                ComparisonDecision(
+                    comparison_id="comp00001",
+                    diff_id="diff00001",
+                    alignment_id="align00001",
+                    comparison_type="value_mismatch",
+                    unit_method="pint",
+                    deterministic=True,
+                    verifier_status="not_run",
+                    rationale="A differs from B.",
+                )
+            ],
+            context_supports=[_context_support("diff00001", supports=True, confidence="high")],
+        ),
+        diff_edges=[_diff_edge(identity_strength="weak")],
+        evidence_by_id={
+            "a1": _evidence("a1", "A", "1000", "KVA"),
+            "b1": _evidence("b1", "B", "100", "KVA"),
+        },
+        authority=_authority("B"),
+        mode="cross_doc",
+        no_cloud=True,
+        dry_run=False,
+        max_cost_usd=0,
+    )
+
+    assert findings[0].severity == "possible_issue"
+    assert findings[0].confidence == "low"
+
+
+def test_context_support_downgrades_possible_equivalent_elsewhere() -> None:
+    findings, _warnings, _metrics = findings_from_reasoning_graph(
+        reasoning_graph=ReasoningGraph(
+            comparisons=[
+                ComparisonDecision(
+                    comparison_id="comp00001",
+                    diff_id="diff00001",
+                    alignment_id="align00001",
+                    comparison_type="value_mismatch",
+                    unit_method="pint",
+                    deterministic=True,
+                    verifier_status="not_run",
+                    rationale="A differs from B.",
+                )
+            ],
+            context_supports=[
+                _context_support(
+                    "diff00001",
+                    supports=False,
+                    confidence="medium",
+                    signal_types=["possible_equivalent_elsewhere"],
+                    downgrade_reasons=["search found possible equivalent evidence elsewhere in the packet"],
+                )
+            ],
+        ),
+        diff_edges=[_diff_edge(identity_strength="strong")],
+        evidence_by_id={
+            "a1": _evidence("a1", "A", "1000", "KVA"),
+            "b1": _evidence("b1", "B", "100", "KVA"),
+        },
+        authority=_authority("B"),
+        mode="cross_doc",
+        no_cloud=True,
+        dry_run=False,
+        max_cost_usd=0,
+    )
+
+    assert findings[0].severity == "possible_issue"
+    assert findings[0].confidence == "medium"
+    assert "possible_equivalent_elsewhere" in findings[0].context_support_signal_types
+
+
 def test_absence_search_sources_missing_item_finding() -> None:
     findings, _warnings, metrics = findings_from_reasoning_graph(
         reasoning_graph=ReasoningGraph(
@@ -223,6 +333,41 @@ def _authority(side: str) -> AuthorityDecision:
         doc_b_type="protection_study",
         doc_a_type_confidence=1.0,
         doc_b_type_confidence=1.0,
+    )
+
+
+def _diff_edge(*, identity_strength: str) -> DiffEdge:
+    return DiffEdge(
+        diff_id="diff00001",
+        diff_type="value_mismatch",
+        alignment_status="conflict",
+        subject="XFMR",
+        parameter="rating",
+        rationale="A differs from B.",
+        evidence_ids=["a1", "b1"],
+        identity_strength=identity_strength,  # type: ignore[arg-type]
+        deterministic_discrepancy=True,
+    )
+
+
+def _context_support(
+    diff_id: str,
+    *,
+    supports: bool,
+    confidence: str,
+    signal_types: list[str] | None = None,
+    downgrade_reasons: list[str] | None = None,
+) -> ContextSupport:
+    return ContextSupport(
+        support_id="ctx00001",
+        diff_id=diff_id,
+        supports=supports,
+        confidence=confidence,  # type: ignore[arg-type]
+        signal_types=signal_types or ["context_room", "search_hit", "graph_alignment"],
+        context_ids=["A:ctx:ratings", "B:ctx:ratings"],
+        search_ids=["claim:b1"],
+        summary="Context quorum supporting signal.",
+        downgrade_reasons=downgrade_reasons or [],
     )
 
 

@@ -46,6 +46,7 @@ Evidence is normalized into claims:
 Comparison uses:
 
 - subject/context alignment,
+- graph/search/memory context support as non-authoritative quorum signals,
 - unit equivalence through Pint,
 - custom `%Z` impedance handling,
 - decimal/magnitude-slip notes,

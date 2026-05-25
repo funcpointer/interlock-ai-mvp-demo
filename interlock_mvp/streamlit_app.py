@@ -232,6 +232,9 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
             f"Type: {finding.get('finding_type')} | Severity: {finding.get('severity')} | "
             f"Authority: {finding.get('authoritative_side')} ({finding.get('authority_basis')})"
         )
+        if finding.get("context_support_summary"):
+            signals = ", ".join(finding.get("context_support_signal_types") or [])
+            st.info(f"Context support signal: {finding.get('context_support_summary')} Signals: {signals}")
         col_a, col_b = st.columns(2)
         with col_a:
             _render_citation(run_dir, "Doc A", finding.get("evidence_a") or {})

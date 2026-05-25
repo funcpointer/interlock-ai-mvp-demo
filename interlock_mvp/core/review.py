@@ -9,6 +9,7 @@ from typing import Any
 from .artifacts import ensure_run_dirs, write_json, write_object
 from .authority import classify_doc_type, load_authority_config, resolve_authority, version_order_warning
 from .context_memory import build_context_memory
+from .context_support import build_context_supports
 from .decision_traces import build_decision_traces
 from .domain import DomainDictionary
 from .docgraph import build_diff_graph, build_document_graphs
@@ -20,7 +21,7 @@ from .logging import JsonlLogger
 from .models import ReviewRequest, ReviewResult
 from .reasoning import build_reasoning_graph
 from .report import render_report
-from .search import write_search_index
+from .search import build_search_records, write_search_index
 from .verification import findings_from_reasoning_graph
 from .wiki import write_review_wiki
 
@@ -144,6 +145,35 @@ def run_review(request: ReviewRequest) -> ReviewResult:
     graph_metrics = _graph_metrics(graph_a, graph_b, diff_graph)
     reasoning_metrics = _reasoning_metrics(reasoning_graph)
     _finish_stage(logger, stage_timings, "build_review_graph", stage_started, **graph_metrics, **reasoning_metrics)
+
+    stage_started = time.time()
+    preliminary_context_memory = build_context_memory(doc_graph_a=graph_a, doc_graph_b=graph_b, evidence=evidence, findings=[])
+    preliminary_search_records = build_search_records(
+        evidence=evidence,
+        doc_graph_a=graph_a,
+        doc_graph_b=graph_b,
+        diff_graph=diff_graph,
+        reasoning_graph=reasoning_graph,
+        context_memory=preliminary_context_memory,
+        findings=[],
+    )
+    context_supports = build_context_supports(
+        diff_edges=diff_graph.edges,
+        evidence_by_id={item.evidence_id: item for item in evidence},
+        doc_graph_a=graph_a,
+        doc_graph_b=graph_b,
+        search_records=preliminary_search_records,
+    )
+    reasoning_graph = reasoning_graph.model_copy(update={"context_supports": context_supports})
+    reasoning_metrics = _reasoning_metrics(reasoning_graph)
+    _finish_stage(
+        logger,
+        stage_timings,
+        "build_context_supports",
+        stage_started,
+        preliminary_search_records=len(preliminary_search_records),
+        **_context_support_metrics(context_supports),
+    )
 
     stage_started = time.time()
     findings, verifier_warnings, verifier_metrics = findings_from_reasoning_graph(
@@ -380,11 +410,21 @@ def _reasoning_metrics(reasoning_graph) -> dict[str, object]:
         "alignment_decisions": len(reasoning_graph.alignments),
         "comparison_decisions": len(reasoning_graph.comparisons),
         "absence_searches": len(reasoning_graph.absence_searches),
+        "context_supports": len(reasoning_graph.context_supports),
+        "context_supports_by_confidence": _counter(reasoning_graph.context_supports, "confidence"),
         "alignment_decisions_by_subject_method": _counter(reasoning_graph.alignments, "subject_method"),
         "alignment_decisions_by_context_method": _counter(reasoning_graph.alignments, "context_method"),
         "comparison_decisions_by_type": _counter(reasoning_graph.comparisons, "comparison_type"),
         "comparison_decisions_by_unit_method": _counter(reasoning_graph.comparisons, "unit_method"),
         "absence_searches_by_coverage_status": _counter(reasoning_graph.absence_searches, "coverage_status"),
+    }
+
+
+def _context_support_metrics(context_supports) -> dict[str, object]:
+    return {
+        "context_supports": len(context_supports),
+        "context_supports_supporting": sum(1 for support in context_supports if support.supports),
+        "context_supports_by_confidence": _counter(context_supports, "confidence"),
     }
 
 

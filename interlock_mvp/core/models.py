@@ -160,6 +160,9 @@ class Finding(BaseModel):
     alignment_id: str | None = None
     comparison_id: str | None = None
     absence_id: str | None = None
+    context_support_id: str | None = None
+    context_support_summary: str = ""
+    context_support_signal_types: list[str] = Field(default_factory=list)
 
 
 class ContextNode(BaseModel):
@@ -265,10 +268,23 @@ class AbsenceSearch(BaseModel):
     rationale: str
 
 
+class ContextSupport(BaseModel):
+    support_id: str
+    diff_id: str
+    supports: bool
+    confidence: Confidence
+    signal_types: list[str] = Field(default_factory=list)
+    context_ids: list[str] = Field(default_factory=list)
+    search_ids: list[str] = Field(default_factory=list)
+    summary: str
+    downgrade_reasons: list[str] = Field(default_factory=list)
+
+
 class ReasoningGraph(BaseModel):
     alignments: list[AlignmentDecision] = Field(default_factory=list)
     comparisons: list[ComparisonDecision] = Field(default_factory=list)
     absence_searches: list[AbsenceSearch] = Field(default_factory=list)
+    context_supports: list[ContextSupport] = Field(default_factory=list)
 
 
 class ContextRoom(BaseModel):

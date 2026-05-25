@@ -34,7 +34,32 @@ def write_search_index(
 ) -> int:
     search_dir = run_dir / "search"
     search_dir.mkdir(parents=True, exist_ok=True)
-    records = []
+    records = build_search_records(
+        evidence=evidence,
+        doc_graph_a=doc_graph_a,
+        doc_graph_b=doc_graph_b,
+        diff_graph=diff_graph,
+        reasoning_graph=reasoning_graph,
+        context_memory=context_memory,
+        findings=findings,
+    )
+    _write_jsonl(search_dir / "review_map.jsonl", records)
+    _write_second_brain(search_dir / "second_brain.sqlite", records)
+    _write_lancedb(search_dir / "lancedb", records)
+    return len(records)
+
+
+def build_search_records(
+    *,
+    evidence: list[EvidenceItem],
+    doc_graph_a: DocumentGraph,
+    doc_graph_b: DocumentGraph,
+    diff_graph: DiffGraph,
+    findings: list[Finding],
+    reasoning_graph: ReasoningGraph | None = None,
+    context_memory: ContextMemory | None = None,
+) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
     records.extend(_evidence_records(evidence))
     records.extend(_graph_records(doc_graph_a))
     records.extend(_graph_records(doc_graph_b))
@@ -44,10 +69,7 @@ def write_search_index(
     if context_memory:
         records.extend(context_memory_search_records(context_memory))
     records.extend(_finding_records(findings))
-    _write_jsonl(search_dir / "review_map.jsonl", records)
-    _write_second_brain(search_dir / "second_brain.sqlite", records)
-    _write_lancedb(search_dir / "lancedb", records)
-    return len(records)
+    return records
 
 
 def expand_query(query: str, glossary_path: Path | None = None) -> list[str]:
@@ -102,6 +124,40 @@ def search_run(run_dir: Path, query: str, *, glossary_path: Path | None = None, 
             item["matched_terms"].append(term)
             item["retrieval_methods"].append(method)
 
+    results = sorted(
+        scored.values(),
+        key=lambda item: (-int(item["score"]), str(item.get("doc_id", "")), int(item.get("page") or 0), str(item.get("search_id", ""))),
+    )
+    for result in results:
+        result["matched_terms"] = _dedup_preserve_order(result["matched_terms"])
+        result["retrieval_methods"] = _dedup_preserve_order(result["retrieval_methods"])
+    return results[:limit]
+
+
+def search_records_in_memory(records: list[dict[str, Any]], query: str, *, limit: int = 20) -> list[dict[str, Any]]:
+    terms = expand_query(query)
+    if not terms:
+        return []
+    scored: dict[str, dict[str, Any]] = {}
+    for idx, term in enumerate(terms):
+        needle = term.lower()
+        for record in records:
+            text = _record_embedding_text(record).lower()
+            if needle not in text:
+                continue
+            search_id = str(record.get("search_id") or record.get("record_id") or text)
+            item = scored.setdefault(
+                search_id,
+                {
+                    **record,
+                    "score": 0,
+                    "matched_terms": [],
+                    "retrieval_methods": [],
+                },
+            )
+            item["score"] += (10 if idx == 0 else 3) + _source_boost(record)
+            item["matched_terms"].append(term)
+            item["retrieval_methods"].append("memory")
     results = sorted(
         scored.values(),
         key=lambda item: (-int(item["score"]), str(item.get("doc_id", "")), int(item.get("page") or 0), str(item.get("search_id", ""))),
@@ -303,6 +359,36 @@ def _reasoning_records(reasoning_graph: ReasoningGraph) -> list[dict[str, Any]]:
                         *absence.searched_context_ids,
                         *absence.candidate_ids_considered,
                         absence.rationale,
+                    ]
+                ),
+            }
+        )
+    for support in reasoning_graph.context_supports:
+        records.append(
+            {
+                "search_id": f"context_support:{support.support_id}",
+                "source": "context_support",
+                "record_id": support.support_id,
+                "doc_id": "",
+                "page": None,
+                "context_id": " ".join(support.context_ids),
+                "subject": support.diff_id,
+                "parameter": " ".join(support.signal_types),
+                "value": support.confidence,
+                "unit": "",
+                "quote": support.summary,
+                "crop_path": "",
+                "text": " ".join(
+                    [
+                        support.support_id,
+                        support.diff_id,
+                        str(support.supports),
+                        support.confidence,
+                        *support.signal_types,
+                        *support.context_ids,
+                        *support.search_ids,
+                        support.summary,
+                        *support.downgrade_reasons,
                     ]
                 ),
             }

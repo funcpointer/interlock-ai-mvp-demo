@@ -24,6 +24,7 @@ def build_decision_traces(
     alignment_by_id = {alignment.alignment_id: alignment for alignment in reasoning_graph.alignments}
     comparison_by_id = {comparison.comparison_id: comparison for comparison in reasoning_graph.comparisons}
     absence_by_id = {absence.absence_id: absence for absence in reasoning_graph.absence_searches}
+    context_support_by_diff_id = {support.diff_id: support for support in reasoning_graph.context_supports}
 
     traces: list[DecisionTrace] = []
     for index, finding in enumerate(findings, start=1):
@@ -81,6 +82,21 @@ def build_decision_traces(
                 downgrade_reasons.append(f"identity strength is {edge.identity_strength}")
             if not edge.deterministic_discrepancy and edge.diff_type != "coverage_warning":
                 downgrade_reasons.append("discrepancy is not deterministic")
+            context_support = context_support_by_diff_id.get(edge.diff_id)
+            if context_support:
+                signals.append(
+                    DecisionSignal(
+                        signal_id=f"sig{index:05d}_context",
+                        source="context_layer",
+                        signal_type="context_quorum",
+                        supports=context_support.supports,
+                        summary=context_support.summary,
+                        confidence=context_support.confidence,
+                        reasoning_id=context_support.support_id,
+                    )
+                )
+                why.append(f"context support `{context_support.support_id}` used {', '.join(context_support.signal_types)}")
+                downgrade_reasons.extend(context_support.downgrade_reasons)
 
         if finding.alignment_id:
             alignment = alignment_by_id.get(finding.alignment_id)

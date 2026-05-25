@@ -70,15 +70,20 @@ def test_run_review_writes_artifacts_and_cited_finding(tmp_path: Path) -> None:
     reasoning = json.loads((out_dir / "reasoning_graph.json").read_text(encoding="utf-8"))
     assert reasoning["comparisons"][0]["comparison_id"] == finding["comparison_id"]
     assert reasoning["alignments"][0]["alignment_id"] == finding["alignment_id"]
+    assert reasoning["context_supports"][0]["diff_id"] == "diff00001"
+    assert finding["context_support_id"] == reasoning["context_supports"][0]["support_id"]
+    assert finding["context_support_summary"]
     traces = json.loads((out_dir / "decision_traces.json").read_text(encoding="utf-8"))["records"]
     assert traces[0]["finding_id"] == finding["finding_id"]
     assert traces[0]["supporting_signals"]
     assert any(signal["signal_type"] == "alignment" for signal in traces[0]["supporting_signals"])
     assert any(signal["signal_type"] == "comparison" for signal in traces[0]["supporting_signals"])
+    assert any(signal["source"] == "context_layer" for signal in traces[0]["supporting_signals"])
 
     metrics = json.loads((out_dir / "metrics.json").read_text(encoding="utf-8"))["metrics"]
     assert metrics["alignment_decisions"] == 1
     assert metrics["comparison_decisions"] == 1
+    assert metrics["context_supports"] == 1
     assert metrics["comparison_sourced_findings"] == 1.0
     assert metrics["absence_sourced_findings"] == 0.0
     assert metrics["context_rooms"] >= 2

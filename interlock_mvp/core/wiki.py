@@ -151,6 +151,7 @@ def _review_map_lines(
         f"- Alignment decisions: {len(reasoning_graph.alignments)}",
         f"- Comparison decisions: {len(reasoning_graph.comparisons)}",
         f"- Absence searches: {len(reasoning_graph.absence_searches)}",
+        f"- Context supports: {len(reasoning_graph.context_supports)}",
         "",
         "## Diff Edges",
         "",
@@ -227,6 +228,7 @@ def _finding_lines(finding: Finding) -> list[str]:
         f"- Alignment decision: `{finding.alignment_id or ''}`",
         f"- Comparison decision: `{finding.comparison_id or ''}`",
         f"- Absence search: `{finding.absence_id or ''}`",
+        f"- Context support: `{finding.context_support_id or ''}` {finding.context_support_summary}",
         "",
         "## Citations",
         "",
@@ -344,6 +346,11 @@ def _reasoning_lines(reasoning_graph: ReasoningGraph) -> list[str]:
     for absence in reasoning_graph.absence_searches[:120]:
         lines.append(
             f"- `{absence.absence_id}` searched_doc=`{absence.searched_doc_id}` coverage=`{absence.coverage_status}` confidence=`{absence.confidence}` terms=`{', '.join(absence.query_terms)}`"
+        )
+    lines.extend(["", "## Context Support", ""])
+    for support in reasoning_graph.context_supports[:120]:
+        lines.append(
+            f"- `{support.support_id}` diff=`{support.diff_id}` supports={support.supports} confidence=`{support.confidence}` signals=`{', '.join(support.signal_types)}`: {support.summary}"
         )
     lines.append("")
     return lines

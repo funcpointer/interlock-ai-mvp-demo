@@ -64,6 +64,8 @@ def _reasoning_health_lines(metrics: dict) -> list[str]:
         "alignment_decisions",
         "comparison_decisions",
         "absence_searches",
+        "context_supports",
+        "context_supports_by_confidence",
         "alignment_decisions_by_subject_method",
         "alignment_decisions_by_context_method",
         "comparison_decisions_by_unit_method",
@@ -112,6 +114,9 @@ def _finding_lines(finding: Finding) -> list[str]:
     ]
     if finding.plausibility_notes:
         lines.append(f"- Plausibility notes: {'; '.join(finding.plausibility_notes)}")
+    if finding.context_support_summary:
+        signals = ", ".join(finding.context_support_signal_types)
+        lines.append(f"- Context support: {finding.context_support_summary} Signals: {signals}")
     lines.append(f"- Verifier notes: {finding.verifier_notes}")
     if finding.evidence_a:
         lines.extend(_citation_lines("Doc A", finding.evidence_a))
