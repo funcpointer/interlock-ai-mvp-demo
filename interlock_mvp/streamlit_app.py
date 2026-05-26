@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import os
 import re
 from pathlib import Path
@@ -8,12 +9,13 @@ from typing import Any
 from uuid import uuid4
 
 import streamlit as st
+from PIL import Image, ImageDraw
 
-from .core.artifacts import read_artifact
-from .core.env import DEFAULT_OLD_REPO_ENV
-from .core.models import ReviewRequest
-from .core.review import run_review
-from .core.triage import triage_run
+from interlock_mvp.core.artifacts import read_artifact, write_json
+from interlock_mvp.core.env import DEFAULT_OLD_REPO_ENV
+from interlock_mvp.core.models import ReviewRequest
+from interlock_mvp.core.review import run_review
+from interlock_mvp.core.triage import triage_run
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,6 +34,7 @@ ARTIFACT_DOWNLOADS = [
     "triage.json",
     "reasoning_graph.json",
     "decision_traces.json",
+    "reviewer_feedback.json",
     "wiki/index.md",
     "wiki/review-map.md",
     "wiki/memory-palace.md",
@@ -64,6 +67,10 @@ def main() -> None:
         _upload_flow(no_cloud=no_cloud, no_kuzu=no_kuzu, max_cost_usd=max_cost_usd)
     else:
         _preset_flow(source, no_cloud=no_cloud, no_kuzu=no_kuzu, max_cost_usd=max_cost_usd)
+
+    last_run_dir = st.session_state.get("last_run_dir")
+    if last_run_dir and Path(str(last_run_dir)).exists():
+        _render_run(Path(str(last_run_dir)))
 
 
 def _preset_flow(source: str, *, no_cloud: bool, no_kuzu: bool, max_cost_usd: float) -> None:
@@ -148,7 +155,7 @@ def _run_and_render(request: ReviewRequest) -> None:
         except Exception as exc:
             st.error(f"Review failed: {type(exc).__name__}: {exc}")
             return
-    _render_run(result.out_dir)
+    st.session_state["last_run_dir"] = str(result.out_dir)
 
 
 def _render_run(run_dir: Path) -> None:
@@ -164,6 +171,8 @@ def _render_run(run_dir: Path) -> None:
     cols[2].metric("Coverage warnings", len(coverage_findings))
     cols[3].metric("Comparisons", metrics.get("comparison_decisions", 0))
     cols[4].metric("Absence searches", metrics.get("absence_searches", 0))
+
+    _render_quality_panel(findings=findings, metrics=metrics)
 
     st.subheader("Findings")
     if not review_findings:
@@ -242,6 +251,7 @@ def _render_finding(run_dir: Path, finding: dict[str, Any]) -> None:
         st.markdown(f"**Why it is flagged:** {_why_flagged(finding)}")
         st.caption(_finding_caption(finding))
         _render_micro_evidence(finding)
+        _render_reviewer_controls(run_dir, finding)
         if _has_explainability(finding):
             _render_explainability(finding)
         if finding.get("model_review_status") == "used":
@@ -563,8 +573,70 @@ def _render_citation(run_dir: Path, label: str, citation: dict[str, Any]) -> Non
         return
     st.caption(f"Page {citation.get('page')}")
     st.markdown(f"> {citation.get('quote')}")
+    with st.expander(f"View page highlight - {label}", expanded=False):
+        _render_page_highlight(run_dir, citation)
     with st.expander(f"View source crop - {label}", expanded=False):
         _render_crop(run_dir, citation)
+
+
+def _render_page_highlight(run_dir: Path, citation: dict[str, Any]) -> None:
+    overlay = _highlighted_page_image(run_dir, citation)
+    if overlay is None:
+        st.caption("Page overlay unavailable for this citation.")
+        return
+    st.image(overlay, use_container_width=True)
+
+
+def _highlighted_page_image(run_dir: Path, citation: dict[str, Any]) -> Image.Image | None:
+    page_record = _page_record_for_citation(run_dir, citation)
+    if not page_record:
+        return None
+    image_rel = str(page_record.get("page_image_path") or "")
+    if not image_rel:
+        return None
+    image_path = (run_dir / image_rel).resolve()
+    try:
+        image_path.relative_to(run_dir.resolve())
+    except ValueError:
+        return None
+    if not image_path.exists():
+        return None
+
+    image = Image.open(image_path).convert("RGB")
+    bbox = citation.get("bbox") or []
+    if not isinstance(bbox, list) or len(bbox) != 4:
+        return image
+    page_width = float(page_record.get("width") or 0)
+    page_height = float(page_record.get("height") or 0)
+    if page_width <= 0 or page_height <= 0:
+        return image
+    sx = image.width / page_width
+    sy = image.height / page_height
+    x0, y0, x1, y1 = [float(value) for value in bbox]
+    pad = 8
+    rect = [
+        max(0, int(x0 * sx) - pad),
+        max(0, int(y0 * sy) - pad),
+        min(image.width, int(x1 * sx) + pad),
+        min(image.height, int(y1 * sy) + pad),
+    ]
+    draw = ImageDraw.Draw(image, "RGBA")
+    draw.rectangle(rect, outline=(220, 38, 38, 255), width=5)
+    draw.rectangle(rect, fill=(220, 38, 38, 35))
+    label = f"p{citation.get('page', '')} cited evidence"
+    label_box = [rect[0], max(0, rect[1] - 26), min(image.width, rect[0] + 170), rect[1]]
+    draw.rectangle(label_box, fill=(220, 38, 38, 230))
+    draw.text((label_box[0] + 6, label_box[1] + 6), label, fill=(255, 255, 255, 255))
+    return image
+
+
+def _page_record_for_citation(run_dir: Path, citation: dict[str, Any]) -> dict[str, Any] | None:
+    doc_id = citation.get("doc_id")
+    page = citation.get("page")
+    for record in _records(run_dir / "pages.json"):
+        if record.get("doc_id") == doc_id and record.get("page_num") == page:
+            return record
+    return None
 
 
 def _render_crop(run_dir: Path, citation: dict[str, Any]) -> None:
@@ -633,6 +705,73 @@ def _citation_label(finding: dict[str, Any], side: str) -> str:
     if finding.get("mode") == "version":
         return "Baseline (Doc A)" if side == "A" else "Revised (Doc B)"
     return f"Doc {side}"
+
+
+def _render_quality_panel(*, findings: list[dict[str, Any]], metrics: dict[str, Any]) -> None:
+    review_findings = [finding for finding in findings if finding.get("finding_type") != "coverage_warning"]
+    cited_findings = sum(1 for finding in review_findings if _finding_has_citations(finding))
+    high_context = sum(1 for finding in review_findings if finding.get("context_support_confidence") == "high")
+    with st.expander("Review quality signals", expanded=True):
+        st.caption(
+            "Findings require direct citations and deterministic review logic. Graph/search/context are supporting signals, not proof by themselves."
+        )
+        cols = st.columns(4)
+        cols[0].metric("Cited findings", f"{cited_findings}/{len(review_findings)}")
+        cols[1].metric("High context support", high_context)
+        cols[2].metric("Evidence items", metrics.get("evidence", 0))
+        cols[3].metric("Decision traces", metrics.get("decision_traces", 0))
+
+
+def _finding_has_citations(finding: dict[str, Any]) -> bool:
+    citations = [finding.get("evidence_a"), finding.get("evidence_b")]
+    present = [citation for citation in citations if isinstance(citation, dict)]
+    return bool(present) and all(citation.get("page") and citation.get("quote") and citation.get("crop_path") for citation in present)
+
+
+def _render_reviewer_controls(run_dir: Path, finding: dict[str, Any]) -> None:
+    finding_id = str(finding.get("finding_id") or "")
+    if not finding_id:
+        return
+    current = _feedback_by_finding(run_dir).get(finding_id)
+    if current:
+        st.caption(f"Reviewer mark: {current.get('action', '').replace('_', ' ')}")
+    cols = st.columns([1, 1, 1, 4])
+    for column, label, action in [
+        (cols[0], "Accept", "accepted"),
+        (cols[1], "Needs review", "needs_review"),
+        (cols[2], "Dismiss", "dismissed"),
+    ]:
+        if column.button(label, key=f"feedback-{run_dir.name}-{finding_id}-{action}"):
+            _record_feedback(run_dir, finding_id=finding_id, action=action)
+            st.toast(f"Marked {finding_id} as {action.replace('_', ' ')}")
+            st.rerun()
+
+
+def _record_feedback(run_dir: Path, *, finding_id: str, action: str) -> None:
+    records = [
+        record
+        for record in _feedback_records(run_dir)
+        if record.get("finding_id") != finding_id
+    ]
+    records.append(
+        {
+            "finding_id": finding_id,
+            "action": action,
+            "recorded_at": datetime.now(UTC).isoformat(),
+        }
+    )
+    write_json(run_dir / "reviewer_feedback.json", records=records)
+
+
+def _feedback_by_finding(run_dir: Path) -> dict[str, dict[str, Any]]:
+    return {str(record.get("finding_id")): record for record in _feedback_records(run_dir)}
+
+
+def _feedback_records(run_dir: Path) -> list[dict[str, Any]]:
+    path = run_dir / "reviewer_feedback.json"
+    if not path.exists():
+        return []
+    return read_artifact(path).get("records", [])
 
 
 def _records(path: Path) -> list[dict[str, Any]]:

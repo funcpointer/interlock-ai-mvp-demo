@@ -1,13 +1,19 @@
 from pathlib import Path
 
+from PIL import Image
+
 import interlock_mvp.streamlit_app as app
+from interlock_mvp.core.artifacts import read_artifact, write_json
 from interlock_mvp.streamlit_app import (
     ARTIFACT_DOWNLOADS,
     WIKI_PREVIEW_FILES,
     _citation_label,
     _context_support_details,
     _download_name,
+    _feedback_by_finding,
+    _finding_has_citations,
     _finding_graph_dot,
+    _highlighted_page_image,
     _pairing_alternatives,
     _pairing_details,
     _comparison_details,
@@ -17,6 +23,7 @@ from interlock_mvp.streamlit_app import (
     _input_options,
     _mime_for,
     _new_run_dir,
+    _record_feedback,
     _preview_wiki_markdown,
     _safe_upload_name,
     _upload_errors,
@@ -84,6 +91,7 @@ def test_streamlit_exposes_context_layer_wiki_artifacts() -> None:
     assert "wiki/index.md" in ARTIFACT_DOWNLOADS
     assert "wiki/review-map.md" in ARTIFACT_DOWNLOADS
     assert "wiki/memory-palace.md" in ARTIFACT_DOWNLOADS
+    assert "reviewer_feedback.json" in ARTIFACT_DOWNLOADS
     assert WIKI_PREVIEW_FILES == ["wiki/index.md", "wiki/review-map.md", "wiki/memory-palace.md"]
     assert _download_name("wiki/index.md") == "wiki_index.md"
 
@@ -250,3 +258,50 @@ def test_pairing_alternatives_states_when_pool_had_no_rejections() -> None:
     assert _pairing_alternatives(finding) == [
         "Only one Doc B claim matched this parameter; no same-parameter alternatives were rejected."
     ]
+
+
+def test_finding_has_citations_requires_quote_page_and_crop() -> None:
+    assert _finding_has_citations(
+        {
+            "evidence_a": {"page": 1, "quote": "A", "crop_path": "crops/a.png"},
+            "evidence_b": {"page": 2, "quote": "B", "crop_path": "crops/b.png"},
+        }
+    )
+    assert not _finding_has_citations({"evidence_a": {"page": 1, "quote": "A"}})
+
+
+def test_page_highlight_draws_box_from_citation_bbox(tmp_path: Path) -> None:
+    crops = tmp_path / "crops"
+    crops.mkdir()
+    image_path = crops / "A_p1_full.png"
+    Image.new("RGB", (200, 200), "white").save(image_path)
+    write_json(
+        tmp_path / "pages.json",
+        records=[
+            {
+                "doc_id": "A",
+                "page_num": 1,
+                "width": 100.0,
+                "height": 100.0,
+                "page_image_path": "crops/A_p1_full.png",
+            }
+        ],
+    )
+
+    overlay = _highlighted_page_image(
+        tmp_path,
+        {"doc_id": "A", "page": 1, "bbox": [25.0, 25.0, 50.0, 50.0]},
+    )
+
+    assert overlay is not None
+    assert overlay.size == (200, 200)
+    assert overlay.getpixel((42, 42)) != (255, 255, 255)
+
+
+def test_reviewer_feedback_records_latest_action(tmp_path: Path) -> None:
+    _record_feedback(tmp_path, finding_id="find_00001", action="accepted")
+    _record_feedback(tmp_path, finding_id="find_00001", action="dismissed")
+
+    payload = read_artifact(tmp_path / "reviewer_feedback.json")
+    assert len(payload["records"]) == 1
+    assert _feedback_by_finding(tmp_path)["find_00001"]["action"] == "dismissed"
