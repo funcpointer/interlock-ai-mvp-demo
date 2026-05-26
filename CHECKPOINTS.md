@@ -1255,12 +1255,12 @@ Changed:
 - package summary no longer includes local run paths,
 - added regression test for deploy-artifact sanitization,
 - added `docs/VERCEL_DEPLOYMENT_2026-05-25.md`,
-- README now includes the deployed Vercel URL.
+- README now notes that the deployed URL is shared separately.
 
 Deployment:
 
 ```text
-https://interlock-ai-mvp-demo.vercel.app
+shared separately
 ```
 
 Validation result:
@@ -1312,7 +1312,7 @@ Changed:
 
 Deployment posture:
 
-- `https://interlock-ai-mvp-demo.vercel.app` remains the static VC URL.
+- The static VC URL is shared separately.
 - Streamlit is the private interactive URL path once connected to a GitHub repo
   or another Streamlit-capable host.
 - Hosted Streamlit falls back to upload-only mode if gitignored preset PDFs are

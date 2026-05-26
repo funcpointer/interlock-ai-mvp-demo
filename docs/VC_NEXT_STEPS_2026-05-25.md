@@ -168,8 +168,7 @@ Pitch the system as an expert-assist reviewer that makes human review faster, mo
 4. Fix cross-doc fixture noise from document/revision IDs.
 5. Add a third public cross-doc demo finding class: missing-item or reference conflict.
 6. Re-run coverage and evals.
-7. Done: deploy `runs/demo-package/site/` as a static URL:
-   `https://interlock-ai-mvp-demo.vercel.app`
+7. Done: deploy `runs/demo-package/site/` as a static URL, shared separately.
 8. Record demo video.
 
 ## Funding Readiness Bar

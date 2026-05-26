@@ -4,8 +4,7 @@ Status: pushed to GitHub and ready for Streamlit Cloud app creation.
 
 ## What Streamlit Cloud Needs
 
-- Public GitHub repository containing this project:
-  `https://github.com/funcpointer/interlock-ai-mvp-demo`
+- Public GitHub repository containing this project.
 - Branch: `main`.
 - Main file path: `streamlit_app.py`.
 - Python version: choose `3.12` in Streamlit Cloud advanced settings.
@@ -32,7 +31,7 @@ Private AES PDFs remain gitignored under `corpora/aes/docs/`.
 
 1. Open Streamlit Community Cloud.
 2. Create app from existing GitHub repo.
-3. Select repository `funcpointer/interlock-ai-mvp-demo`.
+3. Select the configured repository for this project.
 4. Select:
    - branch: `main`,
    - main file path: `streamlit_app.py`.
@@ -52,4 +51,4 @@ Private AES PDFs remain gitignored under `corpora/aes/docs/`.
 
 ## Current Blocker
 
-Streamlit Cloud app creation requires the account workspace UI. The source repo is ready and pushed; the remaining step is selecting repo `funcpointer/interlock-ai-mvp-demo`, branch `main`, and file `streamlit_app.py` in Streamlit Cloud.
+Streamlit Cloud app creation requires the account workspace UI. The source repo is ready; the remaining step is selecting the configured repository, branch `main`, and file `streamlit_app.py` in Streamlit Cloud.

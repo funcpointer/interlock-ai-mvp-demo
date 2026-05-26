@@ -3,13 +3,13 @@
 Production URL:
 
 ```text
-https://interlock-ai-mvp-demo.vercel.app
+shared separately
 ```
 
 Deployment inspector:
 
 ```text
-https://vercel.com/kalyanc-3430s-projects/interlock-ai-mvp-demo/HeGcXGXT5qSL9t9PuW5Kzab9C6ku
+shared separately
 ```
 
 Source deployed:
@@ -21,7 +21,7 @@ runs/demo-package/site/
 Deploy command used:
 
 ```bash
-npx -y vercel@latest deploy runs/demo-package/site --prod --yes --name interlock-ai-mvp-demo
+npx -y vercel@latest deploy runs/demo-package/site --prod --yes --name <project-name>
 ```
 
 Browser verification:
@@ -53,4 +53,3 @@ Security posture:
 - no copied wiki pages with local document paths,
 - exported metrics remove `env_keys_loaded`,
 - exported JSON text is sanitized for local filesystem paths and key names.
-

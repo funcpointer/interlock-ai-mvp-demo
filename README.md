@@ -9,8 +9,8 @@ CLI-first evidence review engine for comparing two engineering PDFs.
 - TDD: `docs/SUBMISSION_TDD.md`
 - Authorship/build note: `docs/SUBMISSION_AUTHORSHIP.md`
 - Demo video script: `docs/DEMO_VIDEO_SCRIPT.md`
-- Live Streamlit app: `https://interlock-ai-mvp-demo-ddptwdsnkhnf84zqf6nd3q.streamlit.app/`
-- Static read-only demo: `https://interlock-ai-mvp-demo.vercel.app`
+- Live prototype URL: shared separately.
+- Static read-only demo URL: shared separately.
 
 ```bash
 python -m interlock_mvp doctor
@@ -63,11 +63,7 @@ Deploy `runs/demo-package/site/` as a static site. This is the recommended VC
 sharing surface because it has no run button, no local path inputs, no server
 execution, and no access to files outside the exported artifacts.
 
-Current deployed VC demo:
-
-```text
-https://interlock-ai-mvp-demo.vercel.app
-```
+Current deployed VC demo URL is shared separately.
 
 For a dynamic upload/review app, use Streamlit:
 

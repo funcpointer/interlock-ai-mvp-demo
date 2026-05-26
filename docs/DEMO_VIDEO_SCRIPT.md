@@ -4,7 +4,7 @@ Target length: 3 minutes.
 
 ## 0:00-0:20 - Open
 
-Action: open `https://interlock-ai-mvp-demo-ddptwdsnkhnf84zqf6nd3q.streamlit.app/`.
+Action: open the shared live prototype URL.
 
 Voice-over:
 

@@ -2,9 +2,9 @@
 
 ## Links
 
-- Live prototype: `https://interlock-ai-mvp-demo-ddptwdsnkhnf84zqf6nd3q.streamlit.app/`
-- Static read-only demo: `https://interlock-ai-mvp-demo.vercel.app`
-- Source repo: `https://github.com/funcpointer/interlock-ai-mvp-demo`
+- Live prototype: shared separately.
+- Static read-only demo: shared separately.
+- Source repo: shared separately.
 - Demo video: TBD
 
 ## What To Review
